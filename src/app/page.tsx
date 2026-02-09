@@ -10,7 +10,6 @@ import {
   TrendingUp,
   Shield,
   CheckCircle,
-  Zap,
   ArrowRight,
   Search,
   ChevronDown,
@@ -20,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Briefcase,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
@@ -159,7 +159,7 @@ function HorizontalSlider({
   );
 }
 
-// Modern Service Card for homepage
+// Modern Service Card for homepage - minimalist design with fixed height
 function HomeServiceCard({ service }: { service: Service }) {
   const providerName = service.createdBy?.profile?.displayName || 'Utilisateur';
   const providerCity = service.createdBy?.profile?.city || service.city;
@@ -167,88 +167,83 @@ function HomeServiceCard({ service }: { service: Service }) {
   const ratingCount = service.createdBy?.reputation?.ratingCount || 0;
 
   return (
-    <Link href={`/services/${service.id}`} className="block snap-start">
+    <Link href={`/service/${service.id}`} className="block snap-start">
       <motion.div
-        whileHover={{ y: -6, scale: 1.02 }}
+        whileHover={{ y: -4 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        className="w-72 sm:w-80 bg-surface border border-border rounded-2xl overflow-hidden hover:border-primary/40 hover:shadow-xl transition-all duration-300"
+        className="w-72 sm:w-80 h-[260px] bg-surface border border-border rounded-2xl p-5 hover:border-primary/40 hover:shadow-lg transition-all duration-300 flex flex-col"
       >
-        {/* Card header with gradient */}
-        <div className="h-24 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent relative">
-          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-surface to-transparent" />
+        {/* Header: Badge + Price */}
+        <div className="flex items-start justify-between mb-3">
+          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+            service.kind === 'OFFER'
+              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+              : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+          }`}>
+            {service.kind === 'OFFER' ? 'Offre' : 'Demande'}
+          </span>
 
-          {/* Badge */}
-          <div className="absolute top-3 left-3">
-            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-              service.kind === 'OFFER'
-                ? 'bg-green-500/20 text-green-600 dark:text-green-400'
-                : 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
-            }`}>
-              {service.kind === 'OFFER' ? 'Offre' : 'Demande'}
-            </span>
+          <div className="text-right">
+            {service.priceMinCents ? (
+              <span className="text-lg font-bold text-primary">
+                {formatPrice(service.priceMinCents)}
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">À définir</span>
+            )}
           </div>
         </div>
 
-        {/* Card content */}
-        <div className="p-5 -mt-8 relative">
-          {/* Avatar */}
-          <div className="w-14 h-14 bg-surface border-4 border-surface rounded-xl shadow-md flex items-center justify-center overflow-hidden mb-4">
-            {service.createdBy?.profile?.avatarUrl ? (
-              <img
-                src={service.createdBy.profile.avatarUrl}
-                alt=""
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-primary/10 flex items-center justify-center">
-                <User className="w-6 h-6 text-primary" />
-              </div>
-            )}
-          </div>
+        {/* Title - fixed 2 lines */}
+        <h3 className="font-semibold text-base mb-2 line-clamp-2 leading-snug min-h-[2.5rem]">
+          {service.title}
+        </h3>
 
-          {/* Title */}
-          <h3 className="font-semibold text-lg mb-2 line-clamp-2 leading-tight">
-            {service.title}
-          </h3>
+        {/* Description - fixed 2 lines */}
+        <p className="text-sm text-muted-foreground line-clamp-2 mb-3 min-h-[2.5rem]">
+          {service.description || 'Aucune description disponible'}
+        </p>
 
-          {/* Provider info */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <span className="font-medium text-foreground">{providerName}</span>
-            {providerCity && (
-              <>
-                <span className="text-border">•</span>
-                <span className="flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5" />
-                  {providerCity}
-                </span>
-              </>
-            )}
-          </div>
-
-          {/* Footer with price and rating */}
-          <div className="flex items-center justify-between pt-4 border-t border-border">
-            <div>
-              {service.priceMinCents ? (
-                <span className="text-lg font-bold text-primary">
-                  {formatPrice(service.priceMinCents)}
-                  {service.priceMaxCents && service.priceMaxCents !== service.priceMinCents && (
-                    <span className="text-sm font-normal text-muted-foreground">
-                      {' '}- {formatPrice(service.priceMaxCents)}
-                    </span>
-                  )}
-                </span>
+        {/* Provider info + Location */}
+        <div className="flex items-center gap-3 text-sm text-muted-foreground mb-auto">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              {service.createdBy?.profile?.avatarUrl ? (
+                <img
+                  src={service.createdBy.profile.avatarUrl}
+                  alt=""
+                  className="w-full h-full rounded-full object-cover"
+                />
               ) : (
-                <span className="text-sm text-muted-foreground">Prix à définir</span>
+                <User className="w-3.5 h-3.5 text-primary" />
               )}
             </div>
-
-            {rating && ratingCount > 0 && (
-              <div className="flex items-center gap-1.5 bg-yellow-500/10 px-2.5 py-1 rounded-full">
-                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                <span className="text-sm font-medium">{rating.toFixed(1)}</span>
-              </div>
-            )}
+            <span className="font-medium text-foreground truncate max-w-24">{providerName}</span>
           </div>
+          {providerCity && (
+            <>
+              <span className="text-border">•</span>
+              <span className="flex items-center gap-1 truncate">
+                <MapPin className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{providerCity}</span>
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Footer: Rating */}
+        <div className="flex items-center justify-between pt-3 border-t border-border mt-3">
+          {rating && ratingCount > 0 ? (
+            <div className="flex items-center gap-1.5">
+              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+              <span className="text-sm font-medium">{rating.toFixed(1)}</span>
+              <span className="text-sm text-muted-foreground">({ratingCount} avis)</span>
+            </div>
+          ) : (
+            <span className="text-sm text-muted-foreground">Pas encore d'avis</span>
+          )}
+
+          <ArrowRight className="w-4 h-4 text-muted-foreground" />
         </div>
       </motion.div>
     </Link>
@@ -580,9 +575,9 @@ export default function HomePage() {
               <HorizontalSlider
                 title="Derniers services"
                 subtitle="Découvrez les dernières offres de la communauté"
-                icon={Zap}
-                iconColor="text-green-500"
-                iconBg="bg-green-500/10"
+                icon={Briefcase}
+                iconColor="text-primary"
+                iconBg="bg-primary/10"
                 viewAllLink="/search?kind=OFFER"
                 viewAllLabel="Voir tout"
               >
@@ -592,8 +587,8 @@ export default function HomePage() {
               </HorizontalSlider>
             ) : (
               <div className="text-center py-16 bg-muted/30 rounded-3xl">
-                <div className="w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Zap className="w-8 h-8 text-green-500" />
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Briefcase className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">Aucun service disponible</h3>
                 <p className="text-muted-foreground">Soyez le premier à proposer vos services !</p>

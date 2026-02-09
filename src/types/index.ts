@@ -27,6 +27,15 @@ export interface Profile {
   avatarUrl?: string;
   bio?: string;
   city?: string;
+  images?: ProfileImage[];
+}
+
+export interface ProfileImage {
+  id: string;
+  profileId: string;
+  url: string;
+  sortOrder: number;
+  createdAt: string;
 }
 
 export interface UserReputation {
@@ -54,6 +63,8 @@ export interface Tag {
 }
 
 // Service
+export type PricingType = 'HOURLY' | 'FIXED';
+
 export interface Service {
   id: string;
   kind: ServiceKind;
@@ -61,6 +72,8 @@ export interface Service {
   description: string;
   priceMinCents?: number;
   priceMaxCents?: number;
+  pricingType?: PricingType;
+  isVariablePrice?: boolean;
   currency: string;
   // Duration
   durationMinutes?: number;

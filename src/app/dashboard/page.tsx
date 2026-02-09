@@ -243,24 +243,24 @@ export default function DashboardPage() {
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black">
-                Bonjour, {user.name?.split(' ')[0] || 'là'}
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl sm:text-3xl font-black">
+                  Bonjour, {user.name?.split(' ')[0] || 'là'}
+                </h1>
+                <span className="text-xs px-3 py-1.5 rounded-full font-medium bg-gold-soft text-primary">
+                  {user.isBusiness ? 'Professionnel' : 'Particulier'}
+                </span>
+              </div>
               <p className="text-muted-foreground mt-1">
                 Gérez vos services et suivez vos missions
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs px-3 py-1.5 rounded-full font-medium bg-gold-soft text-primary">
-                {user.isBusiness ? 'Professionnel' : 'Particulier'}
-              </span>
-              <Link href={user.isBusiness ? '/business/services/new' : '/dashboard/services/new'}>
-                <Button className="rounded-xl">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Créer un service
-                </Button>
-              </Link>
-            </div>
+            <Link href={user.isBusiness ? '/business/services/new' : '/dashboard/services/new'}>
+              <Button className="rounded-xl">
+                <Plus className="w-4 h-4 mr-2" />
+                Créer un service
+              </Button>
+            </Link>
           </div>
         </motion.div>
 

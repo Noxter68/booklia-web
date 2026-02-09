@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, ChevronLeft, ChevronRight, Clock, Gift, Search, MapPin, Loader2, Navigation } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Clock, Gift, Search, MapPin, Loader2, Navigation, Rocket, FileText, Euro, Calendar, Info, Plus } from 'lucide-react';
+import { DateRangePicker } from '@/components/ui/date-picker';
+import { TimeRangePicker } from '@/components/ui/time-picker';
+import { Helper } from '@/components/ui/helper';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/toast';
@@ -12,10 +15,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageLoader } from '@/components/ui/spinner';
-import { ServiceKind, Urgency, Recurrence, Category, WeekDay } from '@/types';
+import { ServiceKind, Urgency, Recurrence, Category, WeekDay, ServiceStatus } from '@/types';
 import Link from 'next/link';
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4 | 5 | 6;
+
+type PricingType = 'HOURLY' | 'FIXED';
 
 interface FormData {
   kind: ServiceKind | null;
@@ -27,6 +32,8 @@ interface FormData {
   longitude: number | null;
   priceMinCents: number | null;
   priceMaxCents: number | null;
+  pricingType: PricingType;
+  isVariablePrice: boolean;
   urgency: Urgency;
   isRecurring: boolean;
   recurrence: Recurrence;
@@ -38,6 +45,7 @@ interface FormData {
   availableToTime: string | null;
   availableFromDate: string | null;
   availableToDate: string | null;
+  status: ServiceStatus;
 }
 
 const steps = [
@@ -46,6 +54,7 @@ const steps = [
   { number: 3, title: 'Détails', description: 'Titre et description' },
   { number: 4, title: 'Tarifs', description: 'Prix et options' },
   { number: 5, title: 'Disponibilités', description: 'Durée et horaires' },
+  { number: 6, title: 'Publication', description: 'Publier ou brouillon' },
 ];
 
 const WEEK_DAYS: { value: WeekDay; label: string; short: string }[] = [
@@ -74,6 +83,8 @@ export default function NewServicePage() {
     longitude: null,
     priceMinCents: null,
     priceMaxCents: null,
+    pricingType: 'HOURLY',
+    isVariablePrice: false,
     urgency: 'FLEXIBLE',
     isRecurring: false,
     recurrence: 'ONE_TIME',
@@ -84,6 +95,7 @@ export default function NewServicePage() {
     availableToTime: null,
     availableFromDate: null,
     availableToDate: null,
+    status: 'DRAFT',
   });
 
   const { data: categories, isLoading: categoriesLoading } = useQuery({
@@ -106,10 +118,16 @@ export default function NewServicePage() {
       availableToTime: data.availableToTime || undefined,
       availableFromDate: data.availableFromDate || undefined,
       availableToDate: data.availableToDate || undefined,
+      status: data.status,
     } as never),
-    onSuccess: (service) => {
-      success('Service créé avec succès !');
-      router.push(`/service/${service.id}`);
+    onSuccess: (service, variables) => {
+      if (variables.status === 'PUBLISHED') {
+        success('Votre annonce est maintenant en ligne !');
+        router.push(`/service/${service.id}`);
+      } else {
+        success('Brouillon enregistré avec succès');
+        router.push('/dashboard/services');
+      }
     },
     onError: (err) => {
       showError(err instanceof Error ? err.message : 'Erreur lors de la création');
@@ -132,13 +150,15 @@ export default function NewServicePage() {
         return formData.kind === 'OFFER' || (formData.priceMinCents && formData.priceMinCents > 0);
       case 5:
         return true; // Disponibilités optionnelles
+      case 6:
+        return true; // Publication choice always valid
       default:
         return false;
     }
   };
 
   const nextStep = () => {
-    if (step < 5 && canProceed()) {
+    if (step < 6 && canProceed()) {
       setStep((s) => (s + 1) as Step);
     }
   };
@@ -149,9 +169,10 @@ export default function NewServicePage() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (publishNow: boolean) => {
     if (!canProceed()) return;
-    createMutation.mutate(formData as Partial<FormData>);
+    const status: ServiceStatus = publishNow ? 'PUBLISHED' : 'DRAFT';
+    createMutation.mutate({ ...formData, status } as Partial<FormData>);
   };
 
   if (authLoading) {
@@ -258,6 +279,14 @@ export default function NewServicePage() {
                   onChange={(updates) => updateForm(updates)}
                 />
               )}
+              {step === 6 && (
+                <StepPublish
+                  formData={formData}
+                  isLoading={createMutation.isPending}
+                  onPublish={() => handleSubmit(true)}
+                  onSaveDraft={() => handleSubmit(false)}
+                />
+              )}
             </motion.div>
           </AnimatePresence>
         </CardContent>
@@ -275,18 +304,10 @@ export default function NewServicePage() {
           Précédent
         </Button>
 
-        {step < 5 ? (
+        {step < 6 && (
           <Button onClick={nextStep} disabled={!canProceed()} className="gap-2">
             Suivant
             <ChevronRight className="w-4 h-4" />
-          </Button>
-        ) : (
-          <Button
-            onClick={handleSubmit}
-            disabled={!canProceed() || createMutation.isPending}
-            isLoading={createMutation.isPending}
-          >
-            Créer le service
           </Button>
         )}
       </div>
@@ -632,45 +653,140 @@ function StepPricing({
   formData: FormData;
   onChange: (updates: Partial<FormData>) => void;
 }) {
-  const urgencyOptions: { value: Urgency; label: string }[] = [
-    { value: 'FLEXIBLE', label: 'Flexible' },
-    { value: 'SOON', label: 'Bientôt' },
-    { value: 'URGENT', label: 'Urgent' },
+  const urgencyOptions: { value: Urgency; label: string; description: string }[] = [
+    { value: 'FLEXIBLE', label: 'Flexible', description: 'Pas de contrainte de temps particulière' },
+    { value: 'SOON', label: 'Sous 7 jours', description: 'À réaliser dans la semaine' },
+    { value: 'URGENT', label: 'Urgent', description: 'Besoin immédiat, dans les 24-48h' },
   ];
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-lg font-semibold mb-4">Tarifs et options</h2>
+    <div className="space-y-8">
+      <h2 className="text-lg font-semibold">Tarifs et options</h2>
+
+      {/* Pricing Type */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <label className="text-sm font-medium">Type de tarification</label>
+          <Helper content="Choisissez si vous facturez à l'heure ou au forfait pour l'ensemble de la prestation." />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => onChange({ pricingType: 'HOURLY' })}
+            className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
+              formData.pricingType === 'HOURLY'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-primary/50'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                formData.pricingType === 'HOURLY' ? 'bg-primary/20' : 'bg-muted'
+              }`}>
+                <Clock className={`w-5 h-5 ${formData.pricingType === 'HOURLY' ? 'text-primary' : 'text-muted-foreground'}`} />
+              </div>
+              <div>
+                <div className="font-medium">Tarif horaire</div>
+                <div className="text-xs text-muted-foreground">Prix par heure</div>
+              </div>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ pricingType: 'FIXED' })}
+            className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
+              formData.pricingType === 'FIXED'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-primary/50'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                formData.pricingType === 'FIXED' ? 'bg-primary/20' : 'bg-muted'
+              }`}>
+                <Euro className={`w-5 h-5 ${formData.pricingType === 'FIXED' ? 'text-primary' : 'text-muted-foreground'}`} />
+              </div>
+              <div>
+                <div className="font-medium">Forfait</div>
+                <div className="text-xs text-muted-foreground">Prix fixe global</div>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
 
       {/* Price */}
       <div>
-        <label className="text-sm font-medium mb-2 block">
-          Prix de la prestation {formData.kind === 'REQUEST' && <span className="text-destructive">*</span>}
-        </label>
-        <div className="flex items-center gap-3">
-          <div className="flex-1">
-            <Input
-              type="number"
-              value={formData.priceMinCents ? formData.priceMinCents / 100 : ''}
-              onChange={(e) => onChange({ priceMinCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null })}
-              placeholder="Prix min"
-              min={0}
-            />
-          </div>
-          <span className="text-muted-foreground">à</span>
-          <div className="flex-1">
-            <Input
-              type="number"
-              value={formData.priceMaxCents ? formData.priceMaxCents / 100 : ''}
-              onChange={(e) => onChange({ priceMaxCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null })}
-              placeholder="Prix max"
-              min={0}
-            />
-          </div>
-          <span className="text-muted-foreground font-medium">€</span>
+        <div className="flex items-center gap-2 mb-3">
+          <label className="text-sm font-medium">
+            {formData.pricingType === 'HOURLY' ? 'Tarif horaire' : 'Prix du forfait'}
+            {formData.kind === 'REQUEST' && <span className="text-destructive ml-1">*</span>}
+          </label>
+          <Helper content={
+            formData.pricingType === 'HOURLY'
+              ? "Indiquez votre tarif à l'heure. Si votre prix varie, cochez l'option ci-dessous."
+              : "Indiquez le prix total de votre prestation."
+          } />
         </div>
-        {formData.kind === 'REQUEST' && (
-          <p className="text-xs text-muted-foreground mt-1">
+
+        <div className="bg-muted/30 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <label className="text-xs text-muted-foreground mb-1 block">Prix minimum</label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  value={formData.priceMinCents ? formData.priceMinCents / 100 : ''}
+                  onChange={(e) => onChange({ priceMinCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null })}
+                  placeholder="0"
+                  min={0}
+                  className="pr-12"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                  €{formData.pricingType === 'HOURLY' ? '/h' : ''}
+                </span>
+              </div>
+            </div>
+            {formData.isVariablePrice && (
+              <>
+                <div className="text-muted-foreground self-end pb-2">—</div>
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground mb-1 block">Prix maximum</label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      value={formData.priceMaxCents ? formData.priceMaxCents / 100 : ''}
+                      onChange={(e) => onChange({ priceMaxCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null })}
+                      placeholder="0"
+                      min={0}
+                      className="pr-12"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                      €{formData.pricingType === 'HOURLY' ? '/h' : ''}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Variable price checkbox */}
+          <label className="flex items-center gap-3 mt-4 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.isVariablePrice}
+              onChange={(e) => onChange({ isVariablePrice: e.target.checked, priceMaxCents: e.target.checked ? formData.priceMaxCents : null })}
+              className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+            />
+            <span className="text-sm">
+              Prix variable selon la prestation
+            </span>
+          </label>
+        </div>
+
+        {formData.kind === 'REQUEST' && !formData.priceMinCents && (
+          <p className="text-xs text-destructive mt-2 flex items-center gap-1">
+            <Info className="w-3.5 h-3.5" />
             Un budget minimum est requis pour les demandes
           </p>
         )}
@@ -678,51 +794,70 @@ function StepPricing({
 
       {/* Urgency */}
       <div>
-        <label className="text-sm font-medium mb-3 block">Urgence</label>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-2 mb-3">
+          <label className="text-sm font-medium">Délai souhaité</label>
+          <Helper content="Indiquez dans quel délai vous souhaitez que la prestation soit réalisée." />
+        </div>
+        <div className="space-y-2">
           {urgencyOptions.map((option) => (
-            <motion.button
+            <button
               key={option.value}
-              whileTap={{ scale: 0.95 }}
+              type="button"
               onClick={() => onChange({ urgency: option.value })}
-              className={`px-4 py-2 rounded-full border text-sm transition-colors cursor-pointer ${
+              className={`w-full p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
                 formData.urgency === option.value
-                  ? 'border-primary bg-primary text-primary-foreground'
+                  ? 'border-primary bg-primary/5'
                   : 'border-border hover:border-primary/50'
               }`}
             >
-              {option.label}
-            </motion.button>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{option.label}</div>
+                  <div className="text-xs text-muted-foreground">{option.description}</div>
+                </div>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                  formData.urgency === option.value
+                    ? 'border-primary bg-primary'
+                    : 'border-border'
+                }`}>
+                  {formData.urgency === option.value && (
+                    <Check className="w-3 h-3 text-primary-foreground" />
+                  )}
+                </div>
+              </div>
+            </button>
           ))}
         </div>
       </div>
 
       {/* Recurring */}
       <div>
-        <label className="text-sm font-medium mb-3 block">Service récurrent ?</label>
-        <div className="flex gap-2">
-          <motion.button
-            whileTap={{ scale: 0.95 }}
+        <label className="text-sm font-medium mb-3 block">Récurrence</label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
             onClick={() => onChange({ isRecurring: false, recurrence: 'ONE_TIME' })}
-            className={`px-4 py-2 rounded-full border text-sm transition-colors cursor-pointer ${
+            className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
               !formData.isRecurring
-                ? 'border-primary bg-primary text-primary-foreground'
+                ? 'border-primary bg-primary/5'
                 : 'border-border hover:border-primary/50'
             }`}
           >
-            Ponctuel
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
+            <div className="font-medium">Ponctuel</div>
+            <div className="text-xs text-muted-foreground">Une seule fois</div>
+          </button>
+          <button
+            type="button"
             onClick={() => onChange({ isRecurring: true })}
-            className={`px-4 py-2 rounded-full border text-sm transition-colors cursor-pointer ${
+            className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
               formData.isRecurring
-                ? 'border-primary bg-primary text-primary-foreground'
+                ? 'border-primary bg-primary/5'
                 : 'border-border hover:border-primary/50'
             }`}
           >
-            Récurrent
-          </motion.button>
+            <div className="font-medium">Récurrent</div>
+            <div className="text-xs text-muted-foreground">Plusieurs séances</div>
+          </button>
         </div>
 
         <AnimatePresence>
@@ -731,23 +866,23 @@ function StepPricing({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mt-4 flex flex-wrap gap-2"
+              className="mt-3 grid grid-cols-3 gap-2"
             >
               {(['WEEKLY', 'BIWEEKLY', 'MONTHLY'] as Recurrence[]).map((rec) => (
-                <motion.button
+                <button
                   key={rec}
-                  whileTap={{ scale: 0.95 }}
+                  type="button"
                   onClick={() => onChange({ recurrence: rec })}
-                  className={`px-3 py-1.5 rounded-full border text-xs transition-colors cursor-pointer ${
+                  className={`px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${
                     formData.recurrence === rec
-                      ? 'border-primary bg-primary/10 text-primary'
+                      ? 'border-primary bg-primary/10 text-primary font-medium'
                       : 'border-border hover:border-primary/50'
                   }`}
                 >
-                  {rec === 'WEEKLY' && 'Hebdomadaire'}
-                  {rec === 'BIWEEKLY' && 'Bi-hebdomadaire'}
-                  {rec === 'MONTHLY' && 'Mensuel'}
-                </motion.button>
+                  {rec === 'WEEKLY' && 'Chaque semaine'}
+                  {rec === 'BIWEEKLY' && 'Toutes les 2 sem.'}
+                  {rec === 'MONTHLY' && 'Chaque mois'}
+                </button>
               ))}
             </motion.div>
           )}
@@ -765,21 +900,19 @@ function StepAvailability({
   formData: FormData;
   onChange: (updates: Partial<FormData>) => void;
 }) {
-  const [durationUnit, setDurationUnit] = useState<'minutes' | 'hours'>('hours');
+  const [showCustomDuration, setShowCustomDuration] = useState(false);
+  const [customDurationInput, setCustomDurationInput] = useState('');
 
-  const durationValue = formData.durationMinutes
-    ? (durationUnit === 'hours' ? formData.durationMinutes / 60 : formData.durationMinutes)
-    : '';
+  const DURATION_PRESETS = [
+    { value: 30, label: '30 min' },
+    { value: 60, label: '1h' },
+    { value: 90, label: '1h30' },
+    { value: 120, label: '2h' },
+    { value: 180, label: '3h' },
+    { value: 240, label: '4h' },
+  ];
 
-  const handleDurationChange = (value: string) => {
-    if (!value) {
-      onChange({ durationMinutes: null });
-      return;
-    }
-    const numValue = parseFloat(value);
-    const minutes = durationUnit === 'hours' ? Math.round(numValue * 60) : Math.round(numValue);
-    onChange({ durationMinutes: minutes });
-  };
+  const isPresetDuration = DURATION_PRESETS.some(p => p.value === formData.durationMinutes);
 
   const toggleDay = (day: WeekDay) => {
     const currentDays = formData.availableDays;
@@ -802,60 +935,120 @@ function StepAvailability({
     onChange({ availableDays: WEEK_DAYS.map((d) => d.value) });
   };
 
+  const formatDuration = (minutes: number) => {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h${mins.toString().padStart(2, '0')}` : `${hours}h`;
+  };
+
+  const handleCustomDurationConfirm = () => {
+    const value = parseInt(customDurationInput);
+    if (value > 0) {
+      onChange({ durationMinutes: value });
+      setShowCustomDuration(false);
+      setCustomDurationInput('');
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <h2 className="text-lg font-semibold mb-4">Durée et disponibilités</h2>
+    <div className="space-y-8">
+      <h2 className="text-lg font-semibold">Durée et disponibilités</h2>
 
       {/* Duration */}
       <div>
-        <label className="text-sm font-medium mb-2 block">
-          <Clock className="w-4 h-4 inline mr-1" />
-          Durée de la prestation
-        </label>
-        <div className="flex items-center gap-3">
-          <div className="flex-1 max-w-32">
-            <Input
-              type="number"
-              value={durationValue}
-              onChange={(e) => handleDurationChange(e.target.value)}
-              placeholder="Durée"
-              min={0}
-              step={durationUnit === 'hours' ? 0.5 : 1}
-            />
-          </div>
-          <div className="flex gap-1">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                if (durationUnit !== 'minutes' && formData.durationMinutes) {
-                  // Conversion already stored in minutes
-                }
-                setDurationUnit('minutes');
-              }}
-              className={`px-3 py-2 rounded-l-full border text-sm transition-colors cursor-pointer ${
-                durationUnit === 'minutes'
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              Minutes
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setDurationUnit('hours')}
-              className={`px-3 py-2 rounded-r-full border-y border-r text-sm transition-colors cursor-pointer ${
-                durationUnit === 'hours'
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              Heures
-            </motion.button>
-          </div>
+        <div className="flex items-center gap-2 mb-4">
+          <label className="text-sm font-medium">Durée de la prestation</label>
+          <Helper content="Indiquez la durée estimée de votre prestation. Laissez vide si elle est variable." position="right" />
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          Laissez vide si la durée est variable
-        </p>
+
+        <div className="flex flex-wrap gap-2">
+          {DURATION_PRESETS.map((preset) => (
+            <button
+              key={preset.value}
+              type="button"
+              onClick={() => {
+                onChange({ durationMinutes: formData.durationMinutes === preset.value ? null : preset.value });
+                setShowCustomDuration(false);
+              }}
+              className={`px-5 py-3 rounded-xl border-2 text-sm font-medium transition-all cursor-pointer ${
+                formData.durationMinutes === preset.value
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border hover:border-primary/50'
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
+
+          {/* Custom duration - show badge if active, otherwise show + button */}
+          {formData.durationMinutes && !isPresetDuration ? (
+            <button
+              type="button"
+              onClick={() => {
+                onChange({ durationMinutes: null });
+                setShowCustomDuration(false);
+              }}
+              className="px-5 py-3 rounded-xl border-2 border-primary bg-primary/10 text-primary text-sm font-medium transition-all cursor-pointer"
+            >
+              {formatDuration(formData.durationMinutes)}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowCustomDuration(!showCustomDuration)}
+              className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all cursor-pointer ${
+                showCustomDuration
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border hover:border-primary/50 text-muted-foreground'
+              }`}
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Custom duration input popover */}
+        <AnimatePresence>
+          {showCustomDuration && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-4 p-4 bg-muted/30 rounded-xl border border-border">
+                <label className="text-sm font-medium mb-3 block">Durée personnalisée</label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number"
+                    value={customDurationInput}
+                    onChange={(e) => setCustomDurationInput(e.target.value)}
+                    placeholder="Ex: 45, 90, 180..."
+                    min={1}
+                    className="w-40"
+                    autoFocus
+                  />
+                  <span className="text-sm text-muted-foreground">minutes</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleCustomDurationConfirm}
+                    disabled={!customDurationInput || parseInt(customDurationInput) <= 0}
+                    className="rounded-lg"
+                  >
+                    Valider
+                  </Button>
+                </div>
+                {customDurationInput && parseInt(customDurationInput) > 0 && (
+                  <p className="text-sm text-primary mt-2">
+                    = {formatDuration(parseInt(customDurationInput))}
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Available Days */}
@@ -863,106 +1056,325 @@ function StepAvailability({
         <label className="text-sm font-medium mb-3 block">Jours de disponibilité</label>
 
         {/* Quick selections */}
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="flex flex-wrap gap-3 mb-4">
           <button
+            type="button"
             onClick={selectAllWeekdays}
-            className="text-xs text-primary hover:underline cursor-pointer"
+            className="text-sm text-primary hover:underline cursor-pointer"
           >
             Semaine
           </button>
           <span className="text-muted-foreground">•</span>
           <button
+            type="button"
             onClick={selectWeekend}
-            className="text-xs text-primary hover:underline cursor-pointer"
+            className="text-sm text-primary hover:underline cursor-pointer"
           >
             Week-end
           </button>
           <span className="text-muted-foreground">•</span>
           <button
+            type="button"
             onClick={selectAllDays}
-            className="text-xs text-primary hover:underline cursor-pointer"
+            className="text-sm text-primary hover:underline cursor-pointer"
           >
-            Tous les jours
+            Tous
           </button>
-          <span className="text-muted-foreground">•</span>
-          <button
-            onClick={() => onChange({ availableDays: [] })}
-            className="text-xs text-muted-foreground hover:underline cursor-pointer"
-          >
-            Effacer
-          </button>
+          {formData.availableDays.length > 0 && (
+            <>
+              <span className="text-muted-foreground">•</span>
+              <button
+                type="button"
+                onClick={() => onChange({ availableDays: [] })}
+                className="text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                Effacer
+              </button>
+            </>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2">
           {WEEK_DAYS.map((day) => (
-            <motion.button
+            <button
               key={day.value}
-              whileTap={{ scale: 0.95 }}
+              type="button"
               onClick={() => toggleDay(day.value)}
-              className={`w-12 h-12 rounded-lg border text-sm font-medium transition-colors cursor-pointer ${
+              className={`w-14 h-14 rounded-xl border-2 text-sm font-medium transition-all cursor-pointer ${
                 formData.availableDays.includes(day.value)
                   ? 'border-primary bg-primary text-primary-foreground'
                   : 'border-border hover:border-primary/50'
               }`}
             >
               {day.short}
-            </motion.button>
+            </button>
           ))}
         </div>
       </div>
 
       {/* Time Range */}
       <div>
-        <label className="text-sm font-medium mb-2 block">Plage horaire</label>
-        <div className="flex items-center gap-3">
-          <div className="flex-1">
-            <Input
-              type="time"
-              value={formData.availableFromTime || ''}
-              onChange={(e) => onChange({ availableFromTime: e.target.value || null })}
-            />
-            <span className="text-xs text-muted-foreground">À partir de</span>
-          </div>
-          <span className="text-muted-foreground">→</span>
-          <div className="flex-1">
-            <Input
-              type="time"
-              value={formData.availableToTime || ''}
-              onChange={(e) => onChange({ availableToTime: e.target.value || null })}
-            />
-            <span className="text-xs text-muted-foreground">Jusqu&apos;à</span>
-          </div>
+        <div className="flex items-center gap-2 mb-3">
+          <label className="text-sm font-medium">Plage horaire</label>
+          <Helper content="Les créneaux pendant lesquels vous êtes disponible pour cette prestation." />
         </div>
+        <TimeRangePicker
+          startTime={formData.availableFromTime}
+          endTime={formData.availableToTime}
+          onChange={(range) => onChange({
+            availableFromTime: range.start,
+            availableToTime: range.end,
+          })}
+          step={30}
+        />
       </div>
 
       {/* Date Range */}
       <div>
-        <label className="text-sm font-medium mb-2 block">Période de disponibilité</label>
-        <div className="flex items-center gap-3">
-          <div className="flex-1">
-            <Input
-              type="date"
-              value={formData.availableFromDate || ''}
-              onChange={(e) => onChange({ availableFromDate: e.target.value || null })}
-              min={new Date().toISOString().split('T')[0]}
-            />
-            <span className="text-xs text-muted-foreground">Du</span>
-          </div>
-          <span className="text-muted-foreground">→</span>
-          <div className="flex-1">
-            <Input
-              type="date"
-              value={formData.availableToDate || ''}
-              onChange={(e) => onChange({ availableToDate: e.target.value || null })}
-              min={formData.availableFromDate || new Date().toISOString().split('T')[0]}
-            />
-            <span className="text-xs text-muted-foreground">Au</span>
-          </div>
+        <div className="flex items-center gap-2 mb-3">
+          <label className="text-sm font-medium">Période de disponibilité</label>
+          <Helper content="Si votre service n'est disponible que pendant une période limitée, indiquez-la ici." />
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          Laissez vide si pas de limite de dates
+        <DateRangePicker
+          startDate={formData.availableFromDate ? new Date(formData.availableFromDate) : undefined}
+          endDate={formData.availableToDate ? new Date(formData.availableToDate) : undefined}
+          onChange={(range) => onChange({
+            availableFromDate: range.start ? range.start.toISOString().split('T')[0] : null,
+            availableToDate: range.end ? range.end.toISOString().split('T')[0] : null,
+          })}
+          minDate={new Date()}
+          startPlaceholder="Début"
+          endPlaceholder="Fin"
+        />
+        <p className="text-xs text-muted-foreground mt-2">
+          Laissez vide si toujours disponible
         </p>
       </div>
+    </div>
+  );
+}
+
+// Step 6: Publish or Save as Draft
+function StepPublish({
+  formData,
+  isLoading,
+  onPublish,
+  onSaveDraft,
+}: {
+  formData: FormData;
+  isLoading: boolean;
+  onPublish: () => void;
+  onSaveDraft: () => void;
+}) {
+  const formatDuration = (minutes: number) => {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h${mins.toString().padStart(2, '0')}` : `${hours}h`;
+  };
+
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(':');
+    return `${hours}h${minutes}`;
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const getUrgencyLabel = (urgency: Urgency) => {
+    switch (urgency) {
+      case 'FLEXIBLE': return 'Flexible';
+      case 'SOON': return 'Sous 7 jours';
+      case 'URGENT': return 'Urgent';
+    }
+  };
+
+  const getDaysLabel = () => {
+    if (formData.availableDays.length === 0) return null;
+    if (formData.availableDays.length === 7) return 'Tous les jours';
+    if (formData.availableDays.length === 5 &&
+        formData.availableDays.includes('MONDAY') &&
+        formData.availableDays.includes('FRIDAY')) return 'Semaine';
+    if (formData.availableDays.length === 2 &&
+        formData.availableDays.includes('SATURDAY') &&
+        formData.availableDays.includes('SUNDAY')) return 'Week-end';
+    return formData.availableDays.map(d => WEEK_DAYS.find(w => w.value === d)?.short).join(', ');
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Check className="w-8 h-8 text-primary" />
+        </div>
+        <h2 className="text-xl font-bold mb-2">Votre annonce est prête !</h2>
+        <p className="text-muted-foreground">
+          Vérifiez les informations avant de continuer
+        </p>
+      </div>
+
+      {/* Summary Card */}
+      <div className="bg-muted/30 rounded-xl p-5 mb-6">
+        <h3 className="font-semibold mb-4">Récapitulatif</h3>
+        <div className="space-y-3 text-sm">
+          {/* Type & Title */}
+          <div className="flex justify-between items-start pb-3 border-b border-border">
+            <div>
+              <span className="text-muted-foreground text-xs uppercase tracking-wide">Type</span>
+              <div className="font-medium">{formData.kind === 'OFFER' ? 'Offre de service' : 'Demande de service'}</div>
+            </div>
+          </div>
+
+          <div className="pb-3 border-b border-border">
+            <span className="text-muted-foreground text-xs uppercase tracking-wide">Titre</span>
+            <div className="font-medium">{formData.title}</div>
+          </div>
+
+          {/* Location */}
+          {formData.city && (
+            <div className="flex justify-between pb-3 border-b border-border">
+              <span className="text-muted-foreground">Localisation</span>
+              <span className="font-medium flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5" />
+                {formData.city}
+              </span>
+            </div>
+          )}
+
+          {/* Price */}
+          <div className="flex justify-between pb-3 border-b border-border">
+            <span className="text-muted-foreground">Tarif</span>
+            <span className="font-medium">
+              {formData.priceMinCents ? (
+                <>
+                  {(formData.priceMinCents / 100).toFixed(0)}€
+                  {formData.priceMaxCents && formData.isVariablePrice && ` - ${(formData.priceMaxCents / 100).toFixed(0)}€`}
+                  {formData.pricingType === 'HOURLY' && '/h'}
+                  <span className="text-muted-foreground text-xs ml-1">
+                    ({formData.pricingType === 'HOURLY' ? 'horaire' : 'forfait'})
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted-foreground">Non défini</span>
+              )}
+            </span>
+          </div>
+
+          {/* Urgency */}
+          <div className="flex justify-between pb-3 border-b border-border">
+            <span className="text-muted-foreground">Délai</span>
+            <span className="font-medium">{getUrgencyLabel(formData.urgency)}</span>
+          </div>
+
+          {/* Recurrence */}
+          <div className="flex justify-between pb-3 border-b border-border">
+            <span className="text-muted-foreground">Récurrence</span>
+            <span className="font-medium">
+              {formData.isRecurring ? (
+                <>
+                  {formData.recurrence === 'WEEKLY' && 'Hebdomadaire'}
+                  {formData.recurrence === 'BIWEEKLY' && 'Bi-hebdomadaire'}
+                  {formData.recurrence === 'MONTHLY' && 'Mensuel'}
+                </>
+              ) : (
+                'Ponctuel'
+              )}
+            </span>
+          </div>
+
+          {/* Duration */}
+          {formData.durationMinutes && (
+            <div className="flex justify-between pb-3 border-b border-border">
+              <span className="text-muted-foreground">Durée</span>
+              <span className="font-medium">{formatDuration(formData.durationMinutes)}</span>
+            </div>
+          )}
+
+          {/* Days */}
+          {getDaysLabel() && (
+            <div className="flex justify-between pb-3 border-b border-border">
+              <span className="text-muted-foreground">Jours</span>
+              <span className="font-medium">{getDaysLabel()}</span>
+            </div>
+          )}
+
+          {/* Time */}
+          {(formData.availableFromTime || formData.availableToTime) && (
+            <div className="flex justify-between pb-3 border-b border-border">
+              <span className="text-muted-foreground">Horaires</span>
+              <span className="font-medium">
+                {formData.availableFromTime && formatTime(formData.availableFromTime)}
+                {formData.availableFromTime && formData.availableToTime && ' - '}
+                {formData.availableToTime && formatTime(formData.availableToTime)}
+              </span>
+            </div>
+          )}
+
+          {/* Period */}
+          {(formData.availableFromDate || formData.availableToDate) && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Période</span>
+              <span className="font-medium">
+                {formData.availableFromDate && formatDate(formData.availableFromDate)}
+                {formData.availableFromDate && formData.availableToDate && ' → '}
+                {formData.availableToDate && formatDate(formData.availableToDate)}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Action Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={onPublish}
+          disabled={isLoading}
+          className="p-6 rounded-xl border-2 border-primary bg-primary/5 text-left transition-colors cursor-pointer hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
+            <Rocket className="w-6 h-6 text-primary" />
+          </div>
+          <h3 className="font-semibold text-lg mb-1">Publier maintenant</h3>
+          <p className="text-sm text-muted-foreground">
+            Votre annonce sera immédiatement visible par tous les utilisateurs
+          </p>
+          <div className="mt-4 inline-flex items-center gap-2 text-primary text-sm font-medium">
+            Mettre en ligne
+            <ChevronRight className="w-4 h-4" />
+          </div>
+        </motion.button>
+
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={onSaveDraft}
+          disabled={isLoading}
+          className="p-6 rounded-xl border-2 border-border text-left transition-colors cursor-pointer hover:border-muted-foreground/50 hover:bg-muted/30 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-4">
+            <FileText className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <h3 className="font-semibold text-lg mb-1">Enregistrer en brouillon</h3>
+          <p className="text-sm text-muted-foreground">
+            Vous pourrez modifier et publier votre annonce plus tard depuis votre tableau de bord
+          </p>
+          <div className="mt-4 inline-flex items-center gap-2 text-muted-foreground text-sm font-medium">
+            Sauvegarder
+            <ChevronRight className="w-4 h-4" />
+          </div>
+        </motion.button>
+      </div>
+
+      {isLoading && (
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mt-4">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Création en cours...
+        </div>
+      )}
     </div>
   );
 }

@@ -23,7 +23,7 @@ export default function BusinessSetupPage() {
   });
 
   // Get only parent categories (main categories)
-  const mainCategories = categories?.filter((c: { parentId: string | null }) => c.parentId !== null) || [];
+  const mainCategories = categories?.filter((c) => !c.parentId) || [];
 
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({

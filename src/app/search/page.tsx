@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, ChevronDown, ChevronRight, SlidersHorizontal, User, Building2, MapPin, Star, Navigation, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ServiceCard } from '@/components/services/service-card';
+import { CategoryDropdown } from '@/components/search/category-dropdown';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -740,63 +741,23 @@ function SearchContent() {
             </>
           )}
 
-          {/* Category dropdown - Desktop only */}
-          <div className="relative group">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                filters.categoryId
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-surface-2 text-foreground hover:bg-muted'
-              }`}
-            >
-              {selectedCategory?.name || 'Catégorie'}
-              <ChevronDown className="w-3.5 h-3.5" />
-              {filters.categoryId && (
-                <X
-                  className="w-3.5 h-3.5 hover:opacity-70"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    updateFilter('categoryId', undefined);
-                  }}
-                />
-              )}
-            </motion.button>
-
-            <div className="absolute top-full left-0 mt-2 w-72 bg-surface border border-border rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-              <div className="p-2">
-                <button
-                  onClick={() => updateFilter('categoryId', undefined)}
-                  className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors cursor-pointer"
-                >
-                  Toutes les catégories
-                </button>
-                {categories?.map((category) => (
-                  <div key={category.id}>
-                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-2">
-                      {category.name}
-                    </div>
-                    {category.children?.map((child) => (
-                      <button
-                        key={child.id}
-                        onClick={() => {
-                          updateFilter('categoryId', category.id);
-                          updateSubcategory(child.id);
-                        }}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
-                          subcategoryId === child.id
-                            ? 'bg-primary/10 text-primary'
-                            : 'hover:bg-muted'
-                        }`}
-                      >
-                        {child.name}
-                      </button>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          {/* Category dropdown - Desktop only - Two-column layout */}
+          <CategoryDropdown
+            categories={categories || []}
+            selectedCategoryId={filters.categoryId}
+            subcategoryId={subcategoryId}
+            onCategorySelect={(categoryId) => {
+              updateFilter('categoryId', categoryId);
+            }}
+            onSubcategorySelect={(categoryId, subId) => {
+              updateFilter('categoryId', categoryId);
+              updateSubcategory(subId);
+            }}
+            onClear={() => {
+              updateFilter('categoryId', undefined);
+              updateSubcategory(undefined);
+            }}
+          />
 
           <div className="w-px h-6 bg-border" />
 

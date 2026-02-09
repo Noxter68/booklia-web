@@ -97,6 +97,10 @@ class ApiClient {
     return this.request<import('@/types').Service[]>('/services/me/services');
   }
 
+  async getUserServices(userId: string) {
+    return this.request<import('@/types').Service[]>(`/services/user/${userId}`);
+  }
+
   // Bookings
   async createBooking(data: { serviceId: string; agreedPriceCents?: number; scheduledAt?: string }) {
     return this.request<import('@/types').Booking>('/bookings', {
@@ -457,6 +461,35 @@ class ApiClient {
 
   async reorderBusinessImages(imageIds: string[]) {
     return this.request<import('@/types').BusinessImage[]>('/business/images/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ imageIds }),
+    });
+  }
+
+  // Profile Images
+  async getMyProfileImages() {
+    return this.request<import('@/types').ProfileImage[]>('/users/me/images');
+  }
+
+  async getProfileImages(userId: string) {
+    return this.request<import('@/types').ProfileImage[]>(`/users/${userId}/images`);
+  }
+
+  async addProfileImage(url: string) {
+    return this.request<import('@/types').ProfileImage>('/users/me/images', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    });
+  }
+
+  async deleteProfileImage(id: string) {
+    return this.request<{ success: boolean }>(`/users/me/images/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async reorderProfileImages(imageIds: string[]) {
+    return this.request<import('@/types').ProfileImage[]>('/users/me/images/reorder', {
       method: 'PUT',
       body: JSON.stringify({ imageIds }),
     });

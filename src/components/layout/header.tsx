@@ -356,7 +356,7 @@ export function Header() {
                             </Link>
                           )}
                           <Link
-                            href="/settings"
+                            href="/dashboard/settings"
                             onClick={() => setUserMenuOpen(false)}
                             className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors cursor-pointer"
                           >
@@ -558,7 +558,7 @@ export function Header() {
                                 </Link>
                               )}
                               <Link
-                                href="/settings"
+                                href="/dashboard/settings"
                                 onClick={closeMobileMenu}
                                 className="flex items-center gap-4 p-4 rounded-2xl hover:bg-muted/50 transition-colors"
                               >
