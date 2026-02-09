@@ -213,6 +213,8 @@ export interface Business {
   isVerified: boolean;
   isActive: boolean;
   acceptsOnlineBooking: boolean;
+  isOnVacation: boolean;
+  vacationMessage?: string;
   createdAt: string;
   updatedAt: string;
   owner?: {
@@ -224,6 +226,7 @@ export interface Business {
   services?: BusinessService[];
   hours?: BusinessHours[];
   categories?: BusinessCategory[];
+  images?: BusinessImage[];
   _count?: {
     employees: number;
     services: number;
@@ -293,4 +296,12 @@ export interface BusinessCategory {
   _count?: {
     services: number;
   };
+}
+
+export interface BusinessImage {
+  id: string;
+  businessId: string;
+  url: string;
+  sortOrder: number;
+  createdAt: string;
 }

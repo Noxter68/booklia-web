@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Building2, MapPin, Phone, Mail, Globe, ArrowRight, Check } from 'lucide-react';
-import { useMutation } from '@tanstack/react-query';
+import { Building2, MapPin, Phone, Mail, Globe, ArrowRight, Check, Tag } from 'lucide-react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -16,10 +16,20 @@ export default function BusinessSetupPage() {
   const { user } = useAuth();
   const { success, error: showError } = useToast();
 
+  // Fetch categories for selection
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.getCategories(),
+  });
+
+  // Get only parent categories (main categories)
+  const mainCategories = categories?.filter((c: { parentId: string | null }) => c.parentId !== null) || [];
+
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    categoryId: '',
     phone: '',
     email: user?.email || '',
     website: '',
@@ -44,7 +54,7 @@ export default function BusinessSetupPage() {
   };
 
   const canProceed = () => {
-    if (step === 1) return formData.name.length >= 2;
+    if (step === 1) return formData.name.length >= 2 && formData.categoryId.length > 0;
     if (step === 2) return formData.city.length >= 2;
     return true;
   };
@@ -114,6 +124,32 @@ export default function BusinessSetupPage() {
                     rows={3}
                     className="w-full px-3 py-2 rounded-lg border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    <Tag className="w-4 h-4 inline mr-1" />
+                    Catégorie principale *
+                  </label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Permet aux clients de vous trouver lors de leurs recherches
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                    {mainCategories.map((category: { id: string; name: string }) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        onClick={() => updateField('categoryId', category.id)}
+                        className={`p-3 rounded-xl border text-left text-sm transition-colors cursor-pointer ${
+                          formData.categoryId === category.id
+                            ? 'border-primary bg-primary/5 text-primary font-medium'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </>

@@ -24,6 +24,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Crown,
+  Palmtree,
+  Image as ImageIcon,
+  GripVertical,
+  AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -34,7 +38,7 @@ import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { formatPrice } from '@/lib/utils';
 import { createPortal } from 'react-dom';
-import { Business, Employee, BusinessService, Booking, BookingStatus, BusinessHours, BusinessCategory } from '@/types';
+import { Business, Employee, BusinessService, Booking, BookingStatus, BusinessHours, BusinessCategory, BusinessImage } from '@/types';
 
 export default function BusinessDashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -772,6 +776,12 @@ export default function BusinessDashboardPage() {
           >
             <h2 className="text-xl font-bold mb-6">Paramètres</h2>
 
+            {/* Vacation Mode */}
+            <VacationModeEditor business={business} />
+
+            {/* Gallery Images */}
+            <BusinessGalleryEditor business={business} />
+
             {/* Business Hours */}
             <BusinessHoursEditor business={business} />
           </motion.div>
@@ -1471,6 +1481,245 @@ function EmployeeCard({ employee, onDelete }: { employee: Employee; onDelete: ()
               +{employee.services.length - 3}
             </Badge>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Vacation Mode Editor Component
+function VacationModeEditor({ business }: { business: Business }) {
+  const { success, error: showError } = useToast();
+  const queryClient = useQueryClient();
+
+  const [isOnVacation, setIsOnVacation] = useState(business.isOnVacation || false);
+  const [vacationMessage, setVacationMessage] = useState(business.vacationMessage || '');
+
+  const updateVacationMutation = useMutation({
+    mutationFn: () => api.updateVacationMode(isOnVacation, vacationMessage),
+    onSuccess: () => {
+      success(isOnVacation ? 'Mode vacances activé' : 'Mode vacances désactivé');
+      queryClient.invalidateQueries({ queryKey: ['my-business'] });
+    },
+    onError: () => showError('Erreur lors de la mise à jour'),
+  });
+
+  const handleSave = () => {
+    updateVacationMutation.mutate();
+  };
+
+  return (
+    <div className="bg-surface border border-border rounded-2xl p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="font-semibold flex items-center gap-2">
+            <Palmtree className="w-5 h-5" />
+            Mode vacances
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Activez le mode vacances pour informer vos clients et bloquer les réservations
+          </p>
+        </div>
+        <Button
+          onClick={handleSave}
+          disabled={updateVacationMutation.isPending}
+          className="rounded-full"
+        >
+          {updateVacationMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
+        </Button>
+      </div>
+
+      <div className="space-y-4">
+        {/* Toggle */}
+        <div className="flex items-center justify-between p-4 rounded-xl bg-background">
+          <div className="flex items-center gap-3">
+            {isOnVacation && (
+              <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
+                <Palmtree className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+            )}
+            <div>
+              <p className="font-medium">
+                {isOnVacation ? 'Mode vacances activé' : 'Mode vacances désactivé'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {isOnVacation
+                  ? 'Les clients ne peuvent pas prendre de rendez-vous'
+                  : 'Les clients peuvent prendre des rendez-vous normalement'}
+              </p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isOnVacation}
+              onChange={(e) => setIsOnVacation(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+          </label>
+        </div>
+
+        {/* Message */}
+        {isOnVacation && (
+          <div>
+            <label className="text-sm font-medium mb-2 block">
+              Message pour vos clients (optionnel)
+            </label>
+            <textarea
+              value={vacationMessage}
+              onChange={(e) => setVacationMessage(e.target.value)}
+              placeholder="Ex: Nous sommes en congés du 15 au 30 août. À très bientôt !"
+              rows={3}
+              maxLength={500}
+              className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Ce message sera affiché sur votre page publique
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Business Gallery Editor Component
+function BusinessGalleryEditor({ business }: { business: Business }) {
+  const { success, error: showError } = useToast();
+  const queryClient = useQueryClient();
+  const [newImageUrl, setNewImageUrl] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+
+  const images = business.images || [];
+
+  const addImageMutation = useMutation({
+    mutationFn: (url: string) => api.addBusinessImage(url),
+    onSuccess: () => {
+      success('Image ajoutée');
+      setNewImageUrl('');
+      setIsAdding(false);
+      queryClient.invalidateQueries({ queryKey: ['my-business'] });
+    },
+    onError: (err: Error) => showError(err.message || 'Erreur lors de l\'ajout'),
+  });
+
+  const deleteImageMutation = useMutation({
+    mutationFn: (id: string) => api.deleteBusinessImage(id),
+    onSuccess: () => {
+      success('Image supprimée');
+      queryClient.invalidateQueries({ queryKey: ['my-business'] });
+    },
+    onError: () => showError('Erreur lors de la suppression'),
+  });
+
+  const handleAddImage = () => {
+    if (newImageUrl.trim()) {
+      addImageMutation.mutate(newImageUrl.trim());
+    }
+  };
+
+  return (
+    <div className="bg-surface border border-border rounded-2xl p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="font-semibold flex items-center gap-2">
+            <ImageIcon className="w-5 h-5" />
+            Galerie photos
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Ajoutez jusqu'à 10 photos de votre établissement ({images.length}/10)
+          </p>
+        </div>
+        {images.length < 10 && !isAdding && (
+          <Button
+            onClick={() => setIsAdding(true)}
+            variant="outline"
+            className="rounded-full"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Ajouter
+          </Button>
+        )}
+      </div>
+
+      {/* Add Image Form */}
+      {isAdding && (
+        <div className="mb-6 p-4 rounded-xl bg-background border border-border">
+          <label className="text-sm font-medium mb-2 block">
+            URL de l'image
+          </label>
+          <div className="flex gap-2">
+            <Input
+              value={newImageUrl}
+              onChange={(e) => setNewImageUrl(e.target.value)}
+              placeholder="https://example.com/image.jpg"
+              className="flex-1"
+            />
+            <Button
+              onClick={handleAddImage}
+              disabled={!newImageUrl.trim() || addImageMutation.isPending}
+              isLoading={addImageMutation.isPending}
+              className="rounded-full"
+            >
+              Ajouter
+            </Button>
+            <Button
+              onClick={() => {
+                setIsAdding(false);
+                setNewImageUrl('');
+              }}
+              variant="outline"
+              className="rounded-full"
+            >
+              Annuler
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Utilisez une URL d'image hébergée (ex: Cloudinary, Imgur, etc.)
+          </p>
+        </div>
+      )}
+
+      {/* Images Grid */}
+      {images.length === 0 ? (
+        <div className="text-center py-8">
+          <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <ImageIcon className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground mb-2">Aucune photo</p>
+          <p className="text-sm text-muted-foreground">
+            Ajoutez des photos pour présenter votre établissement
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {images.map((image, index) => (
+            <div
+              key={image.id}
+              className="relative aspect-square rounded-xl overflow-hidden group"
+            >
+              <img
+                src={image.url}
+                alt={`Photo ${index + 1}`}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <button
+                  onClick={() => deleteImageMutation.mutate(image.id)}
+                  disabled={deleteImageMutation.isPending}
+                  className="p-2 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              {index === 0 && (
+                <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 text-white text-xs rounded-full">
+                  Principale
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>

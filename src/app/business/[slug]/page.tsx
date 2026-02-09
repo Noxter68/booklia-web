@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin,
   Phone,
@@ -18,14 +18,309 @@ import {
   Quote,
   MessageCircle,
   Edit3,
+  X,
+  ChevronLeft,
+  Palmtree,
+  Images,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { PageLoader } from '@/components/ui/spinner';
 import { formatPrice } from '@/lib/utils';
-import { BusinessService, Review, Booking } from '@/types';
+import { BusinessService, Review, Booking, BusinessImage } from '@/types';
 import { ReviewFormModal } from '@/components/reviews/review-form-modal';
+
+// Image Lightbox component
+function ImageLightbox({
+  images,
+  initialIndex,
+  onClose,
+}: {
+  images: BusinessImage[];
+  initialIndex: number;
+  onClose: () => void;
+}) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+  const goNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  }, [images.length]);
+
+  const goPrev = useCallback(() => {
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  }, [images.length]);
+
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'ArrowRight') goNext();
+      if (e.key === 'ArrowLeft') goPrev();
+      if (e.key === 'Escape') onClose();
+    },
+    [goNext, goPrev, onClose]
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+      onClick={onClose}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+    >
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+      >
+        <X className="w-6 h-6" />
+      </button>
+
+      {/* Image counter */}
+      <div className="absolute top-4 left-4 z-10 px-3 py-1.5 rounded-full bg-white/10 text-white text-sm">
+        {currentIndex + 1} / {images.length}
+      </div>
+
+      {/* Previous button */}
+      {images.length > 1 && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            goPrev();
+          }}
+          className="absolute left-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* Current image */}
+      <motion.img
+        key={currentIndex}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        src={images[currentIndex].url}
+        alt=""
+        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+        onClick={(e) => e.stopPropagation()}
+      />
+
+      {/* Next button */}
+      {images.length > 1 && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            goNext();
+          }}
+          className="absolute right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* Thumbnail strip */}
+      {images.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 px-4 py-2 rounded-full bg-black/50">
+          {images.map((img, idx) => (
+            <button
+              key={img.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentIndex(idx);
+              }}
+              className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
+                idx === currentIndex
+                  ? 'border-white scale-110'
+                  : 'border-transparent opacity-60 hover:opacity-100'
+              }`}
+            >
+              <img src={img.url} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// Image Gallery Mosaic component (Planity-style)
+function ImageGalleryMosaic({
+  images,
+  onImageClick,
+}: {
+  images: BusinessImage[];
+  onImageClick: (index: number) => void;
+}) {
+  if (!images || images.length === 0) return null;
+
+  // Sort images by sortOrder
+  const sortedImages = [...images].sort((a, b) => a.sortOrder - b.sortOrder);
+
+  // Single image layout
+  if (sortedImages.length === 1) {
+    return (
+      <div className="mb-6">
+        <button
+          onClick={() => onImageClick(0)}
+          className="w-full aspect-[21/9] rounded-2xl overflow-hidden relative group"
+        >
+          <img
+            src={sortedImages[0].url}
+            alt=""
+            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+        </button>
+      </div>
+    );
+  }
+
+  // 2-4 images: main image left, stack on right
+  if (sortedImages.length <= 4) {
+    return (
+      <div className="mb-6 grid grid-cols-3 gap-2 h-64 sm:h-80">
+        {/* Main image */}
+        <button
+          onClick={() => onImageClick(0)}
+          className="col-span-2 rounded-l-2xl overflow-hidden relative group"
+        >
+          <img
+            src={sortedImages[0].url}
+            alt=""
+            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+        </button>
+
+        {/* Right stack */}
+        <div className="flex flex-col gap-2">
+          {sortedImages.slice(1, 4).map((img, idx) => (
+            <button
+              key={img.id}
+              onClick={() => onImageClick(idx + 1)}
+              className={`flex-1 overflow-hidden relative group ${
+                idx === 0 ? 'rounded-tr-2xl' : ''
+              } ${idx === sortedImages.slice(1, 4).length - 1 ? 'rounded-br-2xl' : ''}`}
+            >
+              <img
+                src={img.url}
+                alt=""
+                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // 5+ images: Planity-style mosaic with "Voir les X photos" button
+  return (
+    <div className="mb-6 grid grid-cols-4 gap-2 h-64 sm:h-80">
+      {/* Main image - takes 2 columns */}
+      <button
+        onClick={() => onImageClick(0)}
+        className="col-span-2 row-span-2 rounded-l-2xl overflow-hidden relative group"
+      >
+        <img
+          src={sortedImages[0].url}
+          alt=""
+          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+      </button>
+
+      {/* Top right images */}
+      <button
+        onClick={() => onImageClick(1)}
+        className="overflow-hidden relative group"
+      >
+        <img
+          src={sortedImages[1].url}
+          alt=""
+          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+      </button>
+
+      <button
+        onClick={() => onImageClick(2)}
+        className="rounded-tr-2xl overflow-hidden relative group"
+      >
+        <img
+          src={sortedImages[2].url}
+          alt=""
+          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+      </button>
+
+      {/* Bottom right images */}
+      <button
+        onClick={() => onImageClick(3)}
+        className="overflow-hidden relative group"
+      >
+        <img
+          src={sortedImages[3].url}
+          alt=""
+          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+      </button>
+
+      {/* Last visible image with overlay for more */}
+      <button
+        onClick={() => onImageClick(4)}
+        className="rounded-br-2xl overflow-hidden relative group"
+      >
+        <img
+          src={sortedImages[4].url}
+          alt=""
+          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+        {sortedImages.length > 5 && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <span className="text-white font-medium flex items-center gap-1.5">
+              <Images className="w-4 h-4" />
+              +{sortedImages.length - 5}
+            </span>
+          </div>
+        )}
+      </button>
+    </div>
+  );
+}
+
+// Vacation Mode Banner component
+function VacationModeBanner({ message }: { message?: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 sm:p-5"
+    >
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+          <Palmtree className="w-5 h-5 text-amber-600" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-amber-700 dark:text-amber-400 mb-1">
+            Établissement en vacances
+          </h3>
+          <p className="text-sm text-amber-600/80 dark:text-amber-300/80">
+            {message || 'Ce salon est actuellement fermé pour congés. Les réservations en ligne ne sont pas disponibles.'}
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 // Day names helper
 const DAY_NAMES = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
@@ -53,12 +348,25 @@ function StarRating({ score, size = 'sm' }: { score: number; size?: 'sm' | 'md' 
 }
 
 // Service card component for public page
-function ServiceCard({ service, onSelect }: { service: BusinessService; onSelect: (service: BusinessService) => void }) {
+function ServiceCard({
+  service,
+  onSelect,
+  disabled = false
+}: {
+  service: BusinessService;
+  onSelect: (service: BusinessService) => void;
+  disabled?: boolean;
+}) {
   return (
     <motion.button
-      onClick={() => onSelect(service)}
-      className="w-full text-left bg-surface border border-border rounded-2xl p-4 sm:p-5 transition-all hover:border-primary/50 hover:shadow-md cursor-pointer active:scale-[0.99]"
-      whileTap={{ scale: 0.99 }}
+      onClick={() => !disabled && onSelect(service)}
+      className={`w-full text-left bg-surface border border-border rounded-2xl p-4 sm:p-5 transition-all ${
+        disabled
+          ? 'opacity-60 cursor-not-allowed'
+          : 'hover:border-primary/50 hover:shadow-md cursor-pointer active:scale-[0.99]'
+      }`}
+      whileTap={disabled ? {} : { scale: 0.99 }}
+      disabled={disabled}
     >
       <div className="flex items-start sm:items-center justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -152,6 +460,8 @@ export default function BusinessPublicPage() {
   const { user } = useAuth();
   const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
 
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
   const { data: business, isLoading } = useQuery({
     queryKey: ['business', slug],
     queryFn: () => api.getBusinessBySlug(slug as string),
@@ -162,6 +472,12 @@ export default function BusinessPublicPage() {
     queryKey: ['business-reviews', business?.id],
     queryFn: () => api.getBusinessReviews(business!.id),
     enabled: !!business?.id,
+  });
+
+  const { data: images } = useQuery({
+    queryKey: ['business-images', slug],
+    queryFn: () => api.getBusinessImages(slug as string),
+    enabled: !!slug,
   });
 
   // Get user's completed bookings with this business (to check if they can leave a review)
@@ -211,6 +527,23 @@ export default function BusinessPublicPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24 lg:pb-12 pt-24">
+      {/* Vacation Mode Banner */}
+      {business.isOnVacation && (
+        <div className="container mx-auto px-4 sm:px-6 mb-4">
+          <VacationModeBanner message={business.vacationMessage} />
+        </div>
+      )}
+
+      {/* Image Gallery Mosaic */}
+      {images && images.length > 0 && (
+        <div className="container mx-auto px-4 sm:px-6">
+          <ImageGalleryMosaic
+            images={images}
+            onImageClick={(index) => setLightboxIndex(index)}
+          />
+        </div>
+      )}
+
       {/* Business Header */}
       <div className="container mx-auto px-4 sm:px-6 mb-8">
         <motion.div
@@ -390,6 +723,7 @@ export default function BusinessPublicPage() {
                                   key={service.id}
                                   service={service}
                                   onSelect={handleServiceSelect}
+                                  disabled={business.isOnVacation}
                                 />
                               ))}
                             </div>
@@ -410,6 +744,7 @@ export default function BusinessPublicPage() {
                                   key={service.id}
                                   service={service}
                                   onSelect={handleServiceSelect}
+                                  disabled={business.isOnVacation}
                                 />
                               ))}
                             </div>
@@ -531,14 +866,17 @@ export default function BusinessPublicPage() {
                   Réserver
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Sélectionnez une prestation pour réserver un créneau
+                  {business.isOnVacation
+                    ? 'Les réservations sont suspendues pendant les vacances'
+                    : 'Sélectionnez une prestation pour réserver un créneau'}
                 </p>
                 {business.services && business.services.length > 0 && (
                   <Button
                     className="w-full rounded-full"
                     onClick={() => handleServiceSelect(business.services![0])}
+                    disabled={business.isOnVacation}
                   >
-                    Réserver maintenant
+                    {business.isOnVacation ? 'En vacances' : 'Réserver maintenant'}
                   </Button>
                 )}
               </div>
@@ -676,10 +1014,19 @@ export default function BusinessPublicPage() {
               handleServiceSelect(business.services[0]);
             }
           }}
-          disabled={!business.services || business.services.length === 0}
+          disabled={!business.services || business.services.length === 0 || business.isOnVacation}
         >
-          <Calendar className="w-5 h-5 mr-2" />
-          Réserver maintenant
+          {business.isOnVacation ? (
+            <>
+              <Palmtree className="w-5 h-5 mr-2" />
+              En vacances
+            </>
+          ) : (
+            <>
+              <Calendar className="w-5 h-5 mr-2" />
+              Réserver maintenant
+            </>
+          )}
         </Button>
       </div>
 
@@ -692,6 +1039,17 @@ export default function BusinessPublicPage() {
           reviewType="REVIEW_PROVIDER"
         />
       )}
+
+      {/* Image Lightbox */}
+      <AnimatePresence>
+        {lightboxIndex !== null && images && images.length > 0 && (
+          <ImageLightbox
+            images={images}
+            initialIndex={lightboxIndex}
+            onClose={() => setLightboxIndex(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

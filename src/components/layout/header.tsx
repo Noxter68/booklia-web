@@ -120,7 +120,7 @@ export function Header() {
         <div className="bg-surface border border-border/50 rounded-2xl shadow-lg shadow-black/5 px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="text-xl font-bold">
-            Acote
+            Sidely
           </Link>
 
           {/* Navigation */}

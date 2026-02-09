@@ -213,6 +213,7 @@ class ApiClient {
   async createBusiness(data: {
     name: string;
     description?: string;
+    categoryId?: string;
     phone?: string;
     email?: string;
     website?: string;
@@ -247,6 +248,7 @@ class ApiClient {
     categoryId?: string;
     limit?: number;
     offset?: number;
+    sortBy?: 'recent' | 'popular' | 'rating';
   }) {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
@@ -420,6 +422,43 @@ class ApiClient {
   async deleteBusinessCategory(id: string) {
     return this.request<{ success: boolean }>(`/business/categories/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  // Vacation Mode
+  async updateVacationMode(isOnVacation: boolean, vacationMessage?: string) {
+    return this.request<import('@/types').Business>('/business/vacation', {
+      method: 'PUT',
+      body: JSON.stringify({ isOnVacation, vacationMessage }),
+    });
+  }
+
+  // Business Images
+  async getMyBusinessImages() {
+    return this.request<import('@/types').BusinessImage[]>('/business/images/mine');
+  }
+
+  async getBusinessImages(slug: string) {
+    return this.request<import('@/types').BusinessImage[]>(`/business/${slug}/images`);
+  }
+
+  async addBusinessImage(url: string) {
+    return this.request<import('@/types').BusinessImage>('/business/images', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    });
+  }
+
+  async deleteBusinessImage(id: string) {
+    return this.request<{ success: boolean }>(`/business/images/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async reorderBusinessImages(imageIds: string[]) {
+    return this.request<import('@/types').BusinessImage[]>('/business/images/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ imageIds }),
     });
   }
 }

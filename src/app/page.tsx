@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import {
   Star,
@@ -11,73 +11,360 @@ import {
   Shield,
   CheckCircle,
   Zap,
-  MessageCircle,
   ArrowRight,
   Search,
   ChevronDown,
   MapPin,
   User,
   Building2,
-  Navigation,
-  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
-import { ServiceCard } from '@/components/services/service-card';
 import { Service, Business } from '@/types';
+import { formatPrice } from '@/lib/utils';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0 },
 };
 
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
+// Horizontal Slider component with navigation arrows
+function HorizontalSlider({
+  children,
+  title,
+  subtitle,
+  icon: Icon,
+  iconColor,
+  iconBg,
+  viewAllLink,
+  viewAllLabel,
+}: {
+  children: React.ReactNode;
+  title: string;
+  subtitle: string;
+  icon: React.ElementType;
+  iconColor: string;
+  iconBg: string;
+  viewAllLink: string;
+  viewAllLabel: string;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
-// Business card component for homepage
-function HomeBusinessCard({ business }: { business: Business }) {
+  const checkScrollability = useCallback(() => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkScrollability();
+    const ref = scrollRef.current;
+    if (ref) {
+      ref.addEventListener('scroll', checkScrollability);
+      window.addEventListener('resize', checkScrollability);
+      return () => {
+        ref.removeEventListener('scroll', checkScrollability);
+        window.removeEventListener('resize', checkScrollability);
+      };
+    }
+  }, [checkScrollability]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = scrollRef.current.clientWidth * 0.8;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
+
   return (
-    <Link href={`/business/${business.slug}`}>
-      <motion.div
-        whileHover={{ y: -4 }}
-        className="bg-surface border border-border rounded-2xl p-5 h-full hover:border-primary/30 hover:shadow-lg transition-all cursor-pointer"
+    <div>
+      {/* Header with title and navigation */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center`}>
+              <Icon className={`w-5 h-5 ${iconColor}`} />
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold">{title}</h2>
+          </div>
+          <p className="text-muted-foreground">{subtitle}</p>
+        </div>
+
+        {/* Navigation arrows and view all button */}
+        <div className="flex items-center gap-3">
+          {/* Arrow buttons - hidden on mobile */}
+          <div className="hidden sm:flex items-center gap-2">
+            <button
+              onClick={() => scroll('left')}
+              disabled={!canScrollLeft}
+              className={`w-10 h-10 rounded-full border border-border flex items-center justify-center transition-all ${
+                canScrollLeft
+                  ? 'hover:bg-muted hover:border-primary/30 cursor-pointer'
+                  : 'opacity-40 cursor-not-allowed'
+              }`}
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => scroll('right')}
+              disabled={!canScrollRight}
+              className={`w-10 h-10 rounded-full border border-border flex items-center justify-center transition-all ${
+                canScrollRight
+                  ? 'hover:bg-muted hover:border-primary/30 cursor-pointer'
+                  : 'opacity-40 cursor-not-allowed'
+              }`}
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+
+          <Link href={viewAllLink}>
+            <Button variant="outline" className="rounded-full hidden md:flex">
+              {viewAllLabel}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Scrollable container */}
+      <div
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        <div className="flex items-start gap-4 mb-3">
-          <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
-            {business.logoUrl ? (
-              <img src={business.logoUrl} alt="" className="w-full h-full rounded-xl object-cover" />
+        {children}
+      </div>
+
+      {/* Mobile view all button */}
+      <div className="md:hidden mt-6 text-center">
+        <Link href={viewAllLink}>
+          <Button variant="outline" className="rounded-full">
+            {viewAllLabel}
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// Modern Service Card for homepage
+function HomeServiceCard({ service }: { service: Service }) {
+  const providerName = service.createdBy?.profile?.displayName || 'Utilisateur';
+  const providerCity = service.createdBy?.profile?.city || service.city;
+  const rating = service.createdBy?.reputation?.ratingAvg5;
+  const ratingCount = service.createdBy?.reputation?.ratingCount || 0;
+
+  return (
+    <Link href={`/services/${service.id}`} className="block snap-start">
+      <motion.div
+        whileHover={{ y: -6, scale: 1.02 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+        className="w-72 sm:w-80 bg-surface border border-border rounded-2xl overflow-hidden hover:border-primary/40 hover:shadow-xl transition-all duration-300"
+      >
+        {/* Card header with gradient */}
+        <div className="h-24 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent relative">
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-surface to-transparent" />
+
+          {/* Badge */}
+          <div className="absolute top-3 left-3">
+            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+              service.kind === 'OFFER'
+                ? 'bg-green-500/20 text-green-600 dark:text-green-400'
+                : 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+            }`}>
+              {service.kind === 'OFFER' ? 'Offre' : 'Demande'}
+            </span>
+          </div>
+        </div>
+
+        {/* Card content */}
+        <div className="p-5 -mt-8 relative">
+          {/* Avatar */}
+          <div className="w-14 h-14 bg-surface border-4 border-surface rounded-xl shadow-md flex items-center justify-center overflow-hidden mb-4">
+            {service.createdBy?.profile?.avatarUrl ? (
+              <img
+                src={service.createdBy.profile.avatarUrl}
+                alt=""
+                className="w-full h-full object-cover"
+              />
             ) : (
-              <Building2 className="w-7 h-7 text-primary" />
+              <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                <User className="w-6 h-6 text-primary" />
+              </div>
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold truncate">{business.name}</h3>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-              {business.city && (
+
+          {/* Title */}
+          <h3 className="font-semibold text-lg mb-2 line-clamp-2 leading-tight">
+            {service.title}
+          </h3>
+
+          {/* Provider info */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+            <span className="font-medium text-foreground">{providerName}</span>
+            {providerCity && (
+              <>
+                <span className="text-border">•</span>
                 <span className="flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5" />
-                  {business.city}
+                  {providerCity}
                 </span>
+              </>
+            )}
+          </div>
+
+          {/* Footer with price and rating */}
+          <div className="flex items-center justify-between pt-4 border-t border-border">
+            <div>
+              {service.priceMinCents ? (
+                <span className="text-lg font-bold text-primary">
+                  {formatPrice(service.priceMinCents)}
+                  {service.priceMaxCents && service.priceMaxCents !== service.priceMinCents && (
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {' '}- {formatPrice(service.priceMaxCents)}
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground">Prix à définir</span>
               )}
-              {business.owner?.reputation && business.owner.reputation.ratingCount > 0 && (
-                <span className="flex items-center gap-1">
-                  <Star className="w-3.5 h-3.5 text-yellow-500" />
-                  {business.owner.reputation.ratingAvg5.toFixed(1)}
-                </span>
+            </div>
+
+            {rating && ratingCount > 0 && (
+              <div className="flex items-center gap-1.5 bg-yellow-500/10 px-2.5 py-1 rounded-full">
+                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                <span className="text-sm font-medium">{rating.toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </Link>
+  );
+}
+
+// Modern Business Card for homepage
+function HomeBusinessCard({ business }: { business: Business }) {
+  const rating = business.owner?.reputation?.ratingAvg5;
+  const ratingCount = business.owner?.reputation?.ratingCount || 0;
+  const serviceCount = business._count?.services || business.services?.length || 0;
+
+  return (
+    <Link href={`/business/${business.slug}`} className="block snap-start">
+      <motion.div
+        whileHover={{ y: -6, scale: 1.02 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+        className="w-72 sm:w-80 bg-surface border border-border rounded-2xl overflow-hidden hover:border-primary/40 hover:shadow-xl transition-all duration-300"
+      >
+        {/* Cover image or gradient */}
+        <div className="h-32 relative">
+          {business.coverUrl ? (
+            <img
+              src={business.coverUrl}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-primary/30 via-primary/20 to-primary/5" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+          {/* Verified badge */}
+          {business.isVerified && (
+            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1">
+              <CheckCircle className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-medium text-primary">Vérifié</span>
+            </div>
+          )}
+
+          {/* Logo overlay */}
+          <div className="absolute -bottom-6 left-5">
+            <div className="w-16 h-16 bg-surface border-4 border-surface rounded-2xl shadow-lg flex items-center justify-center overflow-hidden">
+              {business.logoUrl ? (
+                <img
+                  src={business.logoUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                  <Building2 className="w-7 h-7 text-primary" />
+                </div>
               )}
             </div>
           </div>
         </div>
-        {business.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {business.description}
-          </p>
-        )}
+
+        {/* Card content */}
+        <div className="p-5 pt-8">
+          {/* Business name */}
+          <h3 className="font-semibold text-lg mb-1 truncate">{business.name}</h3>
+
+          {/* Location and services count */}
+          <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
+            {business.city && (
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5" />
+                {business.city}
+              </span>
+            )}
+            {serviceCount > 0 && (
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                {serviceCount} prestation{serviceCount > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+
+          {/* Description */}
+          {business.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+              {business.description}
+            </p>
+          )}
+
+          {/* Footer with rating */}
+          <div className="flex items-center justify-between pt-4 border-t border-border">
+            {rating && ratingCount > 0 ? (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Star
+                      key={i}
+                      className={`w-4 h-4 ${
+                        i <= Math.round(rating)
+                          ? 'text-yellow-500 fill-yellow-500'
+                          : 'text-muted-foreground/30'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  ({ratingCount})
+                </span>
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">Nouveau</span>
+            )}
+
+            <span className="text-sm font-medium text-primary flex items-center gap-1">
+              Voir
+              <ArrowRight className="w-4 h-4" />
+            </span>
+          </div>
+        </div>
       </motion.div>
     </Link>
   );
@@ -87,76 +374,26 @@ export default function HomePage() {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [searchType, setSearchType] = useState<'services' | 'businesses'>('services');
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationLoading, setLocationLoading] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   // Fetch latest offers (services with kind=OFFER)
   const { data: latestOffers } = useQuery({
-    queryKey: ['latestOffers', userLocation],
+    queryKey: ['latestOffers'],
     queryFn: () => api.searchServices({
       kind: 'OFFER',
-      limit: 5,
-      ...(userLocation && { lat: userLocation.lat, lng: userLocation.lng, radius: 50 }),
+      limit: 10,
     }),
   });
 
-  // Fetch latest requests (services with kind=REQUEST)
-  const { data: latestRequests } = useQuery({
-    queryKey: ['latestRequests', userLocation],
-    queryFn: () => api.searchServices({
-      kind: 'REQUEST',
-      limit: 5,
-      ...(userLocation && { lat: userLocation.lat, lng: userLocation.lng, radius: 50 }),
-    }),
-  });
-
-  // Fetch latest businesses
+  // Fetch latest businesses (sorted by most recent)
   const { data: latestBusinesses } = useQuery({
-    queryKey: ['latestBusinesses', userLocation],
+    queryKey: ['latestBusinesses'],
     queryFn: () => api.searchBusinesses({
-      limit: 5,
-      ...(userLocation && { lat: userLocation.lat, lng: userLocation.lng, radius: 50 }),
+      limit: 10,
+      sortBy: 'recent',
     }),
   });
-
-  // Auto-request location on mount
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        () => {
-          // Location denied or error - continue without location
-        },
-        { enableHighAccuracy: false, timeout: 5000 }
-      );
-    }
-  }, []);
-
-  const requestLocation = useCallback(() => {
-    if (!navigator.geolocation) return;
-
-    setLocationLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setUserLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-        setLocationLoading(false);
-      },
-      () => {
-        setLocationLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -313,31 +550,6 @@ export default function HomePage() {
               </div>
             </div>
           </motion.form>
-
-          {/* Location indicator */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="flex justify-center"
-          >
-            <button
-              onClick={requestLocation}
-              disabled={locationLoading}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all cursor-pointer ${
-                userLocation
-                  ? 'bg-white/20 text-white'
-                  : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
-              }`}
-            >
-              {locationLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Navigation className={`w-4 h-4 ${userLocation ? 'text-green-400' : ''}`} />
-              )}
-              {userLocation ? 'Recherche autour de moi' : 'Activer la géolocalisation'}
-            </button>
-          </motion.div>
         </div>
 
         <motion.div
@@ -355,7 +567,7 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* Latest Offers Section */}
+      {/* Latest Services Section */}
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <motion.div
@@ -363,183 +575,72 @@ export default function HomePage() {
             whileInView="visible"
             viewport={{ once: true, margin: '-100px' }}
             variants={fadeInUp}
-            className="flex items-center justify-between mb-8"
           >
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
-                  <Zap className="w-4 h-4 text-green-500" />
+            {latestOffers?.data && latestOffers.data.length > 0 ? (
+              <HorizontalSlider
+                title="Derniers services"
+                subtitle="Découvrez les dernières offres de la communauté"
+                icon={Zap}
+                iconColor="text-green-500"
+                iconBg="bg-green-500/10"
+                viewAllLink="/search?kind=OFFER"
+                viewAllLabel="Voir tout"
+              >
+                {latestOffers.data.map((service) => (
+                  <HomeServiceCard key={service.id} service={service} />
+                ))}
+              </HorizontalSlider>
+            ) : (
+              <div className="text-center py-16 bg-muted/30 rounded-3xl">
+                <div className="w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Zap className="w-8 h-8 text-green-500" />
                 </div>
-                <h2 className="text-2xl md:text-3xl font-bold">Dernières offres</h2>
+                <h3 className="font-semibold text-lg mb-2">Aucun service disponible</h3>
+                <p className="text-muted-foreground">Soyez le premier à proposer vos services !</p>
               </div>
-              <p className="text-muted-foreground">
-                Découvrez les services proposés par la communauté
-              </p>
-            </div>
-            <Link href="/search?kind=OFFER">
-              <Button variant="outline" className="rounded-full hidden sm:flex">
-                Voir tout
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
+            )}
           </motion.div>
-
-          {latestOffers?.data && latestOffers.data.length > 0 ? (
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={staggerContainer}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"
-            >
-              {latestOffers.data.slice(0, 5).map((service) => (
-                <motion.div key={service.id} variants={fadeInUp}>
-                  <ServiceCard service={service} />
-                </motion.div>
-              ))}
-            </motion.div>
-          ) : (
-            <div className="text-center py-12 bg-muted/30 rounded-2xl">
-              <Zap className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Aucune offre disponible pour le moment</p>
-            </div>
-          )}
-
-          <div className="sm:hidden mt-6 text-center">
-            <Link href="/search?kind=OFFER">
-              <Button variant="outline" className="rounded-full">
-                Voir toutes les offres
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Latest Requests Section */}
-      <section className="py-16 md:py-24 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            variants={fadeInUp}
-            className="flex items-center justify-between mb-8"
-          >
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                  <MessageCircle className="w-4 h-4 text-blue-500" />
-                </div>
-                <h2 className="text-2xl md:text-3xl font-bold">Dernières demandes</h2>
-              </div>
-              <p className="text-muted-foreground">
-                Des personnes ont besoin de vos compétences
-              </p>
-            </div>
-            <Link href="/search?kind=REQUEST">
-              <Button variant="outline" className="rounded-full hidden sm:flex">
-                Voir tout
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          </motion.div>
-
-          {latestRequests?.data && latestRequests.data.length > 0 ? (
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={staggerContainer}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"
-            >
-              {latestRequests.data.slice(0, 5).map((service) => (
-                <motion.div key={service.id} variants={fadeInUp}>
-                  <ServiceCard service={service} />
-                </motion.div>
-              ))}
-            </motion.div>
-          ) : (
-            <div className="text-center py-12 bg-surface rounded-2xl border border-border">
-              <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Aucune demande disponible pour le moment</p>
-            </div>
-          )}
-
-          <div className="sm:hidden mt-6 text-center">
-            <Link href="/search?kind=REQUEST">
-              <Button variant="outline" className="rounded-full">
-                Voir toutes les demandes
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          </div>
         </div>
       </section>
 
       {/* Latest Businesses Section */}
-      <section className="py-16 md:py-24">
+      <section className="py-16 md:py-24 bg-muted/30">
         <div className="container mx-auto px-4">
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-100px' }}
             variants={fadeInUp}
-            className="flex items-center justify-between mb-8"
           >
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Building2 className="w-4 h-4 text-primary" />
+            {latestBusinesses?.data && latestBusinesses.data.length > 0 ? (
+              <HorizontalSlider
+                title="Professionnels près de vous"
+                subtitle="Des entreprises de confiance dans votre région"
+                icon={Building2}
+                iconColor="text-primary"
+                iconBg="bg-primary/10"
+                viewAllLink="/search?type=businesses"
+                viewAllLabel="Voir tout"
+              >
+                {latestBusinesses.data.map((business) => (
+                  <HomeBusinessCard key={business.id} business={business} />
+                ))}
+              </HorizontalSlider>
+            ) : (
+              <div className="text-center py-16 bg-surface rounded-3xl border border-border">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Building2 className="w-8 h-8 text-primary" />
                 </div>
-                <h2 className="text-2xl md:text-3xl font-bold">Professionnels près de vous</h2>
+                <h3 className="font-semibold text-lg mb-2">Aucun professionnel disponible</h3>
+                <p className="text-muted-foreground">Les professionnels arrivent bientôt !</p>
               </div>
-              <p className="text-muted-foreground">
-                Des entreprises de confiance dans votre région
-              </p>
-            </div>
-            <Link href="/search?type=businesses">
-              <Button variant="outline" className="rounded-full hidden sm:flex">
-                Voir tout
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
+            )}
           </motion.div>
-
-          {latestBusinesses?.data && latestBusinesses.data.length > 0 ? (
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={staggerContainer}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"
-            >
-              {latestBusinesses.data.slice(0, 5).map((business) => (
-                <motion.div key={business.id} variants={fadeInUp}>
-                  <HomeBusinessCard business={business} />
-                </motion.div>
-              ))}
-            </motion.div>
-          ) : (
-            <div className="text-center py-12 bg-muted/30 rounded-2xl">
-              <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Aucun professionnel disponible pour le moment</p>
-            </div>
-          )}
-
-          <div className="sm:hidden mt-6 text-center">
-            <Link href="/search?type=businesses">
-              <Button variant="outline" className="rounded-full">
-                Voir tous les professionnels
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          </div>
         </div>
       </section>
 
       {/* Trust Section */}
-      <section className="py-16 md:py-24 bg-muted/30">
+      <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <motion.div
             initial="hidden"
@@ -561,14 +662,16 @@ export default function HomePage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            variants={staggerContainer}
             className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto"
           >
-            {trustFeatures.map((feature) => (
+            {trustFeatures.map((feature, index) => (
               <motion.div
                 key={feature.title}
-                variants={fadeInUp}
-                className="bg-background rounded-2xl p-6 shadow-sm border border-border"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-surface rounded-2xl p-6 shadow-sm border border-border hover:border-primary/30 hover:shadow-md transition-all"
               >
                 <div
                   className={`w-12 h-12 ${feature.bg} rounded-xl flex items-center justify-center mb-4`}
@@ -584,7 +687,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24">
+      <section className="py-16 md:py-24 bg-muted/30">
         <div className="container mx-auto px-4">
           <motion.div
             initial="hidden"

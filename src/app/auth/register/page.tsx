@@ -53,7 +53,7 @@ export default function RegisterPage() {
         password,
         isBusiness,
       });
-      success('Inscription réussie ! Bienvenue sur Acote');
+      success('Inscription réussie ! Bienvenue sur Sidely');
       router.push(isBusiness ? '/business/setup' : '/dashboard');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'inscription';

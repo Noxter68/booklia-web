@@ -13,8 +13,8 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "Acote - Services entre particuliers",
-  description: "Offrez ou demandez des services en toute confiance avec Acote",
+  title: "Sidely - Services entre particuliers",
+  description: "Offrez ou demandez des services en toute confiance avec Sidely",
 };
 
 export default function RootLayout({

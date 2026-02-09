@@ -42,7 +42,7 @@ export default function AboutPage() {
 
   const team = [
     {
-      name: 'L\'équipe Acote',
+      name: 'L\'équipe Sidely',
       role: 'Fondateurs',
       description: 'Une équipe passionnée par l\'économie collaborative et les connexions humaines.',
     },
@@ -64,7 +64,7 @@ export default function AboutPage() {
               Qui sommes-nous ?
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed">
-              Acote est née d'une idée simple : faciliter les échanges de services entre particuliers
+              Sidely est née d'une idée simple : faciliter les échanges de services entre particuliers
               dans un cadre de confiance. Nous croyons que chacun possède des compétences
               précieuses à partager.
             </p>
@@ -90,7 +90,7 @@ export default function AboutPage() {
                 Connecter les talents locaux
               </h2>
               <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-                Nous avons créé Acote pour répondre à un besoin simple : permettre à chacun
+                Nous avons créé Sidely pour répondre à un besoin simple : permettre à chacun
                 de trouver facilement de l'aide pour ses projets du quotidien, tout en
                 offrant aux talents locaux une plateforme pour valoriser leurs compétences.
               </p>
@@ -193,7 +193,7 @@ export default function AboutPage() {
             </h2>
             <div className="prose prose-lg dark:prose-invert mx-auto">
               <p className="text-muted-foreground leading-relaxed mb-6">
-                Acote est née d'un constat simple : dans notre quotidien, nous avons souvent besoin
+                Sidely est née d'un constat simple : dans notre quotidien, nous avons souvent besoin
                 d'aide pour des tâches variées - du bricolage aux cours particuliers, du jardinage
                 à l'aide informatique. Et autour de nous, des personnes talentueuses seraient ravies
                 de proposer leurs services.
@@ -205,7 +205,7 @@ export default function AboutPage() {
                 la qualité des échanges.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                Aujourd'hui, Acote grandit grâce à vous, notre communauté. Chaque service échangé
+                Aujourd'hui, Sidely grandit grâce à vous, notre communauté. Chaque service échangé
                 renforce notre conviction : ensemble, nous pouvons créer une économie locale plus
                 humaine et solidaire.
               </p>
