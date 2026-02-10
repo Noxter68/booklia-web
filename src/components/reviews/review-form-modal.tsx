@@ -10,25 +10,28 @@ import { useToast } from '@/components/ui/toast';
 import { Booking, ReviewType } from '@/types';
 
 interface ReviewFormModalProps {
-  booking: Booking;
-  isOpen: boolean;
+  booking: Booking | null;
   onClose: () => void;
-  reviewType: ReviewType;
+  onSuccess?: () => void;
 }
 
-export function ReviewFormModal({ booking, isOpen, onClose, reviewType }: ReviewFormModalProps) {
+export function ReviewFormModal({ booking, onClose, onSuccess }: ReviewFormModalProps) {
   const [score, setScore] = useState(0);
   const [hoverScore, setHoverScore] = useState(0);
   const [comment, setComment] = useState('');
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
 
+  // Determine review type based on who the user is in the booking
+  // If you are the requester, you review the provider
+  const reviewType: ReviewType = 'REVIEW_PROVIDER';
+
   const createReviewMutation = useMutation({
     mutationFn: () =>
       api.createReview({
-        bookingId: booking.id,
+        bookingId: booking!.id,
         type: reviewType,
-        score, // Score is now 1-5 directly
+        score,
         comment: comment.trim() || undefined,
       }),
     onSuccess: () => {
@@ -36,7 +39,9 @@ export function ReviewFormModal({ booking, isOpen, onClose, reviewType }: Review
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
       queryClient.invalidateQueries({ queryKey: ['business-reviews'] });
-      queryClient.invalidateQueries({ queryKey: ['my-bookings-for-review'] });
+      setScore(0);
+      setComment('');
+      onSuccess?.();
       onClose();
     },
     onError: (err: Error) => {
@@ -44,10 +49,10 @@ export function ReviewFormModal({ booking, isOpen, onClose, reviewType }: Review
     },
   });
 
+  if (!booking) return null;
+
   const serviceName = booking.businessService?.name || booking.service?.title || 'la prestation';
-  const targetName = reviewType === 'REVIEW_PROVIDER'
-    ? booking.businessService?.business?.name || booking.provider?.profile?.displayName || 'le prestataire'
-    : booking.requester?.profile?.displayName || 'le demandeur';
+  const targetName = booking.businessService?.business?.name || booking.provider?.profile?.displayName || 'le prestataire';
 
   const handleSubmit = () => {
     if (score === 0) {
@@ -59,7 +64,7 @@ export function ReviewFormModal({ booking, isOpen, onClose, reviewType }: Review
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      {booking && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

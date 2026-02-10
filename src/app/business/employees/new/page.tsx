@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,6 +15,8 @@ import {
   Check,
   ArrowLeft,
   Scissors,
+  Camera,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
@@ -40,6 +42,7 @@ interface FormData {
   phone: string;
   role: string;
   bio: string;
+  avatarUrl: string;
   availabilities: Availability[];
   serviceIds: string[];
 }
@@ -74,9 +77,12 @@ export default function NewEmployeePage() {
     phone: '',
     role: '',
     bio: '',
+    avatarUrl: '',
     availabilities: [],
     serviceIds: [],
   });
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const { data: business, isLoading: businessLoading } = useQuery({
     queryKey: ['my-business'],
@@ -91,6 +97,7 @@ export default function NewEmployeePage() {
         lastName: formData.lastName,
         email: formData.email || undefined,
         phone: formData.phone || undefined,
+        avatarUrl: formData.avatarUrl || undefined,
         role: formData.role || undefined,
         bio: formData.bio || undefined,
         availabilities: formData.availabilities.length > 0 ? formData.availabilities : undefined,
@@ -137,6 +144,25 @@ export default function NewEmployeePage() {
 
   const handleSubmit = () => {
     createMutation.mutate();
+  };
+
+  const handleAvatarUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    try {
+      const result = await api.uploadFile(file, 'avatar');
+      updateForm({ avatarUrl: result.url });
+      success('Photo uploadée');
+    } catch {
+      showError('Erreur lors de l\'upload de la photo');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
+    }
   };
 
   if (authLoading || businessLoading) {
@@ -244,6 +270,9 @@ export default function NewEmployeePage() {
               <StepIdentity
                 formData={formData}
                 onChange={(updates) => updateForm(updates)}
+                onAvatarUpload={handleAvatarUpload}
+                isUploadingAvatar={isUploadingAvatar}
+                avatarInputRef={avatarInputRef}
               />
             )}
             {step === 2 && (
@@ -300,15 +329,51 @@ export default function NewEmployeePage() {
 function StepIdentity({
   formData,
   onChange,
+  onAvatarUpload,
+  isUploadingAvatar,
+  avatarInputRef,
 }: {
   formData: FormData;
   onChange: (updates: Partial<FormData>) => void;
+  onAvatarUpload: (e: ChangeEvent<HTMLInputElement>) => void;
+  isUploadingAvatar: boolean;
+  avatarInputRef: React.RefObject<HTMLInputElement | null>;
 }) {
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <User className="w-7 h-7 text-primary" />
+        {/* Avatar upload */}
+        <div className="relative w-24 h-24 mx-auto mb-4">
+          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border-4 border-background shadow-lg">
+            {formData.avatarUrl ? (
+              <img
+                src={formData.avatarUrl}
+                alt="Avatar"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User className="w-10 h-10 text-primary" />
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={isUploadingAvatar}
+            className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {isUploadingAvatar ? (
+              <Loader2 className="w-4 h-4 text-primary-foreground animate-spin" />
+            ) : (
+              <Camera className="w-4 h-4 text-primary-foreground" />
+            )}
+          </button>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            onChange={onAvatarUpload}
+            className="hidden"
+          />
         </div>
         <h2 className="text-xl font-bold mb-1">Informations de l&apos;employé</h2>
         <p className="text-muted-foreground text-sm">

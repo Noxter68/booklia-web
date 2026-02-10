@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -12,7 +12,6 @@ import {
   Trash2,
   ExternalLink,
   Briefcase,
-  Search,
   Calendar,
   Clock,
   CheckCircle,
@@ -20,77 +19,95 @@ import {
   MoreHorizontal,
   ArrowUpRight,
   Scissors,
-  MapPin,
-  CalendarClock,
   Euro,
   MessageCircle,
+  Phone,
+  Ban,
+  Building2,
+  Send,
+  Inbox,
+  Package,
+  Play,
+  EyeOff,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
-import { BookingStatus, Service, BusinessService, Booking, Review } from '@/types';
+import { BookingStatus, Service, Booking, Review } from '@/types';
 import { ReviewFormModal } from '@/components/reviews/review-form-modal';
 import { ReviewReplyModal } from '@/components/reviews/review-reply-modal';
+import { BookingDetailModal } from '@/components/booking/booking-detail-modal';
+import { CancelBookingModal } from '@/components/booking/cancel-booking-modal';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 
-type Tab = 'provider' | 'requester';
+type TabType = 'activity' | 'reservations' | 'services';
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<Tab>('provider');
+  const { onBookingStatus } = useWebSocket();
+
+  const [activeTab, setActiveTab] = useState<TabType>('activity');
   const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
   const [replyReview, setReplyReview] = useState<Review | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<{ booking: Booking; role: 'provider' | 'requester' } | null>(null);
 
-  // Pour business: toujours provider (réservations reçues)
-  // Pour particulier: selon le tab
-  const bookingsRole = user?.isBusiness ? 'provider' : tab;
-  const { data: bookings, isLoading: bookingsLoading } = useQuery({
-    queryKey: ['bookings', bookingsRole],
-    queryFn: () => api.getMyBookings(bookingsRole),
-    enabled: !!user,
+  // Listen for real-time booking status updates
+  useEffect(() => {
+    const unsubscribe = onBookingStatus((updatedBooking) => {
+      const updateBookingInCache = (oldData: Booking[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map((b) =>
+          b.id === updatedBooking.id ? { ...b, status: updatedBooking.status, rejectionMessage: updatedBooking.rejectionMessage } : b
+        );
+      };
+
+      queryClient.setQueryData(['bookings', 'provider'], updateBookingInCache);
+      queryClient.setQueryData(['bookings', 'requester'], updateBookingInCache);
+
+      if (selectedBooking?.booking.id === updatedBooking.id) {
+        setSelectedBooking({
+          ...selectedBooking,
+          booking: { ...selectedBooking.booking, status: updatedBooking.status, rejectionMessage: updatedBooking.rejectionMessage },
+        });
+      }
+    });
+
+    return unsubscribe;
+  }, [onBookingStatus, queryClient, selectedBooking]);
+
+  // Queries
+  const { data: receivedBookings, isLoading: receivedBookingsLoading } = useQuery({
+    queryKey: ['bookings', 'provider'],
+    queryFn: () => api.getMyBookings('provider'),
+    enabled: !!user && !user.isBusiness,
   });
 
-  // Services P2P (pour particuliers)
+  const { data: sentBookings, isLoading: sentBookingsLoading } = useQuery({
+    queryKey: ['bookings', 'requester'],
+    queryFn: () => api.getMyBookings('requester'),
+    enabled: !!user && !user.isBusiness,
+  });
+
   const { data: services, isLoading: servicesLoading } = useQuery({
     queryKey: ['my-services'],
     queryFn: () => api.getMyServices(),
     enabled: !!user && !user.isBusiness,
   });
 
-  // Business info (pour professionnels)
-  const { data: business, isLoading: businessLoading } = useQuery({
-    queryKey: ['my-business'],
-    queryFn: () => api.getMyBusiness(),
-    enabled: !!user && user.isBusiness,
-  });
-
-  // Réservations business (rendez-vous pris chez des pros)
-  const { data: myReservations, isLoading: reservationsLoading } = useQuery({
-    queryKey: ['my-reservations'],
-    queryFn: () => api.getMyBookings('requester'),
-    enabled: !!user,
-  });
-
-  // Business reviews (for business owners to see and reply)
-  const { data: businessReviews, isLoading: reviewsLoading } = useQuery({
-    queryKey: ['business-reviews', business?.id],
-    queryFn: () => api.getBusinessReviews(business!.id),
-    enabled: !!business?.id,
-  });
-
+  // Mutations
   const publishMutation = useMutation({
     mutationFn: (id: string) => api.publishService(id),
     onSuccess: () => {
       success('Service publié !');
       queryClient.invalidateQueries({ queryKey: ['my-services'] });
     },
-    onError: () => showError('Erreur lors de la publication'),
+    onError: (err: Error) => showError(err.message),
   });
 
   const pauseMutation = useMutation({
@@ -99,7 +116,7 @@ export default function DashboardPage() {
       success('Service mis en pause');
       queryClient.invalidateQueries({ queryKey: ['my-services'] });
     },
-    onError: () => showError('Erreur lors de la mise en pause'),
+    onError: (err: Error) => showError(err.message),
   });
 
   const deleteMutation = useMutation({
@@ -108,7 +125,7 @@ export default function DashboardPage() {
       success('Service supprimé');
       queryClient.invalidateQueries({ queryKey: ['my-services'] });
     },
-    onError: () => showError('Erreur lors de la suppression'),
+    onError: (err: Error) => showError(err.message),
   });
 
   const acceptBookingMutation = useMutation({
@@ -116,9 +133,8 @@ export default function DashboardPage() {
     onSuccess: () => {
       success('Réservation acceptée');
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
     },
-    onError: () => showError('Erreur lors de l\'acceptation'),
+    onError: (err: Error) => showError(err.message),
   });
 
   const cancelBookingMutation = useMutation({
@@ -126,11 +142,29 @@ export default function DashboardPage() {
     onSuccess: () => {
       success('Réservation annulée');
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
     },
-    onError: () => showError('Erreur lors de l\'annulation'),
+    onError: (err: Error) => showError(err.message),
   });
 
+  const rejectBookingMutation = useMutation({
+    mutationFn: ({ id, message }: { id: string; message?: string }) => api.rejectBooking(id, message),
+    onSuccess: () => {
+      success('Demande refusée');
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+    onError: (err: Error) => showError(err.message),
+  });
+
+  const deleteBookingMutation = useMutation({
+    mutationFn: (id: string) => api.deleteBooking(id),
+    onSuccess: () => {
+      success('Réservation supprimée');
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+    onError: (err: Error) => showError(err.message),
+  });
+
+  // Status helpers
   const statusLabels: Record<BookingStatus, string> = {
     PENDING: 'En attente',
     ACCEPTED: 'Accepté',
@@ -143,7 +177,7 @@ export default function DashboardPage() {
   const statusIcons: Record<BookingStatus, React.ReactNode> = {
     PENDING: <Clock className="w-3.5 h-3.5" />,
     ACCEPTED: <CheckCircle className="w-3.5 h-3.5" />,
-    IN_PROGRESS: <CheckCircle className="w-3.5 h-3.5" />,
+    IN_PROGRESS: <Play className="w-3.5 h-3.5" />,
     COMPLETED: <CheckCircle className="w-3.5 h-3.5" />,
     CANCELED: <XCircle className="w-3.5 h-3.5" />,
     DISPUTED: <XCircle className="w-3.5 h-3.5" />,
@@ -156,26 +190,6 @@ export default function DashboardPage() {
     COMPLETED: 'bg-success-soft text-success dark:bg-success/20 dark:text-success',
     CANCELED: 'bg-stone-100 text-stone-600 dark:bg-stone-800/50 dark:text-stone-400',
     DISPUTED: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
-  };
-
-  // Helper to get display status based on actual status and scheduled date
-  const getDisplayStatus = (status: BookingStatus, scheduledAt?: string) => {
-    if (status === 'ACCEPTED' && scheduledAt) {
-      const scheduledDate = new Date(scheduledAt);
-      const now = new Date();
-      if (scheduledDate > now) {
-        return {
-          label: 'À venir',
-          icon: <CalendarClock className="w-3.5 h-3.5" />,
-          color: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
-        };
-      }
-    }
-    return {
-      label: statusLabels[status],
-      icon: statusIcons[status],
-      color: statusColors[status],
-    };
   };
 
   if (authLoading) {
@@ -205,32 +219,59 @@ export default function DashboardPage() {
     );
   }
 
-  // Stats for business users
-  const businessServices = business?.services || [];
-  const activeBusinessServices = businessServices.filter((s) => s.isActive);
-  // Stats for particuliers
-  const publishedServices = services?.filter((s) => s.status === 'PUBLISHED') || [];
-  // Pending bookings (works for both)
-  const pendingBookings = bookings?.filter((b) => b.status === 'PENDING') || [];
+  // Redirect business users
+  if (user.isBusiness) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background pt-24">
+        <div className="text-center max-w-md px-4">
+          <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Building2 className="w-10 h-10 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold mb-3">Espace Professionnel</h1>
+          <p className="text-muted-foreground mb-6">
+            En tant que professionnel, accédez à votre espace dédié.
+          </p>
+          <Link href="/business/dashboard">
+            <Button size="lg" className="rounded-xl px-8">Accéder au dashboard pro</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-  // Calculate monthly revenue for business users (from accepted/completed bookings this month)
-  const monthlyRevenue = (() => {
-    if (!bookings) return 0;
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  // Filter P2P bookings (not business)
+  const p2pReceivedBookings = receivedBookings?.filter(b => !b.businessServiceId) || [];
+  const p2pSentBookings = sentBookings?.filter(b => !b.businessServiceId) || [];
+  const businessReservations = sentBookings?.filter(b => b.businessServiceId) || [];
 
-    return bookings
-      .filter((b) => {
-        // Only count accepted, in_progress, or completed bookings
-        if (!['ACCEPTED', 'IN_PROGRESS', 'COMPLETED'].includes(b.status)) return false;
-        // Only business bookings
-        if (!b.businessServiceId) return false;
-        // Only this month (based on scheduledAt or createdAt)
-        const bookingDate = b.scheduledAt ? new Date(b.scheduledAt) : new Date(b.createdAt);
-        return bookingDate >= startOfMonth;
-      })
-      .reduce((sum, b) => sum + (b.agreedPriceCents || 0), 0);
-  })();
+  // Stats
+  const pendingReceived = p2pReceivedBookings.filter(b => b.status === 'PENDING').length;
+  const pendingSent = p2pSentBookings.filter(b => b.status === 'PENDING').length;
+  const publishedServices = services?.filter(s => s.status === 'PUBLISHED').length || 0;
+  const upcomingReservations = businessReservations.filter(b =>
+    b.status === 'ACCEPTED' && b.scheduledAt && new Date(b.scheduledAt) > new Date()
+  ).length;
+
+  const tabs = [
+    {
+      id: 'activity' as TabType,
+      label: 'Entre particuliers',
+      icon: Inbox,
+      badge: pendingReceived + pendingSent > 0 ? pendingReceived + pendingSent : undefined,
+    },
+    {
+      id: 'reservations' as TabType,
+      label: 'Mes RDV pros',
+      icon: Building2,
+      badge: upcomingReservations > 0 ? upcomingReservations : undefined,
+    },
+    {
+      id: 'services' as TabType,
+      label: 'Mes services',
+      icon: Package,
+      badge: services?.length || undefined,
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background pt-24">
@@ -248,14 +289,14 @@ export default function DashboardPage() {
                   Bonjour, {user.name?.split(' ')[0] || 'là'}
                 </h1>
                 <span className="text-xs px-3 py-1.5 rounded-full font-medium bg-gold-soft text-primary">
-                  {user.isBusiness ? 'Professionnel' : 'Particulier'}
+                  Particulier
                 </span>
               </div>
               <p className="text-muted-foreground mt-1">
-                Gérez vos services et suivez vos missions
+                Gérez vos services et vos réservations
               </p>
             </div>
-            <Link href={user.isBusiness ? '/business/services/new' : '/dashboard/services/new'}>
+            <Link href="/dashboard/services/new">
               <Button className="rounded-xl">
                 <Plus className="w-4 h-4 mr-2" />
                 Créer un service
@@ -271,49 +312,25 @@ export default function DashboardPage() {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
         >
-          {(user.isBusiness ? [
+          {[
             {
-              label: 'Prestations',
-              value: businessServices.length,
-              icon: Scissors,
-              color: 'bg-primary/10 text-primary',
-            },
-            {
-              label: 'Actives',
-              value: activeBusinessServices.length,
+              label: 'Services publiés',
+              value: publishedServices,
               icon: Eye,
               color: 'bg-success-soft text-success',
             },
             {
-              label: 'En attente',
-              value: pendingBookings.length,
-              icon: Clock,
+              label: 'Demandes reçues',
+              value: pendingReceived,
+              subLabel: 'en attente',
+              icon: Inbox,
               color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400',
             },
             {
-              label: 'CA du mois',
-              value: formatPrice(monthlyRevenue),
-              icon: Euro,
-              color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
-            },
-          ] : [
-            {
-              label: 'Services créés',
-              value: services?.length || 0,
-              icon: Briefcase,
-              color: 'bg-primary/10 text-primary',
-            },
-            {
-              label: 'Publiés',
-              value: publishedServices.length,
-              icon: Eye,
-              color: 'bg-success-soft text-success',
-            },
-            {
-              label: 'En attente',
-              value: pendingBookings.length,
-              icon: Clock,
-              color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400',
+              label: 'RDV à venir',
+              value: upcomingReservations,
+              icon: Calendar,
+              color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400',
             },
             {
               label: 'Note moyenne',
@@ -321,7 +338,7 @@ export default function DashboardPage() {
               icon: Star,
               color: 'bg-primary/10 text-primary',
             },
-          ]).map((stat, index) => (
+          ].map((stat, index) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
@@ -333,1075 +350,588 @@ export default function DashboardPage() {
                 <stat.icon className="w-5 h-5" />
               </div>
               <div className="text-2xl font-bold">{stat.value}</div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
+              <div className="text-sm text-muted-foreground">
+                {stat.label}
+                {stat.subLabel && <span className="opacity-70"> ({stat.subLabel})</span>}
+              </div>
             </motion.div>
           ))}
         </motion.div>
 
-        {user.isBusiness ? (
-          /* ===== BUSINESS DASHBOARD LAYOUT ===== */
-          <>
-          {/* My Business Services - Table format */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mb-8"
-          >
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold">Mes prestations</h2>
-              {business?.services && business.services.length > 0 && (
-                <span className="text-sm text-muted-foreground">{business.services.length} prestation{business.services.length > 1 ? 's' : ''}</span>
-              )}
-            </div>
+        {/* Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-6"
+        >
+          <div className="flex gap-2 p-1 bg-muted/50 rounded-xl w-fit">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                  activeTab === tab.id
+                    ? 'bg-surface text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <tab.icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                {tab.badge && (
+                  <span className={`min-w-[20px] h-5 px-1.5 rounded-full text-xs font-bold flex items-center justify-center ${
+                    activeTab === tab.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </motion.div>
 
-            {businessLoading ? (
-              <div className="bg-surface border border-border/50 rounded-2xl animate-pulse h-40" />
-            ) : !business?.services || business.services.length === 0 ? (
-              <div className="bg-surface border border-border/50 rounded-2xl p-10 text-center">
-                <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Scissors className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <p className="font-medium mb-2">Aucune prestation</p>
-                <p className="text-sm text-muted-foreground mb-5">Créez votre première prestation pour commencer</p>
-                <Link href="/business/services/new">
-                  <Button className="rounded-xl">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Créer une prestation
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="bg-surface border border-border/50 rounded-2xl overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border/50 bg-muted/30">
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Prestation</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden sm:table-cell">Catégorie</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Durée</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Prix</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Statut</th>
-                      <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {business.services.map((service, index) => (
-                      <motion.tr
-                        key={service.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: index * 0.03 }}
-                        className="border-b border-border/30 last:border-0 hover:bg-muted/20 transition-colors"
-                      >
-                        <td className="py-3 px-4">
-                          <p className="font-medium line-clamp-1">{service.name}</p>
-                          {service.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{service.description}</p>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-muted-foreground hidden sm:table-cell">
-                          {service.category?.name || '-'}
-                        </td>
-                        <td className="py-3 px-4 text-sm">
-                          <span className="flex items-center gap-1.5 text-muted-foreground">
-                            <Clock className="w-3.5 h-3.5" />
-                            {service.durationMinutes} min
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-sm font-semibold text-primary">
-                          {formatPrice(service.priceCents)}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            service.isActive
-                              ? 'bg-success-soft text-success'
-                              : 'bg-muted text-muted-foreground'
-                          }`}>
-                            {service.isActive ? 'Actif' : 'Inactif'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <Link href={`/business/services/${service.id}/edit`}>
-                            <Button variant="ghost" size="sm" className="rounded-lg h-8 px-3">
-                              <ExternalLink className="w-4 h-4" />
-                            </Button>
-                          </Link>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </motion.div>
-
-          {/* Business Reservations - Table format */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            className="mb-8"
-          >
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold">Mes réservations</h2>
-              {bookings && bookings.filter(b => b.businessServiceId).length > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  {bookings.filter(b => b.businessServiceId).length} réservation{bookings.filter(b => b.businessServiceId).length > 1 ? 's' : ''}
-                </span>
-              )}
-            </div>
-
-            {bookingsLoading ? (
-              <div className="bg-surface border border-border/50 rounded-2xl animate-pulse h-40" />
-            ) : !bookings || bookings.filter(b => b.businessServiceId).length === 0 ? (
-              <div className="bg-surface border border-border/50 rounded-2xl p-10 text-center">
-                <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <p className="font-medium mb-2">Aucune réservation</p>
-                <p className="text-sm text-muted-foreground">Les réservations de vos clients apparaîtront ici</p>
-              </div>
-            ) : (
-              <div className="bg-surface border border-border/50 rounded-2xl overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border/50 bg-muted/30">
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Client</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden sm:table-cell">Prestation</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden md:table-cell">Employé</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Date</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Prix</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Statut</th>
-                      <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bookings.filter(b => b.businessServiceId).map((booking, index) => (
-                      <motion.tr
-                        key={booking.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: index * 0.03 }}
-                        className="border-b border-border/30 last:border-0 hover:bg-muted/20 transition-colors"
-                      >
-                        <td className="py-3 px-4">
-                          <p className="font-medium line-clamp-1">
-                            {booking.requester?.profile?.displayName || 'Anonyme'}
-                          </p>
-                        </td>
-                        <td className="py-3 px-4 text-sm hidden sm:table-cell">
-                          <p className="line-clamp-1">{booking.businessService?.name || '-'}</p>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-muted-foreground hidden md:table-cell">
-                          {booking.employee
-                            ? `${booking.employee.firstName} ${booking.employee.lastName}`
-                            : '-'}
-                        </td>
-                        <td className="py-3 px-4 text-sm">
-                          {booking.scheduledAt ? (
-                            <div>
-                              <p className="font-medium">
-                                {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                })}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </p>
-                            </div>
-                          ) : '-'}
-                        </td>
-                        <td className="py-3 px-4 text-sm font-semibold text-primary">
-                          {booking.agreedPriceCents ? formatPrice(booking.agreedPriceCents) : '-'}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[booking.status]}`}>
-                            {statusIcons[booking.status]}
-                            <span className="hidden sm:inline">{statusLabels[booking.status]}</span>
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          {booking.status === 'PENDING' ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                className="rounded-lg h-8 px-3"
-                                onClick={() => acceptBookingMutation.mutate(booking.id)}
-                                disabled={acceptBookingMutation.isPending}
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="rounded-lg h-8 px-3"
-                                onClick={() => cancelBookingMutation.mutate(booking.id)}
-                                disabled={cancelBookingMutation.isPending}
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">-</span>
-                          )}
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </motion.div>
-
-          {/* Business Reviews Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-8"
-          >
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Star className="w-5 h-5" />
-                Avis clients
-              </h2>
-              {businessReviews && businessReviews.length > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  {businessReviews.length} avis
-                </span>
-              )}
-            </div>
-
-            {reviewsLoading ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-40 bg-surface border border-border/50 rounded-2xl animate-pulse" />
-                ))}
-              </div>
-            ) : !businessReviews || businessReviews.length === 0 ? (
-              <div className="bg-surface border border-border/50 rounded-2xl p-10 text-center">
-                <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Star className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <p className="font-medium mb-2">Aucun avis</p>
-                <p className="text-sm text-muted-foreground">Les avis de vos clients apparaîtront ici</p>
-              </div>
-            ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {businessReviews.map((review, index) => (
-                  <BusinessReviewCard
-                    key={review.id}
-                    review={review}
-                    index={index}
-                    onReply={() => setReplyReview(review)}
-                  />
-                ))}
-              </div>
-            )}
-          </motion.div>
-          </>
-        ) : (
-          /* ===== PARTICULIER DASHBOARD LAYOUT ===== */
-          <>
-            {/* Mes services - Table format */}
+        {/* Tab Content */}
+        <AnimatePresence mode="wait">
+          {activeTab === 'activity' && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              key="activity"
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 }}
-              className="mb-8"
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-8"
             >
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-xl font-bold">Mes services</h2>
-                {services && services.length > 0 && (
-                  <span className="text-sm text-muted-foreground">{services.length} service{services.length > 1 ? 's' : ''}</span>
+              {/* Demandes reçues */}
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
+                    <Inbox className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold">Demandes reçues</h2>
+                    <p className="text-xs text-muted-foreground">Services que vous proposez</p>
+                  </div>
+                  {pendingReceived > 0 && (
+                    <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                      {pendingReceived} en attente
+                    </span>
+                  )}
+                </div>
+
+                {receivedBookingsLoading ? (
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-40 bg-surface border border-border/50 rounded-2xl animate-pulse" />
+                    ))}
+                  </div>
+                ) : p2pReceivedBookings.length === 0 ? (
+                  <div className="bg-surface border border-border/50 rounded-2xl p-8 text-center">
+                    <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <Inbox className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <p className="font-medium mb-1">Aucune demande reçue</p>
+                    <p className="text-sm text-muted-foreground">
+                      Publiez des services pour recevoir des demandes
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <AnimatePresence mode="popLayout">
+                      {p2pReceivedBookings.map((booking, index) => (
+                        <BookingCard
+                          key={booking.id}
+                          booking={booking}
+                          index={index}
+                          role="provider"
+                          statusColors={statusColors}
+                          statusIcons={statusIcons}
+                          statusLabels={statusLabels}
+                          onAccept={() => acceptBookingMutation.mutate(booking.id)}
+                          onReject={(message) => rejectBookingMutation.mutate({ id: booking.id, message })}
+                          isAccepting={acceptBookingMutation.isPending}
+                          isRejecting={rejectBookingMutation.isPending}
+                          onReview={() => setReviewBooking(booking)}
+                          onClick={() => setSelectedBooking({ booking, role: 'provider' })}
+                          onCancel={() => cancelBookingMutation.mutate(booking.id)}
+                          isCanceling={cancelBookingMutation.isPending}
+                          onDelete={() => deleteBookingMutation.mutate(booking.id)}
+                          isDeleting={deleteBookingMutation.isPending}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
                 )}
               </div>
 
-              {servicesLoading ? (
-                <div className="bg-surface border border-border/50 rounded-2xl animate-pulse h-40" />
-              ) : services?.length === 0 ? (
+              {/* Demandes envoyées */}
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                    <Send className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold">Mes demandes</h2>
+                    <p className="text-xs text-muted-foreground">Services que vous avez sollicités</p>
+                  </div>
+                  {pendingSent > 0 && (
+                    <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                      {pendingSent} en attente
+                    </span>
+                  )}
+                </div>
+
+                {sentBookingsLoading ? (
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-40 bg-surface border border-border/50 rounded-2xl animate-pulse" />
+                    ))}
+                  </div>
+                ) : p2pSentBookings.length === 0 ? (
+                  <div className="bg-surface border border-border/50 rounded-2xl p-8 text-center">
+                    <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <Send className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <p className="font-medium mb-1">Aucune demande envoyée</p>
+                    <p className="text-sm text-muted-foreground">
+                      Explorez les services disponibles
+                    </p>
+                    <Link href="/search">
+                      <Button variant="outline" size="sm" className="mt-4 rounded-xl">
+                        Rechercher des services
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <AnimatePresence mode="popLayout">
+                      {p2pSentBookings.map((booking, index) => (
+                        <BookingCard
+                          key={booking.id}
+                          booking={booking}
+                          index={index}
+                          role="requester"
+                          statusColors={statusColors}
+                          statusIcons={statusIcons}
+                          statusLabels={statusLabels}
+                          onAccept={() => acceptBookingMutation.mutate(booking.id)}
+                          onReject={(message) => rejectBookingMutation.mutate({ id: booking.id, message })}
+                          isAccepting={acceptBookingMutation.isPending}
+                          isRejecting={rejectBookingMutation.isPending}
+                          onReview={() => setReviewBooking(booking)}
+                          onClick={() => setSelectedBooking({ booking, role: 'requester' })}
+                          onCancel={() => cancelBookingMutation.mutate(booking.id)}
+                          isCanceling={cancelBookingMutation.isPending}
+                          onDelete={() => deleteBookingMutation.mutate(booking.id)}
+                          isDeleting={deleteBookingMutation.isPending}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'reservations' && (
+            <motion.div
+              key="reservations"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Building2 className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-bold">Mes rendez-vous chez les pros</h2>
+                  <p className="text-xs text-muted-foreground">Coiffeur, esthéticienne, etc.</p>
+                </div>
+              </div>
+
+              {sentBookingsLoading ? (
+                <div className="bg-surface border border-border/50 rounded-2xl animate-pulse h-60" />
+              ) : businessReservations.length === 0 ? (
                 <div className="bg-surface border border-border/50 rounded-2xl p-10 text-center">
                   <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Briefcase className="w-8 h-8 text-muted-foreground" />
+                    <Building2 className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="font-medium mb-2">Aucune réservation</p>
+                  <p className="text-sm text-muted-foreground mb-5">
+                    Prenez rendez-vous chez un professionnel
+                  </p>
+                  <Link href="/business">
+                    <Button className="rounded-xl">
+                      <Scissors className="w-4 h-4 mr-2" />
+                      Trouver un pro
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="bg-surface border border-border/50 rounded-2xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border/50 bg-muted/30">
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Établissement</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Prestation</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden sm:table-cell">Date</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Prix</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Statut</th>
+                          <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {businessReservations.map((booking) => (
+                          <tr key={booking.id} className="border-b border-border/30 last:border-0 hover:bg-muted/20 transition-colors">
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
+                                  <Building2 className="w-5 h-5 text-primary" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-sm truncate">{booking.businessService?.business?.name || 'Établissement'}</p>
+                                  {booking.employee && (
+                                    <p className="text-xs text-muted-foreground">
+                                      avec {booking.employee.firstName}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <p className="text-sm">{booking.businessService?.name || 'Prestation'}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {booking.businessService?.durationMinutes} min
+                              </p>
+                            </td>
+                            <td className="py-3 px-4 hidden sm:table-cell">
+                              {booking.scheduledAt ? (
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
+                                      weekday: 'short',
+                                      day: 'numeric',
+                                      month: 'short',
+                                    })}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </p>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="font-semibold text-sm">
+                                {formatPrice(booking.agreedPriceCents || 0)}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[booking.status]}`}>
+                                {statusIcons[booking.status]}
+                                {statusLabels[booking.status]}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {booking.status === 'PENDING' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                    onClick={() => cancelBookingMutation.mutate(booking.id)}
+                                    disabled={cancelBookingMutation.isPending}
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                {booking.status === 'CANCELED' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                    onClick={() => deleteBookingMutation.mutate(booking.id)}
+                                    disabled={deleteBookingMutation.isPending}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'services' && (
+            <motion.div
+              key="services"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Package className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold">Mes services</h2>
+                    <p className="text-xs text-muted-foreground">Offres et demandes que vous proposez</p>
+                  </div>
+                </div>
+                <Link href="/dashboard/services/new">
+                  <Button size="sm" className="rounded-xl">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nouveau
+                  </Button>
+                </Link>
+              </div>
+
+              {servicesLoading ? (
+                <div className="bg-surface border border-border/50 rounded-2xl animate-pulse h-60" />
+              ) : !services || services.length === 0 ? (
+                <div className="bg-surface border border-border/50 rounded-2xl p-10 text-center">
+                  <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Package className="w-8 h-8 text-muted-foreground" />
                   </div>
                   <p className="font-medium mb-2">Aucun service</p>
-                  <p className="text-sm text-muted-foreground mb-5">Créez votre premier service pour commencer</p>
+                  <p className="text-sm text-muted-foreground mb-5">
+                    Créez votre premier service pour commencer
+                  </p>
                   <Link href="/dashboard/services/new">
                     <Button className="rounded-xl">
                       <Plus className="w-4 h-4 mr-2" />
-                      Créer mon premier service
+                      Créer un service
                     </Button>
                   </Link>
                 </div>
               ) : (
-                <div className="bg-surface border border-border/50 rounded-2xl overflow-visible">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border/50 bg-muted/30">
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Titre</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Type</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Catégorie</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Prix</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Statut</th>
-                        <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {services?.map((service, index) => (
-                        <ServiceTableRow
-                          key={service.id}
-                          service={service}
-                          index={index}
-                          onPublish={() => publishMutation.mutate(service.id)}
-                          onPause={() => pauseMutation.mutate(service.id)}
-                          onDelete={() => deleteMutation.mutate(service.id)}
-                          isPublishing={publishMutation.isPending}
-                          isPausing={pauseMutation.isPending}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </motion.div>
-
-            {/* Mes missions - Full width */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="mb-8"
-            >
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-xl font-bold">Mes missions</h2>
-              </div>
-
-              {/* Tabs */}
-              <div className="flex gap-1 p-1 bg-muted/50 rounded-xl mb-5 w-fit">
-                <button
-                  onClick={() => setTab('provider')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
-                    tab === 'provider'
-                      ? 'bg-surface text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Prestataire
-                </button>
-                <button
-                  onClick={() => setTab('requester')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
-                    tab === 'requester'
-                      ? 'bg-surface text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Demandeur
-                </button>
-              </div>
-
-              {bookingsLoading ? (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-32 bg-surface border border-border/50 rounded-2xl animate-pulse" />
-                  ))}
-                </div>
-              ) : bookings?.filter(b => !b.businessServiceId).length === 0 ? (
-                <div className="bg-surface border border-border/50 rounded-2xl p-10 text-center">
-                  <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Calendar className="w-8 h-8 text-muted-foreground" />
+                <div className="bg-surface border border-border/50 rounded-2xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border/50 bg-muted/30">
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Service</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden sm:table-cell">Type</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden md:table-cell">Catégorie</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Prix</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Statut</th>
+                          <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {services.map((service) => (
+                          <ServiceRow
+                            key={service.id}
+                            service={service}
+                            onPublish={() => publishMutation.mutate(service.id)}
+                            onPause={() => pauseMutation.mutate(service.id)}
+                            onDelete={() => deleteMutation.mutate(service.id)}
+                            isPublishing={publishMutation.isPending}
+                            isPausing={pauseMutation.isPending}
+                            isDeleting={deleteMutation.isPending}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <p className="font-medium mb-2">Aucune mission</p>
-                  <p className="text-sm text-muted-foreground mb-5">Explorez les services disponibles</p>
-                  <Link href="/search">
-                    <Button variant="outline" className="rounded-xl">
-                      <Search className="w-4 h-4 mr-2" />
-                      Explorer
-                    </Button>
-                  </Link>
-                </div>
-              ) : (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <AnimatePresence mode="popLayout">
-                    {bookings?.filter(b => !b.businessServiceId).map((booking, index) => (
-                      <motion.div
-                        key={booking.id}
-                        layout
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="bg-surface border border-border/50 rounded-2xl p-5 hover:border-border transition-colors"
-                      >
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <div className="flex-1 min-w-0">
-                            <Link
-                              href={`/services/${booking.serviceId}`}
-                              className="font-semibold hover:text-primary transition-colors line-clamp-1 flex items-center gap-1"
-                            >
-                              {booking.service?.title}
-                              <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100" />
-                            </Link>
-                            <p className="text-sm text-muted-foreground mt-1.5">
-                              {tab === 'provider' ? 'Demandeur: ' : 'Prestataire: '}
-                              <span className="text-foreground">
-                                {tab === 'provider'
-                                  ? booking.requester?.profile?.displayName || 'Anonyme'
-                                  : booking.provider?.profile?.displayName || 'Anonyme'}
-                              </span>
-                            </p>
-                          </div>
-                          <div
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
-                              statusColors[booking.status]
-                            }`}
-                          >
-                            {statusIcons[booking.status]}
-                            <span>{statusLabels[booking.status]}</span>
-                          </div>
-                        </div>
-
-                        {booking.agreedPriceCents && (
-                          <p className="text-sm font-semibold text-primary">
-                            {formatPrice(booking.agreedPriceCents)}
-                          </p>
-                        )}
-
-                        {(booking.status === 'PENDING' && tab === 'provider') && (
-                          <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border/50">
-                            <Button
-                              size="sm"
-                              className="rounded-xl h-8 flex-1"
-                              onClick={() => acceptBookingMutation.mutate(booking.id)}
-                              disabled={acceptBookingMutation.isPending}
-                            >
-                              Accepter
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="rounded-xl h-8 flex-1"
-                              onClick={() => cancelBookingMutation.mutate(booking.id)}
-                              disabled={cancelBookingMutation.isPending}
-                            >
-                              Refuser
-                            </Button>
-                          </div>
-                        )}
-                        {booking.status === 'COMPLETED' && !booking.reviews?.length && (
-                          <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border/50">
-                            <Button size="sm" variant="outline" className="rounded-xl h-8 w-full">
-                              <Star className="w-4 h-4 mr-1.5" />
-                              Écrire un avis
-                            </Button>
-                          </div>
-                        )}
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
                 </div>
               )}
             </motion.div>
+          )}
+        </AnimatePresence>
 
-            {/* Mes réservations - At the bottom */}
-            {myReservations && myReservations.filter(b => b.businessServiceId).length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 }}
-              >
-                <div className="flex items-center justify-between mb-5">
-                  <h2 className="text-xl font-bold">Mes réservations</h2>
-                  <span className="text-sm text-muted-foreground">
-                    {myReservations.filter(b => b.businessServiceId).length} réservation{myReservations.filter(b => b.businessServiceId).length > 1 ? 's' : ''}
-                  </span>
-                </div>
-
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {myReservations
-                    .filter(b => b.businessServiceId)
-                    .map((reservation, index) => {
-                      const displayStatus = getDisplayStatus(reservation.status, reservation.scheduledAt);
-                      const businessSlug = reservation.businessService?.business?.slug;
-                      return (
-                        <motion.div
-                          key={reservation.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.35 + index * 0.05 }}
-                          className="bg-surface border border-border/50 rounded-2xl overflow-hidden hover:border-border transition-colors group"
-                        >
-                          {businessSlug ? (
-                            <Link
-                              href={`/business/${businessSlug}`}
-                              className="block p-5 cursor-pointer"
-                            >
-                              <div className="flex items-start justify-between gap-3 mb-3">
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-semibold line-clamp-1 group-hover:text-primary transition-colors">
-                                    {reservation.businessService?.name || 'Service'}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground line-clamp-1">
-                                    {reservation.businessService?.business?.name || 'Business'}
-                                  </p>
-                                </div>
-                                <div
-                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${displayStatus.color}`}
-                                >
-                                  {displayStatus.icon}
-                                  <span>{displayStatus.label}</span>
-                                </div>
-                              </div>
-
-                              {reservation.employee && (
-                                <div className="flex items-center gap-2 mb-3">
-                                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                                    <User className="w-4 h-4 text-primary" />
-                                  </div>
-                                  <span className="text-sm">
-                                    {reservation.employee.firstName} {reservation.employee.lastName}
-                                  </span>
-                                </div>
-                              )}
-
-                              {reservation.scheduledAt && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                                  <Calendar className="w-4 h-4" />
-                                  <span>
-                                    {new Date(reservation.scheduledAt).toLocaleDateString('fr-FR', {
-                                      weekday: 'short',
-                                      day: 'numeric',
-                                      month: 'short',
-                                    })}
-                                    {' à '}
-                                    {new Date(reservation.scheduledAt).toLocaleTimeString('fr-FR', {
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                    })}
-                                  </span>
-                                </div>
-                              )}
-
-                              {reservation.businessService?.business?.address && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                                  <MapPin className="w-4 h-4 shrink-0" />
-                                  <span className="line-clamp-1">
-                                    {reservation.businessService.business.address}
-                                    {reservation.businessService.business.city && `, ${reservation.businessService.business.city}`}
-                                  </span>
-                                </div>
-                              )}
-
-                              {reservation.agreedPriceCents && (
-                                <p className="text-sm font-semibold text-primary">
-                                  {formatPrice(reservation.agreedPriceCents)}
-                                </p>
-                              )}
-                            </Link>
-                          ) : (
-                            <div className="p-5">
-                              <div className="flex items-start justify-between gap-3 mb-3">
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-semibold line-clamp-1">
-                                    {reservation.businessService?.name || 'Service'}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground line-clamp-1">
-                                    {reservation.businessService?.business?.name || 'Business'}
-                                  </p>
-                                </div>
-                                <div
-                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${displayStatus.color}`}
-                                >
-                                  {displayStatus.icon}
-                                  <span>{displayStatus.label}</span>
-                                </div>
-                              </div>
-
-                              {reservation.employee && (
-                                <div className="flex items-center gap-2 mb-3">
-                                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                                    <User className="w-4 h-4 text-primary" />
-                                  </div>
-                                  <span className="text-sm">
-                                    {reservation.employee.firstName} {reservation.employee.lastName}
-                                  </span>
-                                </div>
-                              )}
-
-                              {reservation.scheduledAt && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                                  <Calendar className="w-4 h-4" />
-                                  <span>
-                                    {new Date(reservation.scheduledAt).toLocaleDateString('fr-FR', {
-                                      weekday: 'short',
-                                      day: 'numeric',
-                                      month: 'short',
-                                    })}
-                                    {' à '}
-                                    {new Date(reservation.scheduledAt).toLocaleTimeString('fr-FR', {
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                    })}
-                                  </span>
-                                </div>
-                              )}
-
-                              {reservation.agreedPriceCents && (
-                                <p className="text-sm font-semibold text-primary">
-                                  {formatPrice(reservation.agreedPriceCents)}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {(reservation.status === 'PENDING' || reservation.status === 'ACCEPTED') && (
-                            <div className="px-5 pb-5 pt-0 border-t border-border/50 mt-0">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="rounded-xl h-8 w-full text-destructive hover:bg-destructive/10 mt-3"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  cancelBookingMutation.mutate(reservation.id);
-                                }}
-                                disabled={cancelBookingMutation.isPending}
-                              >
-                                Annuler
-                              </Button>
-                            </div>
-                          )}
-
-                          {/* Leave review button for completed bookings */}
-                          {reservation.status === 'COMPLETED' && !reservation.reviews?.some(r => r.type === 'REVIEW_PROVIDER') && (
-                            <div className="px-5 pb-5 pt-0 border-t border-border/50 mt-0">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="rounded-xl h-8 w-full mt-3"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setReviewBooking(reservation);
-                                }}
-                              >
-                                <Star className="w-4 h-4 mr-1.5" />
-                                Écrire un avis
-                              </Button>
-                            </div>
-                          )}
-                        </motion.div>
-                      );
-                    })}
-                </div>
-              </motion.div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Review Form Modal */}
-      {reviewBooking && (
+        {/* Modals */}
         <ReviewFormModal
           booking={reviewBooking}
-          isOpen={!!reviewBooking}
           onClose={() => setReviewBooking(null)}
-          reviewType="REVIEW_PROVIDER"
+          onSuccess={() => {
+            setReviewBooking(null);
+            queryClient.invalidateQueries({ queryKey: ['bookings'] });
+          }}
         />
-      )}
 
-      {/* Review Reply Modal */}
-      {replyReview && (
         <ReviewReplyModal
           review={replyReview}
-          isOpen={!!replyReview}
           onClose={() => setReplyReview(null)}
+          onSuccess={() => {
+            setReplyReview(null);
+          }}
         />
-      )}
+
+        {selectedBooking && (
+          <BookingDetailModal
+            booking={selectedBooking.booking}
+            role={selectedBooking.role}
+            isOpen={!!selectedBooking}
+            onClose={() => setSelectedBooking(null)}
+          />
+        )}
+      </div>
     </div>
   );
 }
 
-// Service Card Component
-function ServiceCard({
+// Service Row Component
+function ServiceRow({
   service,
-  index,
   onPublish,
   onPause,
   onDelete,
   isPublishing,
   isPausing,
+  isDeleting,
 }: {
   service: Service;
-  index: number;
   onPublish: () => void;
   onPause: () => void;
   onDelete: () => void;
   isPublishing: boolean;
   isPausing: boolean;
+  isDeleting: boolean;
 }) {
   const [showActions, setShowActions] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   const statusConfig = {
-    PUBLISHED: { label: 'Publié', class: 'bg-success-soft text-success' },
-    PAUSED: { label: 'En pause', class: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' },
-    DRAFT: { label: 'Brouillon', class: 'bg-muted text-muted-foreground' },
+    DRAFT: { label: 'Brouillon', color: 'bg-stone-100 text-stone-600 dark:bg-stone-800/50 dark:text-stone-400' },
+    PUBLISHED: { label: 'Publié', color: 'bg-success-soft text-success' },
+    PAUSED: { label: 'En pause', color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400' },
+    ARCHIVED: { label: 'Archivé', color: 'bg-stone-100 text-stone-600 dark:bg-stone-800/50 dark:text-stone-400' },
   };
 
-  const status = statusConfig[service.status as keyof typeof statusConfig] || statusConfig.DRAFT;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="bg-surface border border-border/50 rounded-2xl p-5 hover:border-border transition-colors group"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-              service.kind === 'OFFER'
-                ? 'bg-success-soft text-success'
-                : 'bg-primary/10 text-primary'
-            }`}>
-              {service.kind === 'OFFER' ? 'Offre' : 'Demande'}
-            </span>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${status.class}`}>
-              {status.label}
-            </span>
-          </div>
-          <Link
-            href={`/services/${service.id}`}
-            className="font-semibold hover:text-primary transition-colors line-clamp-1"
-          >
-            {service.title}
-          </Link>
-          {service.category && (
-            <p className="text-sm text-muted-foreground mt-1">{service.category.name}</p>
-          )}
-        </div>
-
-        <div className="relative">
-          <button
-            onClick={() => setShowActions(!showActions)}
-            className="p-2 rounded-xl hover:bg-muted transition-colors"
-          >
-            <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
-          </button>
-
-          <AnimatePresence>
-            {showActions && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-xl shadow-lg py-1 z-10 min-w-[160px]"
-              >
-                <Link
-                  href={`/services/${service.id}`}
-                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors"
-                  onClick={() => setShowActions(false)}
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Voir le service
-                </Link>
-
-                {service.status === 'DRAFT' && (
-                  <button
-                    onClick={() => { onPublish(); setShowActions(false); }}
-                    disabled={isPublishing}
-                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors w-full text-left text-success"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Publier
-                  </button>
-                )}
-
-                {service.status === 'PUBLISHED' && (
-                  <button
-                    onClick={() => { onPause(); setShowActions(false); }}
-                    disabled={isPausing}
-                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors w-full text-left"
-                  >
-                    <Pause className="w-4 h-4" />
-                    Mettre en pause
-                  </button>
-                )}
-
-                {service.status === 'PAUSED' && (
-                  <button
-                    onClick={() => { onPublish(); setShowActions(false); }}
-                    disabled={isPublishing}
-                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors w-full text-left text-success"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Republier
-                  </button>
-                )}
-
-                <div className="border-t border-border my-1" />
-
-                <button
-                  onClick={() => { setShowConfirmDelete(true); setShowActions(false); }}
-                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors w-full text-left text-destructive"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Supprimer
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* Confirm Delete Modal */}
-      <AnimatePresence>
-        {showConfirmDelete && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowConfirmDelete(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-surface rounded-2xl p-6 max-w-sm w-full shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-lg font-bold mb-2">Supprimer ce service ?</h3>
-              <p className="text-muted-foreground text-sm mb-6">
-                Cette action est irréversible. Le service sera définitivement supprimé.
-              </p>
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1 rounded-xl"
-                  onClick={() => setShowConfirmDelete(false)}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="flex-1 rounded-xl"
-                  onClick={() => { onDelete(); setShowConfirmDelete(false); }}
-                >
-                  Supprimer
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-}
-
-// Business Service Card Component
-function BusinessServiceCard({
-  service,
-  index,
-}: {
-  service: BusinessService;
-  index: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="bg-surface border border-border/50 rounded-2xl p-5 hover:border-border transition-colors"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-              service.isActive
-                ? 'bg-success-soft text-success'
-                : 'bg-muted text-muted-foreground'
-            }`}>
-              {service.isActive ? 'Actif' : 'Inactif'}
-            </span>
-          </div>
-          <p className="font-semibold line-clamp-1">{service.name}</p>
-          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{formatPrice(service.priceCents)}</span>
-            <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              {service.durationMinutes} min
-            </span>
-            {service.category && <span>{service.category.name}</span>}
-          </div>
-        </div>
-        <Link href={`/business/services/${service.id}/edit`}>
-          <Button variant="ghost" size="sm" className="rounded-xl">
-            <ExternalLink className="w-4 h-4" />
-          </Button>
-        </Link>
-      </div>
-    </motion.div>
-  );
-}
-
-// Service Table Row Component (for particuliers)
-function ServiceTableRow({
-  service,
-  index,
-  onPublish,
-  onPause,
-  onDelete,
-  isPublishing,
-  isPausing,
-}: {
-  service: Service;
-  index: number;
-  onPublish: () => void;
-  onPause: () => void;
-  onDelete: () => void;
-  isPublishing: boolean;
-  isPausing: boolean;
-}) {
-  const [showActions, setShowActions] = useState(false);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-
-  const statusConfig = {
-    PUBLISHED: { label: 'Publié', class: 'bg-success-soft text-success' },
-    PAUSED: { label: 'En pause', class: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' },
-    DRAFT: { label: 'Brouillon', class: 'bg-muted text-muted-foreground' },
-  };
-
-  const status = statusConfig[service.status as keyof typeof statusConfig] || statusConfig.DRAFT;
-
-  const priceDisplay = () => {
-    if (service.priceMinCents && service.priceMaxCents) {
-      if (service.priceMinCents === service.priceMaxCents) {
-        return formatPrice(service.priceMinCents);
-      }
-      return `${formatPrice(service.priceMinCents)} - ${formatPrice(service.priceMaxCents)}`;
-    }
-    if (service.priceMinCents) return `À partir de ${formatPrice(service.priceMinCents)}`;
-    if (service.priceMaxCents) return `Jusqu'à ${formatPrice(service.priceMaxCents)}`;
-    return 'À définir';
-  };
+  const config = statusConfig[service.status] || statusConfig.DRAFT;
 
   return (
     <>
-      <motion.tr
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: index * 0.03 }}
-        className="border-b border-border/30 hover:bg-muted/20 transition-colors"
-      >
+      <tr className="border-b border-border/30 last:border-0 hover:bg-muted/20 transition-colors">
         <td className="py-3 px-4">
-          <Link
-            href={`/services/${service.id}`}
-            className="font-medium hover:text-primary transition-colors line-clamp-1"
-          >
-            {service.title}
-          </Link>
+          <div className="flex items-center gap-3">
+            {service.coverUrl ? (
+              <img src={service.coverUrl} alt="" className="w-10 h-10 rounded-xl object-cover" />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                <Briefcase className="w-5 h-5 text-primary" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <Link href={`/services/${service.id}`} className="font-medium text-sm hover:text-primary transition-colors line-clamp-1">
+                {service.title}
+              </Link>
+              <p className="text-xs text-muted-foreground line-clamp-1">{service.description}</p>
+            </div>
+          </div>
         </td>
-        <td className="py-3 px-4">
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+        <td className="py-3 px-4 hidden sm:table-cell">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
             service.kind === 'OFFER'
-              ? 'bg-success-soft text-success'
-              : 'bg-primary/10 text-primary'
+              ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+              : 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400'
           }`}>
             {service.kind === 'OFFER' ? 'Offre' : 'Demande'}
           </span>
         </td>
-        <td className="py-3 px-4 text-sm text-muted-foreground">
-          {service.category?.name || '-'}
-        </td>
-        <td className="py-3 px-4 text-sm font-medium">
-          {priceDisplay()}
+        <td className="py-3 px-4 hidden md:table-cell">
+          <span className="text-sm text-muted-foreground">{service.category?.name || '-'}</span>
         </td>
         <td className="py-3 px-4">
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${status.class}`}>
-            {status.label}
+          <span className="font-semibold text-sm">
+            {service.priceCents ? formatPrice(service.priceCents) : 'Gratuit'}
+          </span>
+        </td>
+        <td className="py-3 px-4">
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.color}`}>
+            {service.status === 'PUBLISHED' && <Eye className="w-3 h-3" />}
+            {service.status === 'PAUSED' && <Pause className="w-3 h-3" />}
+            {config.label}
           </span>
         </td>
         <td className="py-3 px-4 text-right">
           <div className="relative inline-block">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
               onClick={() => setShowActions(!showActions)}
-              className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
             >
-              <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-            </button>
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
 
             <AnimatePresence>
               {showActions && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-xl shadow-lg py-1 z-50 min-w-[140px]"
-                >
-                  <Link
-                    href={`/services/${service.id}`}
-                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors"
-                    onClick={() => setShowActions(false)}
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowActions(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50 min-w-[140px]"
                   >
-                    <ExternalLink className="w-4 h-4" />
-                    Voir
-                  </Link>
-
-                  {service.status === 'DRAFT' && (
-                    <button
-                      onClick={() => { onPublish(); setShowActions(false); }}
-                      disabled={isPublishing}
-                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors w-full text-left text-success"
+                    <Link
+                      href={`/services/${service.id}`}
+                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors"
+                      onClick={() => setShowActions(false)}
                     >
-                      <Eye className="w-4 h-4" />
-                      Publier
-                    </button>
-                  )}
-
-                  {service.status === 'PUBLISHED' && (
-                    <button
-                      onClick={() => { onPause(); setShowActions(false); }}
-                      disabled={isPausing}
-                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors w-full text-left"
+                      <ExternalLink className="w-4 h-4" />
+                      Voir
+                    </Link>
+                    <Link
+                      href={`/dashboard/services/${service.id}/edit`}
+                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors"
+                      onClick={() => setShowActions(false)}
                     >
-                      <Pause className="w-4 h-4" />
-                      Pause
-                    </button>
-                  )}
+                      <Briefcase className="w-4 h-4" />
+                      Modifier
+                    </Link>
 
-                  {service.status === 'PAUSED' && (
+                    {service.status === 'PUBLISHED' && (
+                      <button
+                        onClick={() => { onPause(); setShowActions(false); }}
+                        disabled={isPausing}
+                        className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors w-full text-left text-amber-600"
+                      >
+                        <EyeOff className="w-4 h-4" />
+                        Mettre en pause
+                      </button>
+                    )}
+
+                    {(service.status === 'PAUSED' || service.status === 'DRAFT') && (
+                      <button
+                        onClick={() => { onPublish(); setShowActions(false); }}
+                        disabled={isPublishing}
+                        className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors w-full text-left text-success"
+                      >
+                        <Eye className="w-4 h-4" />
+                        Publier
+                      </button>
+                    )}
+
+                    <div className="border-t border-border my-1" />
+
                     <button
-                      onClick={() => { onPublish(); setShowActions(false); }}
-                      disabled={isPublishing}
-                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors w-full text-left text-success"
+                      onClick={() => { setShowConfirmDelete(true); setShowActions(false); }}
+                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors w-full text-left text-destructive"
                     >
-                      <Eye className="w-4 h-4" />
-                      Republier
+                      <Trash2 className="w-4 h-4" />
+                      Supprimer
                     </button>
-                  )}
-
-                  <div className="border-t border-border my-1" />
-
-                  <button
-                    onClick={() => { setShowConfirmDelete(true); setShowActions(false); }}
-                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors w-full text-left text-destructive"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Supprimer
-                  </button>
-                </motion.div>
+                  </motion.div>
+                </>
               )}
             </AnimatePresence>
           </div>
         </td>
-      </motion.tr>
+      </tr>
 
       {/* Confirm Delete Modal */}
       <AnimatePresence>
@@ -1436,6 +966,7 @@ function ServiceTableRow({
                   variant="destructive"
                   className="flex-1 rounded-xl"
                   onClick={() => { onDelete(); setShowConfirmDelete(false); }}
+                  disabled={isDeleting}
                 >
                   Supprimer
                 </Button>
@@ -1448,97 +979,325 @@ function ServiceTableRow({
   );
 }
 
-// Business Review Card Component
-function BusinessReviewCard({
-  review,
+// Booking Card Component
+function BookingCard({
+  booking,
   index,
-  onReply,
+  role,
+  statusColors,
+  statusIcons,
+  statusLabels,
+  onAccept,
+  onReject,
+  isAccepting,
+  isRejecting,
+  onReview,
+  onClick,
+  onCancel,
+  isCanceling,
+  onDelete,
+  isDeleting,
 }: {
-  review: Review;
+  booking: Booking;
   index: number;
-  onReply: () => void;
+  role: 'provider' | 'requester';
+  statusColors: Record<BookingStatus, string>;
+  statusIcons: Record<BookingStatus, React.ReactNode>;
+  statusLabels: Record<BookingStatus, string>;
+  onAccept: () => void;
+  onReject: (message?: string) => void;
+  isAccepting: boolean;
+  isRejecting: boolean;
+  onReview: () => void;
+  onClick: () => void;
+  onCancel: () => void;
+  isCanceling: boolean;
+  onDelete: () => void;
+  isDeleting: boolean;
 }) {
-  const authorName = review.author?.profile?.displayName || 'Client';
-  const serviceName = review.booking?.businessService?.name;
-  const employeeName = review.booking?.employee
-    ? `${review.booking.employee.firstName} ${review.booking.employee.lastName}`
-    : null;
-  const stars = review.score;
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectMessage, setRejectMessage] = useState('');
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const otherParty = role === 'provider' ? booking.requester : booking.provider;
+  const otherPartyLabel = role === 'provider' ? 'Demandeur' : 'Prestataire';
+
+  const canSeePhone = role === 'provider' &&
+    ['ACCEPTED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) &&
+    (booking as any).requesterPhone;
+
+  const handleReject = () => {
+    onReject(rejectMessage || undefined);
+    setShowRejectModal(false);
+    setRejectMessage('');
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="bg-surface border border-border/50 rounded-2xl p-5 hover:border-border transition-colors"
-    >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-            {review.author?.profile?.avatarUrl ? (
-              <img
-                src={review.author.profile.avatarUrl}
-                alt=""
-                className="w-full h-full rounded-full object-cover"
-              />
-            ) : (
-              <User className="w-5 h-5 text-primary" />
-            )}
-          </div>
-          <div>
-            <p className="font-medium text-sm">{authorName}</p>
-            {serviceName && (
-              <p className="text-xs text-muted-foreground">
-                {serviceName}
-                {employeeName && ` • ${employeeName}`}
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-0.5 shrink-0">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Star
-              key={i}
-              className={`w-4 h-4 ${
-                i <= stars ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground/30'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      {review.comment && (
-        <p className="text-sm text-foreground/80 leading-relaxed mb-3 line-clamp-3">
-          "{review.comment}"
-        </p>
-      )}
-
-      <p className="text-xs text-muted-foreground mb-3">
-        {new Date(review.createdAt).toLocaleDateString('fr-FR', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        })}
-      </p>
-
-      {/* Business reply preview */}
-      {review.reply && (
-        <div className="bg-muted/30 rounded-lg p-3 mb-3 border-l-2 border-primary/30">
-          <p className="text-xs font-medium text-primary mb-1">Votre réponse</p>
-          <p className="text-sm text-foreground/80 line-clamp-2">{review.reply}</p>
-        </div>
-      )}
-
-      {/* Reply button */}
-      <Button
-        size="sm"
-        variant="outline"
-        className="rounded-xl h-8 w-full"
-        onClick={onReply}
+    <>
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ delay: index * 0.05 }}
+        className="bg-surface border border-border/50 rounded-2xl p-5 hover:border-border hover:shadow-md transition-all cursor-pointer"
+        onClick={onClick}
       >
-        <MessageCircle className="w-4 h-4 mr-1.5" />
-        {review.reply ? 'Modifier la réponse' : 'Répondre'}
-      </Button>
-    </motion.div>
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold line-clamp-1 flex items-center gap-1">
+              {booking.service?.title}
+              <ArrowUpRight className="w-4 h-4 opacity-50" />
+            </p>
+            <p className="text-sm text-muted-foreground mt-1.5">
+              {otherPartyLabel}:{' '}
+              <span className="text-foreground">
+                {otherParty?.profile?.displayName || 'Anonyme'}
+              </span>
+            </p>
+          </div>
+          <div
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+              statusColors[booking.status]
+            }`}
+          >
+            {statusIcons[booking.status]}
+            <span>{statusLabels[booking.status]}</span>
+          </div>
+        </div>
+
+        {booking.scheduledAt && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+            <Calendar className="w-4 h-4" />
+            <span>
+              {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+              })}{' '}
+              à{' '}
+              {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+          </div>
+        )}
+
+        {canSeePhone && (
+          <div className="flex items-center gap-2 text-sm mb-2 bg-success-soft text-success px-3 py-2 rounded-lg">
+            <Phone className="w-4 h-4" />
+            <span className="font-medium">{(booking as any).requesterPhone}</span>
+          </div>
+        )}
+
+        {booking.notes && role === 'provider' && (
+          <div className="text-sm text-muted-foreground mb-2 bg-muted/30 p-3 rounded-lg">
+            <p className="text-xs font-medium text-foreground mb-1">Message</p>
+            <p className="line-clamp-2">{booking.notes}</p>
+          </div>
+        )}
+
+        {booking.status === 'CANCELED' && (booking as any).rejectionMessage && role === 'requester' && (
+          <div className="text-sm mb-2 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
+            <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">Motif du refus</p>
+            <p className="text-red-700 dark:text-red-300 line-clamp-2">{(booking as any).rejectionMessage}</p>
+          </div>
+        )}
+
+        {booking.agreedPriceCents && (
+          <p className="text-sm font-semibold text-primary">
+            {formatPrice(booking.agreedPriceCents)}
+          </p>
+        )}
+
+        {/* Actions for PENDING status (provider only) */}
+        {booking.status === 'PENDING' && role === 'provider' && (
+          <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border/50">
+            <Button
+              size="sm"
+              className="rounded-xl h-8 flex-1"
+              onClick={(e) => { e.stopPropagation(); onAccept(); }}
+              disabled={isAccepting}
+            >
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Accepter
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-xl h-8 flex-1"
+              onClick={(e) => { e.stopPropagation(); setShowRejectModal(true); }}
+              disabled={isRejecting}
+            >
+              <Ban className="w-4 h-4 mr-1" />
+              Refuser
+            </Button>
+          </div>
+        )}
+
+        {/* Cancel button for requester (PENDING or ACCEPTED status) */}
+        {role === 'requester' && (booking.status === 'PENDING' || booking.status === 'ACCEPTED') && (
+          <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border/50">
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-xl h-8 w-full text-muted-foreground hover:text-destructive hover:border-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCancelModal(true);
+              }}
+              disabled={isCanceling}
+            >
+              <Ban className="w-4 h-4 mr-1" />
+              Annuler ma demande
+            </Button>
+          </div>
+        )}
+
+        {/* Review button for completed bookings */}
+        {booking.status === 'COMPLETED' && !booking.reviews?.length && (
+          <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border/50">
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-xl h-8 w-full"
+              onClick={(e) => { e.stopPropagation(); onReview(); }}
+            >
+              <Star className="w-4 h-4 mr-1.5" />
+              Écrire un avis
+            </Button>
+          </div>
+        )}
+
+        {/* Delete button for canceled bookings */}
+        {booking.status === 'CANCELED' && (
+          <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border/50">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="rounded-xl h-8 w-full text-muted-foreground hover:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDeleteModal(true);
+              }}
+              disabled={isDeleting}
+            >
+              <Trash2 className="w-4 h-4 mr-1.5" />
+              Supprimer
+            </Button>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Cancel Modal for requester */}
+      <CancelBookingModal
+        booking={booking}
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={() => {
+          onCancel();
+          setShowCancelModal(false);
+        }}
+        isLoading={isCanceling}
+      />
+
+      {/* Reject Modal */}
+      <AnimatePresence>
+        {showRejectModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowRejectModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-surface rounded-2xl p-6 max-w-sm w-full shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-bold mb-2">Refuser cette demande ?</h3>
+              <p className="text-muted-foreground text-sm mb-4">
+                Vous pouvez ajouter un message pour expliquer votre refus (optionnel).
+              </p>
+              <textarea
+                value={rejectMessage}
+                onChange={(e) => setRejectMessage(e.target.value)}
+                placeholder="Ex: Je ne suis pas disponible à cette date..."
+                rows={3}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none mb-4"
+              />
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-xl"
+                  onClick={() => setShowRejectModal(false)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1 rounded-xl"
+                  onClick={handleReject}
+                  disabled={isRejecting}
+                >
+                  {isRejecting ? 'Refus...' : 'Refuser'}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowDeleteModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-surface rounded-2xl p-6 max-w-sm w-full shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-bold mb-2">Supprimer cette réservation ?</h3>
+              <p className="text-muted-foreground text-sm mb-6">
+                Cette réservation annulée sera retirée de votre tableau de bord.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-xl"
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1 rounded-xl"
+                  onClick={() => {
+                    onDelete();
+                    setShowDeleteModal(false);
+                  }}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Suppression...' : 'Supprimer'}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatDate, getXpProgress } from '@/lib/utils';
-import { ProfileImage, Review } from '@/types';
+import { PeopleImage, Review } from '@/types';
 
 // Image Lightbox component
 function ImageLightbox({
@@ -28,7 +28,7 @@ function ImageLightbox({
   initialIndex,
   onClose,
 }: {
-  images: ProfileImage[];
+  images: PeopleImage[];
   initialIndex: number;
   onClose: () => void;
 }) {
@@ -136,7 +136,7 @@ function ImageGalleryMosaic({
   images,
   onImageClick,
 }: {
-  images: ProfileImage[];
+  images: PeopleImage[];
   onImageClick: (index: number) => void;
 }) {
   if (!images || images.length === 0) return null;

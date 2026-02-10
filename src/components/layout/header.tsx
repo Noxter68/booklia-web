@@ -13,7 +13,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { Spinner } from '@/components/ui/spinner';
 import { api } from '@/lib/api';
-import { Category } from '@/types';
+import { Category, PeopleImage } from '@/types';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 
 export function Header() {
   const router = useRouter();
@@ -42,6 +43,18 @@ export function Header() {
     queryKey: ['categories'],
     queryFn: () => api.getCategories(),
   });
+
+  // Fetch user's profile images for avatar (only for non-business users)
+  const { data: userImages } = useQuery({
+    queryKey: ['my-people-images'],
+    queryFn: () => api.getMyPeopleImages(),
+    enabled: !!user && !user.isBusiness,
+  });
+
+  // Get the first image as avatar (sorted by sortOrder)
+  const userAvatarUrl = userImages && userImages.length > 0
+    ? [...userImages].sort((a, b) => a.sortOrder - b.sortOrder)[0]?.url
+    : null;
 
   const handleLogout = () => {
     logout();
@@ -266,6 +279,13 @@ export function Header() {
 
           {/* Right side - Desktop */}
           <div className="flex items-center gap-1">
+            {/* Notifications - only for logged in users */}
+            {user && (
+              <div className="hidden md:block">
+                <NotificationBell />
+              </div>
+            )}
+
             {/* Theme toggle */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -292,10 +312,18 @@ export function Header() {
                   <button
                     className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
                   >
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-sm font-medium text-primary">
-                        {(user.name || user.email)?.[0]?.toUpperCase()}
-                      </span>
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                      {userAvatarUrl ? (
+                        <img
+                          src={userAvatarUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-primary">
+                          {(user.name || user.email)?.[0]?.toUpperCase()}
+                        </span>
+                      )}
                     </div>
                     <span className="hidden sm:block text-sm font-medium">
                       {user.name || user.email?.split('@')[0]}
@@ -477,10 +505,18 @@ export function Header() {
                           {user && (
                             <div className="p-4 rounded-2xl bg-gradient-to-br from-gold-soft to-muted mb-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                                  <span className="text-lg font-bold text-primary">
-                                    {(user.name || user.email)?.[0]?.toUpperCase()}
-                                  </span>
+                                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+                                  {userAvatarUrl ? (
+                                    <img
+                                      src={userAvatarUrl}
+                                      alt=""
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <span className="text-lg font-bold text-primary">
+                                      {(user.name || user.email)?.[0]?.toUpperCase()}
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-semibold truncate">{user.name || 'Utilisateur'}</p>

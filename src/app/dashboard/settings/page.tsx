@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Save,
   Upload,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -21,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import Link from 'next/link';
-import { ProfileImage } from '@/types';
+import { PeopleImage } from '@/types';
 
 type Tab = 'profile' | 'images';
 
@@ -31,6 +32,7 @@ export default function DashboardSettingsPage() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>('profile');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Profile form state
   const [displayName, setDisplayName] = useState('');
@@ -38,10 +40,12 @@ export default function DashboardSettingsPage() {
   const [city, setCity] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Images state
-  const [images, setImages] = useState<ProfileImage[]>([]);
+  const [images, setImages] = useState<PeopleImage[]>([]);
   const [isReordering, setIsReordering] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Fetch profile
   const { isLoading: profileLoading } = useQuery({
@@ -64,7 +68,7 @@ export default function DashboardSettingsPage() {
   const { isLoading: imagesLoading } = useQuery({
     queryKey: ['my-profile-images'],
     queryFn: async () => {
-      const data = await api.getMyProfileImages();
+      const data = await api.getMyPeopleImages();
       setImages(data);
       return data;
     },
@@ -84,7 +88,7 @@ export default function DashboardSettingsPage() {
 
   // Add image mutation
   const addImageMutation = useMutation({
-    mutationFn: (url: string) => api.addProfileImage(url),
+    mutationFn: (url: string) => api.addPeopleImage(url),
     onSuccess: (newImage) => {
       setImages((prev) => [...prev, newImage]);
       success('Image ajoutée');
@@ -95,7 +99,7 @@ export default function DashboardSettingsPage() {
 
   // Delete image mutation
   const deleteImageMutation = useMutation({
-    mutationFn: (id: string) => api.deleteProfileImage(id),
+    mutationFn: (id: string) => api.deletePeopleImage(id),
     onSuccess: (_, deletedId) => {
       setImages((prev) => prev.filter((img) => img.id !== deletedId));
       success('Image supprimée');
@@ -106,7 +110,7 @@ export default function DashboardSettingsPage() {
 
   // Reorder images mutation
   const reorderImagesMutation = useMutation({
-    mutationFn: (imageIds: string[]) => api.reorderProfileImages(imageIds),
+    mutationFn: (imageIds: string[]) => api.reorderPeopleImages(imageIds),
     onSuccess: () => {
       success('Ordre mis à jour');
       queryClient.invalidateQueries({ queryKey: ['my-profile-images'] });
@@ -123,14 +127,44 @@ export default function DashboardSettingsPage() {
     });
   };
 
-  const handleAddImageUrl = () => {
-    const url = prompt('Entrez l\'URL de l\'image:');
-    if (url) {
-      addImageMutation.mutate(url);
+  const handleAvatarUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    try {
+      const result = await api.uploadFile(file, 'avatar');
+      setAvatarUrl(result.url);
+      success('Avatar uploadé');
+    } catch (err) {
+      showError('Erreur lors de l\'upload de l\'avatar');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
     }
   };
 
-  const handleReorder = (newOrder: ProfileImage[]) => {
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    try {
+      const result = await api.uploadFile(file, 'image');
+      addImageMutation.mutate(result.url);
+    } catch (err) {
+      showError('Erreur lors de l\'upload de l\'image');
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleReorder = (newOrder: PeopleImage[]) => {
     setImages(newOrder);
     setIsReordering(true);
   };
@@ -229,18 +263,25 @@ export default function DashboardSettingsPage() {
               <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border/50">
                 <div className="relative">
                   <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center overflow-hidden">
-                    {avatarUrl ? (
+                    {isUploadingAvatar ? (
+                      <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+                    ) : avatarUrl ? (
                       <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <User className="w-8 h-8 text-muted-foreground" />
                     )}
                   </div>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
                   <button
-                    onClick={() => {
-                      const url = prompt('Entrez l\'URL de votre avatar:', avatarUrl);
-                      if (url !== null) setAvatarUrl(url);
-                    }}
-                    className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors cursor-pointer"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={isUploadingAvatar}
+                    className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-50"
                   >
                     <Camera className="w-4 h-4" />
                   </button>
@@ -248,7 +289,7 @@ export default function DashboardSettingsPage() {
                 <div>
                   <p className="font-medium">Photo de profil</p>
                   <p className="text-sm text-muted-foreground">
-                    Visible sur votre profil public
+                    Cliquez pour uploader (max 2 Mo)
                   </p>
                 </div>
               </div>
@@ -333,6 +374,15 @@ export default function DashboardSettingsPage() {
                 </span>
               </div>
 
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+
               {imagesLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {[...Array(3)].map((_, i) => (
@@ -352,11 +402,15 @@ export default function DashboardSettingsPage() {
                   <Button
                     variant="outline"
                     className="rounded-xl"
-                    onClick={handleAddImageUrl}
-                    disabled={addImageMutation.isPending}
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={addImageMutation.isPending || isUploadingImage}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Ajouter une image
+                    {isUploadingImage ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
+                    {isUploadingImage ? 'Upload en cours...' : 'Ajouter une image'}
                   </Button>
                 </div>
               ) : (
@@ -403,12 +457,21 @@ export default function DashboardSettingsPage() {
                   {/* Add more images */}
                   {images.length < 10 && (
                     <button
-                      onClick={handleAddImageUrl}
-                      disabled={addImageMutation.isPending}
-                      className="w-full mt-4 py-4 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer flex items-center justify-center gap-2"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={addImageMutation.isPending || isUploadingImage}
+                      className="w-full mt-4 py-4 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Plus className="w-5 h-5" />
-                      <span>Ajouter une image</span>
+                      {isUploadingImage ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>Upload en cours...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-5 h-5" />
+                          <span>Ajouter une image</span>
+                        </>
+                      )}
                     </button>
                   )}
 
@@ -437,7 +500,7 @@ export default function DashboardSettingsPage() {
               <div className="mt-6 pt-6 border-t border-border/50">
                 <p className="text-xs text-muted-foreground">
                   Les images seront affichées sur votre profil public dans l'ordre défini.
-                  Glissez-déposez pour réorganiser.
+                  Glissez-déposez pour réorganiser. Max 5 Mo par image.
                 </p>
               </div>
             </motion.div>

@@ -6,6 +6,7 @@ import { authClient, AuthUser } from '@/lib/auth';
 
 interface AuthContextType {
   user: AuthUser | null;
+  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<{ user: AuthUser }>;
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
@@ -32,8 +34,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const session = await authClient.getSession();
       setUser(session);
+      // Get token from localStorage
+      const storedToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      setToken(storedToken);
     } catch {
       setUser(null);
+      setToken(null);
     } finally {
       setIsLoading(false);
     }
@@ -64,6 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const result = await authClient.login(email, password);
     setUser(result.user);
+    // Get token from localStorage after login
+    const storedToken = localStorage.getItem('accessToken');
+    setToken(storedToken);
     return result;
   };
 
@@ -82,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     authClient.logout();
     setUser(null);
+    setToken(null);
     router.push('/');
   }, [router]);
 
@@ -89,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        token,
         isLoading,
         isAuthenticated: !!user,
         login,

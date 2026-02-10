@@ -35,8 +35,10 @@ import {
   Images,
   Zap,
   CalendarDays,
+  Send,
 } from 'lucide-react';
-import { ProfileImage, Review } from '@/types';
+import { PeopleImage, Review } from '@/types';
+import { P2PBookingModal } from '@/components/booking/p2p-booking-modal';
 
 // Image Lightbox component
 function ImageLightbox({
@@ -44,7 +46,7 @@ function ImageLightbox({
   initialIndex,
   onClose,
 }: {
-  images: ProfileImage[];
+  images: PeopleImage[];
   initialIndex: number;
   onClose: () => void;
 }) {
@@ -152,7 +154,7 @@ function ImageGalleryMosaic({
   images,
   onImageClick,
 }: {
-  images: ProfileImage[];
+  images: PeopleImage[];
   onImageClick: (index: number) => void;
 }) {
   if (!images || images.length === 0) return null;
@@ -359,6 +361,7 @@ export default function ServicePage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   const { data: service, isLoading } = useQuery({
     queryKey: ['service', id],
@@ -368,7 +371,7 @@ export default function ServicePage() {
 
   const { data: userImages } = useQuery({
     queryKey: ['profile-images', service?.createdByUserId],
-    queryFn: () => api.getProfileImages(service!.createdByUserId),
+    queryFn: () => api.getPeopleImages(service!.createdByUserId),
     enabled: !!service?.createdByUserId,
   });
 
@@ -383,6 +386,17 @@ export default function ServicePage() {
     queryFn: () => api.getUserServices(service!.createdByUserId),
     enabled: !!service?.createdByUserId,
   });
+
+  // Check if user already has a pending/accepted booking for this service
+  const { data: myBookings } = useQuery({
+    queryKey: ['my-bookings-for-service', id],
+    queryFn: () => api.getMyBookings(),
+    enabled: !!user && !!id,
+  });
+
+  const existingBooking = myBookings?.find(
+    (b) => b.serviceId === id && ['PENDING', 'ACCEPTED', 'IN_PROGRESS'].includes(b.status)
+  );
 
   // Filter out current service from other services
   const otherServices = userServices?.filter(s => s.id !== id) || [];
@@ -416,6 +430,11 @@ export default function ServicePage() {
   const isOwner = user?.id === service.createdByUserId;
   const profile = service.createdBy?.profile;
   const reputation = service.createdBy?.reputation;
+
+  // Use first profile image if available, otherwise use userImages (fetched separately), then fall back to avatarUrl
+  const providerAvatarUrl = userImages && userImages.length > 0
+    ? [...userImages].sort((a, b) => a.sortOrder - b.sortOrder)[0]?.url
+    : profile?.avatarUrl;
 
   const avgRating = reputation?.ratingAvg5 ? reputation.ratingAvg5.toFixed(1) : null;
   const reviewCount = reputation?.ratingCount || 0;
@@ -516,13 +535,12 @@ export default function ServicePage() {
           </div>
 
           {/* Price */}
-          {service.priceMinCents && (
+          {service.priceCents && (
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gold-soft">
               <Euro className="w-5 h-5 text-primary" />
               <span className="text-xl font-bold text-primary">
-                {service.priceMaxCents
-                  ? `${formatPrice(service.priceMinCents)} - ${formatPrice(service.priceMaxCents)}`
-                  : formatPrice(service.priceMinCents)}
+                {formatPrice(service.priceCents)}
+                {service.pricingType === 'HOURLY' && '/h'}
               </span>
               {service.isRecurring && (
                 <span className="text-sm text-muted-foreground">
@@ -752,9 +770,9 @@ export default function ServicePage() {
                   <Link href={`/profile/${service.createdByUserId}`} className="block">
                     <div className="flex items-center gap-4">
                       <div className="relative">
-                        {profile?.avatarUrl ? (
+                        {providerAvatarUrl ? (
                           <img
-                            src={profile.avatarUrl}
+                            src={providerAvatarUrl}
                             alt=""
                             className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-lg"
                           />
@@ -822,10 +840,29 @@ export default function ServicePage() {
                     <>
                       {user ? (
                         <>
-                          <Button className="w-full rounded-xl" size="lg">
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            {service.kind === 'OFFER' ? 'Contacter' : 'Proposer mes services'}
-                          </Button>
+                          {existingBooking ? (
+                            <div className="text-center p-4 bg-muted/50 rounded-xl">
+                              <p className="text-sm font-medium text-muted-foreground">
+                                {existingBooking.status === 'PENDING'
+                                  ? 'Demande en attente de réponse'
+                                  : existingBooking.status === 'ACCEPTED'
+                                  ? 'Réservation acceptée'
+                                  : 'Mission en cours'}
+                              </p>
+                              <Link href="/dashboard" className="text-xs text-primary hover:underline mt-1 inline-block">
+                                Voir dans mon dashboard
+                              </Link>
+                            </div>
+                          ) : (
+                            <Button
+                              className="w-full rounded-xl"
+                              size="lg"
+                              onClick={() => setShowBookingModal(true)}
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              {service.kind === 'OFFER' ? 'Réserver' : 'Proposer mes services'}
+                            </Button>
+                          )}
                           <div className="flex gap-2">
                             <Button variant="outline" className="flex-1 rounded-xl">
                               <Heart className="w-4 h-4 mr-2" />
@@ -994,9 +1031,9 @@ export default function ServicePage() {
                       {otherService.description}
                     </p>
                     <div className="flex items-center justify-between mt-auto">
-                      {otherService.priceMinCents ? (
+                      {otherService.priceCents ? (
                         <span className="font-bold text-primary">
-                          {formatPrice(otherService.priceMinCents)}
+                          {formatPrice(otherService.priceCents)}
                           {otherService.pricingType === 'HOURLY' && '/h'}
                         </span>
                       ) : (
@@ -1021,14 +1058,30 @@ export default function ServicePage() {
       {!isOwner && (
         <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-surface/95 backdrop-blur-lg border-t border-border p-4 z-40">
           {user ? (
-            <Button className="w-full rounded-full shadow-lg" size="lg">
-              <MessageCircle className="w-5 h-5 mr-2" />
-              {service.kind === 'OFFER' ? 'Contacter' : 'Proposer mes services'}
-            </Button>
+            existingBooking ? (
+              <div className="text-center">
+                <p className="text-sm font-medium text-muted-foreground">
+                  {existingBooking.status === 'PENDING'
+                    ? 'Demande en attente'
+                    : existingBooking.status === 'ACCEPTED'
+                    ? 'Réservation acceptée'
+                    : 'Mission en cours'}
+                </p>
+              </div>
+            ) : (
+              <Button
+                className="w-full rounded-full shadow-lg"
+                size="lg"
+                onClick={() => setShowBookingModal(true)}
+              >
+                <Send className="w-5 h-5 mr-2" />
+                {service.kind === 'OFFER' ? 'Réserver' : 'Proposer mes services'}
+              </Button>
+            )
           ) : (
             <Link href="/auth/login" className="block">
               <Button className="w-full rounded-full shadow-lg" size="lg">
-                Se connecter pour contacter
+                Se connecter pour réserver
               </Button>
             </Link>
           )}
@@ -1045,6 +1098,13 @@ export default function ServicePage() {
           />
         )}
       </AnimatePresence>
+
+      {/* P2P Booking Modal */}
+      <P2PBookingModal
+        service={service}
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+      />
     </div>
   );
 }

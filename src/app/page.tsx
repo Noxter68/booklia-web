@@ -159,12 +159,21 @@ function HorizontalSlider({
   );
 }
 
+// Helper to get the best avatar URL (first image or avatarUrl fallback)
+function getProviderAvatarUrl(profile?: { avatarUrl?: string; images?: { url: string }[] }): string | undefined {
+  if (profile?.images && profile.images.length > 0) {
+    return profile.images[0].url;
+  }
+  return profile?.avatarUrl;
+}
+
 // Modern Service Card for homepage - minimalist design with fixed height
 function HomeServiceCard({ service }: { service: Service }) {
   const providerName = service.createdBy?.profile?.displayName || 'Utilisateur';
   const providerCity = service.createdBy?.profile?.city || service.city;
   const rating = service.createdBy?.reputation?.ratingAvg5;
   const ratingCount = service.createdBy?.reputation?.ratingCount || 0;
+  const avatarUrl = getProviderAvatarUrl(service.createdBy?.profile);
 
   return (
     <Link href={`/service/${service.id}`} className="block snap-start">
@@ -184,9 +193,9 @@ function HomeServiceCard({ service }: { service: Service }) {
           </span>
 
           <div className="text-right">
-            {service.priceMinCents ? (
+            {service.priceCents ? (
               <span className="text-lg font-bold text-primary">
-                {formatPrice(service.priceMinCents)}
+                {formatPrice(service.priceCents)}{service.pricingType === 'HOURLY' && '/h'}
               </span>
             ) : (
               <span className="text-sm text-muted-foreground">À définir</span>
@@ -207,12 +216,12 @@ function HomeServiceCard({ service }: { service: Service }) {
         {/* Provider info + Location */}
         <div className="flex items-center gap-3 text-sm text-muted-foreground mb-auto">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              {service.createdBy?.profile?.avatarUrl ? (
+            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+              {avatarUrl ? (
                 <img
-                  src={service.createdBy.profile.avatarUrl}
+                  src={avatarUrl}
                   alt=""
-                  className="w-full h-full rounded-full object-cover"
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <User className="w-3.5 h-3.5 text-primary" />

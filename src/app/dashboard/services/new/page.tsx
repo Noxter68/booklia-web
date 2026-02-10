@@ -30,10 +30,8 @@ interface FormData {
   city: string;
   latitude: number | null;
   longitude: number | null;
-  priceMinCents: number | null;
-  priceMaxCents: number | null;
+  priceCents: number | null;
   pricingType: PricingType;
-  isVariablePrice: boolean;
   urgency: Urgency;
   isRecurring: boolean;
   recurrence: Recurrence;
@@ -81,10 +79,8 @@ export default function NewServicePage() {
     city: '',
     latitude: null,
     longitude: null,
-    priceMinCents: null,
-    priceMaxCents: null,
+    priceCents: null,
     pricingType: 'HOURLY',
-    isVariablePrice: false,
     urgency: 'FLEXIBLE',
     isRecurring: false,
     recurrence: 'ONE_TIME',
@@ -109,8 +105,7 @@ export default function NewServicePage() {
       city: data.city || undefined,
       latitude: data.latitude || undefined,
       longitude: data.longitude || undefined,
-      priceMinCents: data.priceMinCents || undefined,
-      priceMaxCents: data.priceMaxCents || undefined,
+      priceCents: data.priceCents || undefined,
       deadlineAt: data.deadlineAt || undefined,
       durationMinutes: data.durationMinutes || undefined,
       availableDays: data.availableDays?.length ? data.availableDays : undefined,
@@ -147,7 +142,7 @@ export default function NewServicePage() {
       case 3:
         return formData.title.trim().length >= 5 && formData.description.trim().length >= 20;
       case 4:
-        return formData.kind === 'OFFER' || (formData.priceMinCents && formData.priceMinCents > 0);
+        return formData.kind === 'OFFER' || (formData.priceCents && formData.priceCents > 0);
       case 5:
         return true; // Disponibilités optionnelles
       case 6:
@@ -724,70 +719,31 @@ function StepPricing({
           </label>
           <Helper content={
             formData.pricingType === 'HOURLY'
-              ? "Indiquez votre tarif à l'heure. Si votre prix varie, cochez l'option ci-dessous."
+              ? "Indiquez votre tarif à l'heure."
               : "Indiquez le prix total de votre prestation."
           } />
         </div>
 
         <div className="bg-muted/30 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <label className="text-xs text-muted-foreground mb-1 block">Prix minimum</label>
-              <div className="relative">
-                <Input
-                  type="number"
-                  value={formData.priceMinCents ? formData.priceMinCents / 100 : ''}
-                  onChange={(e) => onChange({ priceMinCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null })}
-                  placeholder="0"
-                  min={0}
-                  className="pr-12"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
-                  €{formData.pricingType === 'HOURLY' ? '/h' : ''}
-                </span>
-              </div>
-            </div>
-            {formData.isVariablePrice && (
-              <>
-                <div className="text-muted-foreground self-end pb-2">—</div>
-                <div className="flex-1">
-                  <label className="text-xs text-muted-foreground mb-1 block">Prix maximum</label>
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      value={formData.priceMaxCents ? formData.priceMaxCents / 100 : ''}
-                      onChange={(e) => onChange({ priceMaxCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null })}
-                      placeholder="0"
-                      min={0}
-                      className="pr-12"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
-                      €{formData.pricingType === 'HOURLY' ? '/h' : ''}
-                    </span>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Variable price checkbox */}
-          <label className="flex items-center gap-3 mt-4 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={formData.isVariablePrice}
-              onChange={(e) => onChange({ isVariablePrice: e.target.checked, priceMaxCents: e.target.checked ? formData.priceMaxCents : null })}
-              className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+          <div className="relative max-w-xs">
+            <Input
+              type="number"
+              value={formData.priceCents ? formData.priceCents / 100 : ''}
+              onChange={(e) => onChange({ priceCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null })}
+              placeholder="0"
+              min={0}
+              className="pr-12 text-lg"
             />
-            <span className="text-sm">
-              Prix variable selon la prestation
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+              €{formData.pricingType === 'HOURLY' ? '/h' : ''}
             </span>
-          </label>
+          </div>
         </div>
 
-        {formData.kind === 'REQUEST' && !formData.priceMinCents && (
+        {formData.kind === 'REQUEST' && !formData.priceCents && (
           <p className="text-xs text-destructive mt-2 flex items-center gap-1">
             <Info className="w-3.5 h-3.5" />
-            Un budget minimum est requis pour les demandes
+            Un budget est requis pour les demandes
           </p>
         )}
       </div>
@@ -1247,10 +1203,9 @@ function StepPublish({
           <div className="flex justify-between pb-3 border-b border-border">
             <span className="text-muted-foreground">Tarif</span>
             <span className="font-medium">
-              {formData.priceMinCents ? (
+              {formData.priceCents ? (
                 <>
-                  {(formData.priceMinCents / 100).toFixed(0)}€
-                  {formData.priceMaxCents && formData.isVariablePrice && ` - ${(formData.priceMaxCents / 100).toFixed(0)}€`}
+                  {(formData.priceCents / 100).toFixed(0)}€
                   {formData.pricingType === 'HOURLY' && '/h'}
                   <span className="text-muted-foreground text-xs ml-1">
                     ({formData.pricingType === 'HOURLY' ? 'horaire' : 'forfait'})

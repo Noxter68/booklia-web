@@ -1031,14 +1031,11 @@ export default function BusinessPublicPage() {
       </div>
 
       {/* Review Form Modal */}
-      {reviewBooking && (
-        <ReviewFormModal
-          booking={reviewBooking}
-          isOpen={!!reviewBooking}
-          onClose={() => setReviewBooking(null)}
-          reviewType="REVIEW_PROVIDER"
-        />
-      )}
+      <ReviewFormModal
+        booking={reviewBooking}
+        onClose={() => setReviewBooking(null)}
+        onSuccess={() => setReviewBooking(null)}
+      />
 
       {/* Image Lightbox */}
       <AnimatePresence>

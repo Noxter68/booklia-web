@@ -27,10 +27,10 @@ export interface Profile {
   avatarUrl?: string;
   bio?: string;
   city?: string;
-  images?: ProfileImage[];
+  images?: PeopleImage[];
 }
 
-export interface ProfileImage {
+export interface PeopleImage {
   id: string;
   profileId: string;
   url: string;
@@ -70,10 +70,8 @@ export interface Service {
   kind: ServiceKind;
   title: string;
   description: string;
-  priceMinCents?: number;
-  priceMaxCents?: number;
+  priceCents?: number;
   pricingType?: PricingType;
-  isVariablePrice?: boolean;
   currency: string;
   // Duration
   durationMinutes?: number;
@@ -94,7 +92,12 @@ export interface Service {
   createdByUserId: string;
   createdBy?: {
     id: string;
-    profile?: { displayName?: string; avatarUrl?: string; city?: string };
+    profile?: {
+      displayName?: string;
+      avatarUrl?: string;
+      city?: string;
+      images?: PeopleImage[];
+    };
     reputation?: UserReputation;
   };
   status: ServiceStatus;
@@ -138,6 +141,10 @@ export interface Booking {
   scheduledAt?: string;
   completedAt?: string;
   notes?: string;
+  // P2P contact info
+  requesterPhone?: string;
+  requesterAddress?: string;
+  rejectionMessage?: string;
   reviews?: Review[];
   createdAt: string;
   updatedAt: string;
@@ -316,5 +323,41 @@ export interface BusinessImage {
   businessId: string;
   url: string;
   sortOrder: number;
+  createdAt: string;
+}
+
+// Booking Comments
+export interface BookingComment {
+  id: string;
+  bookingId: string;
+  authorId: string;
+  content: string;
+  author?: {
+    id: string;
+    profile?: { displayName?: string; avatarUrl?: string };
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Notifications
+export type NotificationType =
+  | 'BOOKING_NEW'
+  | 'BOOKING_ACCEPTED'
+  | 'BOOKING_REJECTED'
+  | 'BOOKING_CANCELED'
+  | 'BOOKING_COMPLETED'
+  | 'BOOKING_COMMENT'
+  | 'REVIEW_RECEIVED';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  bookingId?: string;
+  serviceId?: string;
+  isRead: boolean;
   createdAt: string;
 }

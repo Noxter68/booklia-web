@@ -1,3 +1,5 @@
+import { translateError } from './error-messages';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 class ApiClient {
@@ -27,7 +29,32 @@ class ApiClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || 'An error occurred');
+      const message = error.message || 'An error occurred';
+      throw new Error(translateError(message, response.status));
+    }
+
+    return response.json();
+  }
+
+  // File upload (doesn't use JSON content-type)
+  async uploadFile(file: File, type: 'image' | 'avatar' = 'image'): Promise<{ url: string; key: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers: HeadersInit = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${API_URL}/upload/${type}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || 'Upload failed');
     }
 
     return response.json();
@@ -102,7 +129,14 @@ class ApiClient {
   }
 
   // Bookings
-  async createBooking(data: { serviceId: string; agreedPriceCents?: number; scheduledAt?: string }) {
+  async createBooking(data: {
+    serviceId: string;
+    agreedPriceCents?: number;
+    scheduledAt?: string;
+    notes?: string;
+    requesterPhone?: string;
+    requesterAddress?: string;
+  }) {
     return this.request<import('@/types').Booking>('/bookings', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -130,6 +164,19 @@ class ApiClient {
   async cancelBooking(id: string) {
     return this.request<import('@/types').Booking>(`/bookings/${id}/cancel`, {
       method: 'POST',
+    });
+  }
+
+  async rejectBooking(id: string, message?: string) {
+    return this.request<import('@/types').Booking>(`/bookings/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+  }
+
+  async deleteBooking(id: string) {
+    return this.request<{ success: boolean }>(`/bookings/${id}`, {
+      method: 'DELETE',
     });
   }
 
@@ -299,6 +346,7 @@ class ApiClient {
     lastName: string;
     email?: string;
     phone?: string;
+    avatarUrl?: string;
     role?: string;
     bio?: string;
     availabilities?: { dayOfWeek: number; startTime: string; endTime: string }[];
@@ -319,6 +367,7 @@ class ApiClient {
     lastName?: string;
     email?: string;
     phone?: string;
+    avatarUrl?: string;
     role?: string;
     bio?: string;
     availabilities?: { dayOfWeek: number; startTime: string; endTime: string }[];
@@ -467,31 +516,82 @@ class ApiClient {
   }
 
   // Profile Images
-  async getMyProfileImages() {
-    return this.request<import('@/types').ProfileImage[]>('/users/me/images');
+  async getMyPeopleImages() {
+    return this.request<import('@/types').PeopleImage[]>('/users/me/images');
   }
 
-  async getProfileImages(userId: string) {
-    return this.request<import('@/types').ProfileImage[]>(`/users/${userId}/images`);
+  async getPeopleImages(userId: string) {
+    return this.request<import('@/types').PeopleImage[]>(`/users/${userId}/images`);
   }
 
-  async addProfileImage(url: string) {
-    return this.request<import('@/types').ProfileImage>('/users/me/images', {
+  async addPeopleImage(url: string) {
+    return this.request<import('@/types').PeopleImage>('/users/me/images', {
       method: 'POST',
       body: JSON.stringify({ url }),
     });
   }
 
-  async deleteProfileImage(id: string) {
+  async deletePeopleImage(id: string) {
     return this.request<{ success: boolean }>(`/users/me/images/${id}`, {
       method: 'DELETE',
     });
   }
 
-  async reorderProfileImages(imageIds: string[]) {
-    return this.request<import('@/types').ProfileImage[]>('/users/me/images/reorder', {
+  async reorderPeopleImages(imageIds: string[]) {
+    return this.request<import('@/types').PeopleImage[]>('/users/me/images/reorder', {
       method: 'PUT',
       body: JSON.stringify({ imageIds }),
+    });
+  }
+
+  // Booking Comments
+  async getBookingComments(bookingId: string) {
+    return this.request<{
+      booking: import('@/types').Booking;
+      comments: import('@/types').BookingComment[];
+    }>(`/bookings/${bookingId}/comments`);
+  }
+
+  async addBookingComment(bookingId: string, content: string) {
+    return this.request<import('@/types').BookingComment>(`/bookings/${bookingId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  async deleteBookingComment(bookingId: string, commentId: string) {
+    return this.request<{ success: boolean }>(`/bookings/${bookingId}/comments/${commentId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Notifications
+  async getNotifications(limit = 20) {
+    return this.request<{
+      notifications: import('@/types').Notification[];
+      unreadCount: number;
+    }>(`/notifications?limit=${limit}`);
+  }
+
+  async getUnreadNotificationsCount() {
+    return this.request<{ count: number }>('/notifications/unread-count');
+  }
+
+  async markNotificationAsRead(id: string) {
+    return this.request<{ success: boolean }>(`/notifications/${id}/read`, {
+      method: 'POST',
+    });
+  }
+
+  async markAllNotificationsAsRead() {
+    return this.request<{ success: boolean }>('/notifications/read-all', {
+      method: 'POST',
+    });
+  }
+
+  async deleteNotification(id: string) {
+    return this.request<{ success: boolean }>(`/notifications/${id}`, {
+      method: 'DELETE',
     });
   }
 }

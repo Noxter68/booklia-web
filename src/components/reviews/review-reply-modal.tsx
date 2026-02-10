@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Star, MessageCircle } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -10,27 +10,38 @@ import { useToast } from '@/components/ui/toast';
 import { Review } from '@/types';
 
 interface ReviewReplyModalProps {
-  review: Review;
-  isOpen: boolean;
+  review: Review | null;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export function ReviewReplyModal({ review, isOpen, onClose }: ReviewReplyModalProps) {
-  const [reply, setReply] = useState(review.reply || '');
+export function ReviewReplyModal({ review, onClose, onSuccess }: ReviewReplyModalProps) {
+  const [reply, setReply] = useState('');
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
 
+  // Initialize reply with existing reply when review changes
+  useEffect(() => {
+    if (review) {
+      setReply(review.reply || '');
+    }
+  }, [review]);
+
   const replyMutation = useMutation({
-    mutationFn: () => api.replyToReview(review.id, reply.trim()),
+    mutationFn: () => api.replyToReview(review!.id, reply.trim()),
     onSuccess: () => {
       success('Réponse envoyée !');
       queryClient.invalidateQueries({ queryKey: ['business-reviews'] });
+      setReply('');
+      onSuccess?.();
       onClose();
     },
     onError: (err: Error) => {
       showError(err.message || 'Erreur lors de l\'envoi de la réponse');
     },
   });
+
+  if (!review) return null;
 
   const authorName = review.author?.profile?.displayName || 'Client';
   const stars = Math.round(review.score / 2);
@@ -45,7 +56,7 @@ export function ReviewReplyModal({ review, isOpen, onClose }: ReviewReplyModalPr
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      {review && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

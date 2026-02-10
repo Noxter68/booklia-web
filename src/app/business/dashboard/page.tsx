@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -1588,8 +1588,8 @@ function VacationModeEditor({ business }: { business: Business }) {
 function BusinessGalleryEditor({ business }: { business: Business }) {
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
-  const [newImageUrl, setNewImageUrl] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const images = business.images || [];
 
@@ -1597,8 +1597,6 @@ function BusinessGalleryEditor({ business }: { business: Business }) {
     mutationFn: (url: string) => api.addBusinessImage(url),
     onSuccess: () => {
       success('Image ajoutée');
-      setNewImageUrl('');
-      setIsAdding(false);
       queryClient.invalidateQueries({ queryKey: ['my-business'] });
     },
     onError: (err: Error) => showError(err.message || 'Erreur lors de l\'ajout'),
@@ -1613,9 +1611,23 @@ function BusinessGalleryEditor({ business }: { business: Business }) {
     onError: () => showError('Erreur lors de la suppression'),
   });
 
-  const handleAddImage = () => {
-    if (newImageUrl.trim()) {
-      addImageMutation.mutate(newImageUrl.trim());
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      // Upload to Cloudinary first
+      const result = await api.uploadFile(file, 'image');
+      // Then save URL to BusinessImage table
+      await addImageMutation.mutateAsync(result.url);
+    } catch {
+      showError('Erreur lors de l\'upload de l\'image');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -1631,55 +1643,28 @@ function BusinessGalleryEditor({ business }: { business: Business }) {
             Ajoutez jusqu'à 10 photos de votre établissement ({images.length}/10)
           </p>
         </div>
-        {images.length < 10 && !isAdding && (
-          <Button
-            onClick={() => setIsAdding(true)}
-            variant="outline"
-            className="rounded-full"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Ajouter
-          </Button>
-        )}
-      </div>
-
-      {/* Add Image Form */}
-      {isAdding && (
-        <div className="mb-6 p-4 rounded-xl bg-background border border-border">
-          <label className="text-sm font-medium mb-2 block">
-            URL de l'image
-          </label>
-          <div className="flex gap-2">
-            <Input
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              className="flex-1"
+        {images.length < 10 && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
             />
             <Button
-              onClick={handleAddImage}
-              disabled={!newImageUrl.trim() || addImageMutation.isPending}
-              isLoading={addImageMutation.isPending}
-              className="rounded-full"
-            >
-              Ajouter
-            </Button>
-            <Button
-              onClick={() => {
-                setIsAdding(false);
-                setNewImageUrl('');
-              }}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              isLoading={isUploading}
               variant="outline"
               className="rounded-full"
             >
-              Annuler
+              <Plus className="w-4 h-4 mr-2" />
+              {isUploading ? 'Upload...' : 'Ajouter une photo'}
             </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Utilisez une URL d'image hébergée (ex: Cloudinary, Imgur, etc.)
-          </p>
-        </div>
-      )}
+          </>
+        )}
+      </div>
 
       {/* Images Grid */}
       {images.length === 0 ? (
