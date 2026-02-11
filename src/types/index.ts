@@ -3,7 +3,7 @@ export type ServiceKind = 'OFFER' | 'REQUEST';
 export type ServiceStatus = 'DRAFT' | 'PUBLISHED' | 'PAUSED';
 export type Urgency = 'URGENT' | 'SOON' | 'FLEXIBLE';
 export type Recurrence = 'ONE_TIME' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'CUSTOM';
-export type BookingStatus = 'PENDING' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELED' | 'DISPUTED';
+export type BookingStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED' | 'CANCELED';
 export type ReviewType = 'REVIEW_PROVIDER' | 'REVIEW_REQUESTER';
 export type SubscriptionStatus = 'FREE' | 'PRO' | 'CANCELED';
 export type WeekDay = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
@@ -40,11 +40,11 @@ export interface PeopleImage {
 
 export interface UserReputation {
   userId: string;
+  elo: number;
   ratingAvg5: number;
   ratingCount: number;
-  xp: number;
-  level: number;
-  trustScore: number;
+  completedBookings: number;
+  lateCancellationCount: number;
 }
 
 // Category & Tag

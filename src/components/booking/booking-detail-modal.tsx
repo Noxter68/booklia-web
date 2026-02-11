@@ -39,20 +39,18 @@ interface BookingDetailModalProps {
 
 const statusLabels: Record<BookingStatus, string> = {
   PENDING: 'En attente',
-  ACCEPTED: 'Acceptee',
-  IN_PROGRESS: 'En cours',
-  COMPLETED: 'Terminee',
-  CANCELED: 'Annulee',
-  DISPUTED: 'Litige',
+  ACCEPTED: 'Acceptée',
+  REJECTED: 'Refusée',
+  COMPLETED: 'Terminée',
+  CANCELED: 'Annulée',
 };
 
 const statusColors: Record<BookingStatus, string> = {
   PENDING: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400',
   ACCEPTED: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400',
-  IN_PROGRESS: 'bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400',
+  REJECTED: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
   COMPLETED: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
   CANCELED: 'bg-stone-100 text-stone-600 dark:bg-stone-800/50 dark:text-stone-400',
-  DISPUTED: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
 };
 
 export function BookingDetailModal({
@@ -160,9 +158,9 @@ export function BookingDetailModal({
   const otherParty = role === 'provider' ? booking.requester : booking.provider;
   const otherPartyLabel = role === 'provider' ? 'Demandeur' : 'Prestataire';
 
-  // Show phone only if provider AND booking is ACCEPTED or later
+  // Show phone only if provider AND booking is ACCEPTED or COMPLETED
   const canSeePhone = role === 'provider' &&
-    ['ACCEPTED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) &&
+    ['ACCEPTED', 'COMPLETED'].includes(booking.status) &&
     booking.requesterPhone;
 
   if (!isOpen) return null;

@@ -9,20 +9,26 @@ import {
   Calendar,
   Star,
   Shield,
-  TrendingUp,
-  Award,
+  CheckCircle,
   Quote,
   X,
   ChevronLeft,
   ChevronRight,
-  Images,
   User,
+  Award,
+  Briefcase,
+  MessageCircle,
 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { formatDate, getXpProgress } from '@/lib/utils';
+import { getTrustLevel } from '@/lib/utils';
 import { PeopleImage, Review } from '@/types';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
-// Image Lightbox component
+// ============================================
+// IMAGE LIGHTBOX
+// ============================================
+
 function ImageLightbox({
   images,
   initialIndex,
@@ -63,12 +69,12 @@ function ImageLightbox({
     >
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+        className="absolute top-4 right-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
       >
         <X className="w-6 h-6" />
       </button>
 
-      <div className="absolute top-4 left-4 z-10 px-3 py-1.5 rounded-full bg-white/10 text-white text-sm">
+      <div className="absolute top-4 left-4 z-10 px-4 py-2 rounded-full bg-white/10 text-white text-sm font-medium">
         {currentIndex + 1} / {images.length}
       </div>
 
@@ -78,7 +84,7 @@ function ImageLightbox({
             e.stopPropagation();
             goPrev();
           }}
-          className="absolute left-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          className="absolute left-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
@@ -91,7 +97,7 @@ function ImageLightbox({
         exit={{ opacity: 0, scale: 0.95 }}
         src={images[currentIndex].url}
         alt=""
-        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+        className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl"
         onClick={(e) => e.stopPropagation()}
       />
 
@@ -101,14 +107,15 @@ function ImageLightbox({
             e.stopPropagation();
             goNext();
           }}
-          className="absolute right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          className="absolute right-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
         >
           <ChevronRight className="w-6 h-6" />
         </button>
       )}
 
+      {/* Thumbnail strip */}
       {images.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 px-4 py-2 rounded-full bg-black/50">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 px-4 py-3 rounded-2xl bg-black/60 backdrop-blur-sm">
           {images.map((img, idx) => (
             <button
               key={img.id}
@@ -116,10 +123,10 @@ function ImageLightbox({
                 e.stopPropagation();
                 setCurrentIndex(idx);
               }}
-              className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
+              className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
                 idx === currentIndex
                   ? 'border-white scale-110'
-                  : 'border-transparent opacity-60 hover:opacity-100'
+                  : 'border-transparent opacity-50 hover:opacity-100'
               }`}
             >
               <img src={img.url} alt="" className="w-full h-full object-cover" />
@@ -131,8 +138,11 @@ function ImageLightbox({
   );
 }
 
-// Image Gallery Mosaic component
-function ImageGalleryMosaic({
+// ============================================
+// IMAGE GALLERY - Adaptive Planity style
+// ============================================
+
+function ImageGallery({
   images,
   onImageClick,
 }: {
@@ -142,138 +152,168 @@ function ImageGalleryMosaic({
   if (!images || images.length === 0) return null;
 
   const sortedImages = [...images].sort((a, b) => a.sortOrder - b.sortOrder);
+  const count = sortedImages.length;
 
-  if (sortedImages.length === 1) {
-    return (
-      <div className="mb-6">
-        <button
-          onClick={() => onImageClick(0)}
-          className="w-full aspect-[21/9] rounded-2xl overflow-hidden relative group"
-        >
-          <img
-            src={sortedImages[0].url}
-            alt=""
-            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-        </button>
-      </div>
-    );
-  }
-
-  if (sortedImages.length <= 4) {
-    return (
-      <div className="mb-6 grid grid-cols-3 gap-2 h-64 sm:h-80">
-        <button
-          onClick={() => onImageClick(0)}
-          className="col-span-2 rounded-l-2xl overflow-hidden relative group"
-        >
-          <img
-            src={sortedImages[0].url}
-            alt=""
-            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-        </button>
-
-        <div className="flex flex-col gap-2">
-          {sortedImages.slice(1, 4).map((img, idx) => (
-            <button
-              key={img.id}
-              onClick={() => onImageClick(idx + 1)}
-              className={`flex-1 overflow-hidden relative group ${
-                idx === 0 ? 'rounded-tr-2xl' : ''
-              } ${idx === sortedImages.slice(1, 4).length - 1 ? 'rounded-br-2xl' : ''}`}
-            >
-              <img
-                src={img.url}
-                alt=""
-                className="w-full h-full object-cover transition-transform group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mb-6 grid grid-cols-4 gap-2 h-64 sm:h-80">
+  // Mobile: single image with photo count badge
+  const MobileGallery = () => (
+    <div className="sm:hidden mb-6">
       <button
         onClick={() => onImageClick(0)}
-        className="col-span-2 row-span-2 rounded-l-2xl overflow-hidden relative group"
+        className="w-full h-64 rounded-xl overflow-hidden relative group cursor-pointer"
       >
-        <img
-          src={sortedImages[0].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
+        <img src={sortedImages[0].url} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-      </button>
-
-      <button
-        onClick={() => onImageClick(1)}
-        className="overflow-hidden relative group"
-      >
-        <img
-          src={sortedImages[1].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-      </button>
-
-      <button
-        onClick={() => onImageClick(2)}
-        className="rounded-tr-2xl overflow-hidden relative group"
-      >
-        <img
-          src={sortedImages[2].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-      </button>
-
-      <button
-        onClick={() => onImageClick(3)}
-        className="overflow-hidden relative group"
-      >
-        <img
-          src={sortedImages[3].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-      </button>
-
-      <button
-        onClick={() => onImageClick(4)}
-        className="rounded-br-2xl overflow-hidden relative group"
-      >
-        <img
-          src={sortedImages[4].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-        {sortedImages.length > 5 && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="text-white font-medium flex items-center gap-1.5">
-              <Images className="w-4 h-4" />
-              +{sortedImages.length - 5}
-            </span>
+        {count > 1 && (
+          <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs font-medium px-3 py-1.5 rounded-full">
+            1/{count}
           </div>
         )}
       </button>
     </div>
   );
+
+  // 1 image - full width (desktop only different)
+  if (count === 1) {
+    return (
+      <>
+        <MobileGallery />
+        <div className="hidden sm:block mb-6">
+          <button
+            onClick={() => onImageClick(0)}
+            className="w-full h-96 rounded-xl overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[0].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  // 2 images - side by side on desktop
+  if (count === 2) {
+    return (
+      <>
+        <MobileGallery />
+        <div className="hidden sm:flex mb-6 gap-2 h-96">
+          <button
+            onClick={() => onImageClick(0)}
+            className="flex-1 rounded-l-xl overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[0].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+          <button
+            onClick={() => onImageClick(1)}
+            className="flex-1 rounded-r-xl overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[1].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  // 3 images - 1 big left + 2 stacked right on desktop
+  if (count === 3) {
+    return (
+      <>
+        <MobileGallery />
+        <div className="hidden sm:flex mb-6 gap-2 h-96">
+          <button
+            onClick={() => onImageClick(0)}
+            className="w-1/2 rounded-l-xl overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[0].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+          <div className="w-1/2 flex flex-col gap-2">
+            <button
+              onClick={() => onImageClick(1)}
+              className="flex-1 rounded-tr-xl overflow-hidden relative group cursor-pointer"
+            >
+              <img src={sortedImages[1].url} alt="" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            </button>
+            <button
+              onClick={() => onImageClick(2)}
+              className="flex-1 rounded-br-xl overflow-hidden relative group cursor-pointer"
+            >
+              <img src={sortedImages[2].url} alt="" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // 4+ images - 1 big left + 2x2 grid right on desktop (with +N overlay if more)
+  return (
+    <>
+      <MobileGallery />
+      <div className="hidden sm:flex mb-6 gap-2 h-96">
+        <button
+          onClick={() => onImageClick(0)}
+          className="w-1/2 rounded-l-xl overflow-hidden relative group cursor-pointer"
+        >
+          <img src={sortedImages[0].url} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+        </button>
+        <div className="w-1/2 grid grid-cols-2 grid-rows-2 gap-2">
+          <button
+            onClick={() => onImageClick(1)}
+            className="overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[1].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+          <button
+            onClick={() => onImageClick(2)}
+            className="rounded-tr-xl overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[2].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+          <button
+            onClick={() => onImageClick(3)}
+            className="overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[3].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+          <button
+            onClick={() => onImageClick(count > 4 ? 4 : 3)}
+            className="rounded-br-xl overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[Math.min(4, count - 1)].url} alt="" className="w-full h-full object-cover" />
+            {count > 4 ? (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center group-hover:bg-black/60 transition-colors">
+                <span className="text-white font-medium text-sm">
+                  +{count - 4} photos
+                </span>
+              </div>
+            ) : (
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            )}
+          </button>
+        </div>
+      </div>
+    </>
+  );
 }
 
-// Star rating component
-function StarRating({ score, size = 'sm' }: { score: number; size?: 'sm' | 'md' }) {
-  const sizeClass = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
+// ============================================
+// STAR RATING
+// ============================================
+
+function StarRating({ score, size = 'sm' }: { score: number; size?: 'sm' | 'md' | 'lg' }) {
+  const sizeClass = {
+    sm: 'w-3.5 h-3.5',
+    md: 'w-4 h-4',
+    lg: 'w-5 h-5',
+  }[size];
 
   return (
     <div className="flex items-center gap-0.5">
@@ -281,7 +321,7 @@ function StarRating({ score, size = 'sm' }: { score: number; size?: 'sm' | 'md' 
         <Star
           key={i}
           className={`${sizeClass} ${
-            i <= score ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground/30'
+            i <= score ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground/20'
           }`}
         />
       ))}
@@ -289,12 +329,15 @@ function StarRating({ score, size = 'sm' }: { score: number; size?: 'sm' | 'md' 
   );
 }
 
-// Review card component
+// ============================================
+// REVIEW CARD
+// ============================================
+
 function ReviewCard({ review }: { review: Review }) {
   const authorName = review.author?.profile?.displayName || 'Utilisateur';
 
   return (
-    <div className="border-b border-border/50 last:border-0 pb-4 last:pb-0 mb-4 last:mb-0">
+    <div className="py-4 border-b border-border/50 last:border-0">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
           {review.author?.profile?.avatarUrl ? (
@@ -313,7 +356,7 @@ function ReviewCard({ review }: { review: Review }) {
             <StarRating score={review.score} />
           </div>
           {review.comment && (
-            <p className="text-sm text-foreground/90 leading-relaxed">{review.comment}</p>
+            <p className="text-sm text-foreground/80 leading-relaxed">{review.comment}</p>
           )}
           <p className="text-xs text-muted-foreground mt-2">
             {new Date(review.createdAt).toLocaleDateString('fr-FR', {
@@ -327,6 +370,25 @@ function ReviewCard({ review }: { review: Review }) {
     </div>
   );
 }
+
+// ============================================
+// TRUST BADGE
+// ============================================
+
+function TrustBadge({ elo }: { elo: number }) {
+  const trust = getTrustLevel(elo);
+
+  return (
+    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${trust.bgColor} ${trust.color}`}>
+      <Shield className="w-4 h-4" />
+      {trust.label}
+    </div>
+  );
+}
+
+// ============================================
+// MAIN PAGE
+// ============================================
 
 export default function ProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -344,19 +406,26 @@ export default function ProfilePage() {
     enabled: !!id,
   });
 
+  const { data: services } = useQuery({
+    queryKey: ['user-services', id],
+    queryFn: () => api.getUserServices(id),
+    enabled: !!id,
+  });
+
   const images = user?.profile?.images || [];
+  const publishedServices = services?.filter(s => s.status === 'PUBLISHED') || [];
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background pt-24">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="animate-pulse">
-            <div className="h-64 sm:h-80 bg-muted rounded-2xl mb-6" />
-            <div className="flex items-start gap-5">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-muted rounded-2xl" />
+        <div className="container mx-auto px-4 sm:px-6 max-w-5xl">
+          <div className="animate-pulse space-y-6">
+            <div className="h-48 sm:h-64 bg-muted rounded-2xl" />
+            <div className="flex items-start gap-4">
+              <div className="w-20 h-20 bg-muted rounded-2xl" />
               <div className="flex-1 space-y-3">
-                <div className="h-8 w-64 bg-muted rounded-xl" />
-                <div className="h-5 w-40 bg-muted rounded-lg" />
+                <div className="h-7 w-48 bg-muted rounded-lg" />
+                <div className="h-5 w-32 bg-muted rounded-lg" />
               </div>
             </div>
           </div>
@@ -368,304 +437,311 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center pt-24">
-        <div className="text-center">
-          <div className="w-20 h-20 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-            <span className="text-3xl">?</span>
+        <div className="text-center px-4">
+          <div className="w-20 h-20 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center">
+            <User className="w-10 h-10 text-muted-foreground" />
           </div>
-          <h1 className="text-2xl font-bold">Utilisateur introuvable</h1>
-          <p className="text-muted-foreground mt-2">Ce profil n'existe pas ou a été supprimé.</p>
+          <h1 className="text-2xl font-bold mb-2">Profil introuvable</h1>
+          <p className="text-muted-foreground">Ce profil n'existe pas ou a été supprimé.</p>
         </div>
       </div>
     );
   }
 
-  const xpProgress = user.reputation
-    ? getXpProgress(user.reputation.xp, user.reputation.level)
-    : 0;
-
   const avgRating = user.reputation?.ratingAvg5
     ? user.reputation.ratingAvg5.toFixed(1)
     : null;
 
-  const stats = [
-    {
-      label: 'Note moyenne',
-      value: avgRating || '-',
-      suffix: avgRating ? '/5' : '',
-      icon: Star,
-      color: 'text-primary',
-    },
-    {
-      label: 'Niveau',
-      value: user.reputation?.level || 1,
-      suffix: '',
-      icon: TrendingUp,
-      color: 'text-success',
-    },
-    {
-      label: 'Confiance',
-      value: user.reputation ? Math.round(user.reputation.trustScore) : '-',
-      suffix: user.reputation ? '%' : '',
-      icon: Shield,
-      color: 'text-primary',
-    },
-  ];
+  const elo = user.reputation?.elo ?? 1000;
+  const completedBookings = user.reputation?.completedBookings ?? 0;
 
   return (
     <div className="min-h-screen bg-background pb-12 pt-24">
-      {/* Image Gallery Mosaic */}
-      {images.length > 0 && (
-        <div className="container mx-auto px-4 sm:px-6">
-          <ImageGalleryMosaic
+      <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
+        {/* Image Gallery */}
+        {images.length > 0 && (
+          <ImageGallery
             images={images}
             onImageClick={(index) => setLightboxIndex(index)}
           />
-        </div>
-      )}
+        )}
 
-      {/* Profile Header */}
-      <div className="container mx-auto px-4 sm:px-6 mb-8">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row items-start gap-5"
-        >
-          {/* Avatar */}
-          <div className="relative">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-surface border border-border rounded-2xl shadow-sm flex items-center justify-center overflow-hidden shrink-0">
-              {user.profile?.avatarUrl ? (
-                <img
-                  src={user.profile.avatarUrl}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-2xl sm:text-3xl font-bold text-primary">
-                  {(user.profile?.displayName || user.email)?.[0]?.toUpperCase()}
-                </span>
+        {/* Main Layout: Content Left + Profile Card Right */}
+        <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Title & Bio - Hidden on mobile (shown in compact card) */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="hidden lg:block"
+            >
+              <h1 className="text-3xl font-bold mb-3">
+                {user.profile?.displayName || 'Utilisateur'}
+              </h1>
+              {user.profile?.bio && (
+                <p className="text-muted-foreground leading-relaxed max-w-2xl">
+                  {user.profile.bio}
+                </p>
               )}
-            </div>
-            {user.subscriptionStatus === 'PRO' && (
-              <div className="absolute -bottom-2 -right-2 bg-primary text-primary-foreground px-2 py-0.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
-                <Award className="w-3 h-3" />
-                PRO
-              </div>
-            )}
-          </div>
+            </motion.div>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold">
-              {user.profile?.displayName || 'Utilisateur'}
-            </h1>
-
-            <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
-              {user.profile?.city && (
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4" />
-                  {user.profile.city}
-                </span>
-              )}
-              {avgRating && reviews && reviews.length > 0 && (
-                <span className="flex items-center gap-1.5">
-                  <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                  <span className="font-medium text-foreground">{avgRating}</span>
-                  <span>({reviews.length} avis)</span>
-                </span>
-              )}
-              <span className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />
-                Membre depuis {formatDate(user.createdAt)}
-              </span>
-            </div>
-
+            {/* Bio on mobile only */}
             {user.profile?.bio && (
-              <p className="mt-4 text-muted-foreground text-sm sm:text-base max-w-2xl leading-relaxed">
+              <p className="lg:hidden text-muted-foreground text-sm leading-relaxed">
                 {user.profile.bio}
               </p>
             )}
-          </div>
-        </motion.div>
-      </div>
 
-      <div className="container mx-auto px-4 sm:px-6">
-        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Stats Cards */}
+            {/* Stats Row - Desktop only */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="grid grid-cols-3 gap-4"
+              transition={{ delay: 0.05 }}
+              className="hidden lg:flex flex-wrap items-center gap-6 text-sm"
             >
-              {stats.map((stat) => (
-                <div
-                  key={stat.label}
-                  className="bg-surface rounded-2xl p-4 md:p-6 border border-border/50 text-center"
-                >
-                  <stat.icon className={`w-5 h-5 md:w-6 md:h-6 mx-auto mb-2 ${stat.color}`} />
-                  <div className="text-2xl md:text-3xl font-black">
-                    {stat.value}
-                    <span className="text-base md:text-lg font-medium text-muted-foreground">
-                      {stat.suffix}
-                    </span>
-                  </div>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">{stat.label}</p>
+              {avgRating && reviews && reviews.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                  <span className="font-semibold text-lg">{avgRating}</span>
+                  <span className="text-muted-foreground">({reviews.length} avis)</span>
                 </div>
-              ))}
+              )}
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Briefcase className="w-4 h-4" />
+                <span><span className="font-medium text-foreground">{completedBookings}</span> missions</span>
+              </div>
+              {user.profile?.city && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <MapPin className="w-4 h-4" />
+                  <span>{user.profile.city}</span>
+                </div>
+              )}
             </motion.div>
 
-            {/* XP Progress */}
-            {user.reputation && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
+            {/* Services Section */}
+            {publishedServices.length > 0 && (
+              <motion.section
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="bg-surface rounded-2xl p-4 md:p-6 border border-border/50"
+                transition={{ delay: 0.1 }}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-medium">Progression niveau {user.reputation.level}</span>
-                  <span className="text-sm text-muted-foreground">{user.reputation.xp} XP</span>
+                <h2 className="text-xl font-bold mb-5">Services</h2>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {publishedServices.slice(0, 4).map((service) => (
+                    <Link
+                      key={service.id}
+                      href={`/service/${service.id}`}
+                      className="group bg-surface border border-border/50 rounded-2xl p-5 hover:border-primary/30 hover:shadow-sm transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                          service.kind === 'OFFER'
+                            ? 'bg-primary/10 text-primary'
+                            : 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400'
+                        }`}>
+                          {service.kind === 'OFFER' ? 'Offre' : 'Demande'}
+                        </span>
+                      </div>
+                      <h3 className="font-semibold line-clamp-1 group-hover:text-primary transition-colors">
+                        {service.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                        {service.description}
+                      </p>
+                    </Link>
+                  ))}
                 </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${xpProgress}%` }}
-                    transition={{ duration: 1, delay: 0.5 }}
-                    className="h-full bg-primary rounded-full"
-                  />
-                </div>
-              </motion.div>
+                {publishedServices.length > 4 && (
+                  <Button variant="ghost" className="w-full mt-4 text-primary">
+                    Voir tous les services ({publishedServices.length})
+                  </Button>
+                )}
+              </motion.section>
             )}
 
-            {/* Reviews Section - Mobile */}
-            <section className="lg:hidden">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg sm:text-xl font-bold">Avis reçus</h2>
+            {/* Reviews Section */}
+            <motion.section
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-xl font-bold">Avis</h2>
                 {avgRating && reviews && reviews.length > 0 && (
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                      <span className="font-bold text-lg">{avgRating}</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">({reviews.length})</span>
+                    <StarRating score={Math.round(parseFloat(avgRating))} size="md" />
+                    <span className="font-semibold">{avgRating}</span>
                   </div>
                 )}
               </div>
 
               {!reviews || reviews.length === 0 ? (
-                <div className="bg-surface border border-border rounded-2xl p-6 text-center">
+                <div className="bg-muted/30 rounded-2xl p-10 text-center">
                   <Quote className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">Aucun avis pour le moment</p>
+                  <p className="text-muted-foreground">Aucun avis pour le moment</p>
                 </div>
               ) : (
-                <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5">
+                <div className="space-y-0 divide-y divide-border/50">
                   {reviews.slice(0, 5).map((review) => (
                     <ReviewCard key={review.id} review={review} />
                   ))}
                   {reviews.length > 5 && (
-                    <button className="w-full text-center text-sm text-primary font-medium mt-4 hover:underline">
-                      Voir tous les avis ({reviews.length})
-                    </button>
+                    <div className="pt-4">
+                      <Button variant="ghost" className="w-full text-primary">
+                        Voir tous les avis ({reviews.length})
+                      </Button>
+                    </div>
                   )}
                 </div>
               )}
-            </section>
+            </motion.section>
           </div>
 
-          {/* Sidebar - Desktop only */}
-          <div className="hidden lg:block lg:col-span-1">
-            <div className="sticky top-24 space-y-4">
-              {/* Reviews Card */}
-              <div className="bg-surface border border-border rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold flex items-center gap-2">
-                    <Star className="w-5 h-5" />
-                    Avis
-                  </h3>
-                  {avgRating && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-lg">{avgRating}</span>
-                      <span className="text-sm text-muted-foreground">/ 5</span>
+          {/* Right Column - Profile Card */}
+          <div className="lg:col-span-1 order-first lg:order-last">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="lg:sticky lg:top-24"
+            >
+              {/* Mobile: Compact horizontal card */}
+              <div className="lg:hidden mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="relative shrink-0">
+                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center overflow-hidden">
+                      {user.profile?.avatarUrl ? (
+                        <img src={user.profile.avatarUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xl font-bold text-primary">
+                          {(user.profile?.displayName || user.email)?.[0]?.toUpperCase()}
+                        </span>
+                      )}
                     </div>
+                    {user.subscriptionStatus === 'PRO' && (
+                      <div className="absolute -bottom-0.5 -right-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white p-1 rounded-full">
+                        <Award className="w-2.5 h-2.5" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h2 className="font-bold text-lg truncate">{user.profile?.displayName || 'Utilisateur'}</h2>
+                      <TrustBadge elo={elo} />
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      {user.profile?.city && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" />
+                          {user.profile.city}
+                        </span>
+                      )}
+                      {avgRating && (
+                        <span className="flex items-center gap-1">
+                          <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                          {avgRating}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <Briefcase className="w-3.5 h-3.5" />
+                        {completedBookings}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop: Full card */}
+              <div className="hidden lg:block bg-surface border border-border/50 rounded-2xl p-6 space-y-5">
+                {/* Avatar & Name */}
+                <div className="text-center">
+                  <div className="relative inline-block mb-4">
+                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center overflow-hidden mx-auto">
+                      {user.profile?.avatarUrl ? (
+                        <img
+                          src={user.profile.avatarUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-3xl font-bold text-primary">
+                          {(user.profile?.displayName || user.email)?.[0]?.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    {user.subscriptionStatus === 'PRO' && (
+                      <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-0.5 rounded-full text-xs font-bold shadow-md flex items-center gap-1">
+                        <Award className="w-3 h-3" />
+                        PRO
+                      </div>
+                    )}
+                  </div>
+                  <h2 className="font-bold text-lg">
+                    {user.profile?.displayName || 'Utilisateur'}
+                  </h2>
+                  {user.profile?.city && (
+                    <p className="text-sm text-muted-foreground flex items-center justify-center gap-1 mt-1">
+                      <MapPin className="w-3.5 h-3.5" />
+                      {user.profile.city}
+                    </p>
                   )}
                 </div>
 
-                {avgRating && (
-                  <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <Star
-                          key={i}
-                          className={`w-5 h-5 ${
-                            i <= Math.round(parseFloat(avgRating))
-                              ? 'text-yellow-500 fill-yellow-500'
-                              : 'text-muted-foreground/30'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      {reviews?.length || 0} avis
+                {/* Trust Badge */}
+                <div className="flex justify-center">
+                  <TrustBadge elo={elo} />
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-border/50" />
+
+                {/* Stats */}
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <Briefcase className="w-4 h-4" />
+                      Missions terminées
                     </span>
+                    <span className="font-semibold">{completedBookings}</span>
                   </div>
-                )}
-
-                {!reviews || reviews.length === 0 ? (
-                  <div className="text-center py-4">
-                    <Quote className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Aucun avis</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Les avis apparaîtront ici après les premières missions.
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <MessageCircle className="w-4 h-4" />
+                      Avis reçus
+                    </span>
+                    <span className="font-semibold">{reviews?.length || 0}</span>
                   </div>
-                ) : (
-                  <div className="max-h-[400px] overflow-y-auto pr-2 -mr-2">
-                    {reviews.slice(0, 5).map((review) => (
-                      <ReviewCard key={review.id} review={review} />
-                    ))}
-                  </div>
-                )}
-
-                {reviews && reviews.length > 5 && (
-                  <button className="w-full text-center text-sm text-primary font-medium mt-4 pt-4 border-t border-border hover:underline">
-                    Voir tous les avis ({reviews.length})
-                  </button>
-                )}
-              </div>
-
-              {/* XP Card - Desktop */}
-              {user.reputation && (
-                <div className="bg-surface border border-border rounded-2xl p-6">
-                  <h3 className="font-bold mb-4 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" />
-                    Progression
-                  </h3>
-                  <div className="text-center mb-4">
-                    <div className="text-4xl font-black text-primary mb-1">
-                      {user.reputation.level}
+                  {avgRating && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground flex items-center gap-2">
+                        <Star className="w-4 h-4" />
+                        Note moyenne
+                      </span>
+                      <span className="font-semibold">{avgRating}/5</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">Niveau actuel</p>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">XP</span>
-                      <span className="font-medium">{user.reputation.xp}</span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary rounded-full transition-all"
-                        style={{ width: `${xpProgress}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground text-center">
-                      {Math.round(xpProgress)}% vers le niveau {user.reputation.level + 1}
-                    </p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Membre depuis
+                    </span>
+                    <span className="font-semibold">{new Date(user.createdAt).getFullYear()}</span>
                   </div>
                 </div>
-              )}
-            </div>
+
+                {/* Badges */}
+                <div className="border-t border-border/50 pt-5 space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>Identité vérifiée</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Shield className="w-4 h-4 text-primary" />
+                    <span>Profil complet</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </div>
       </div>

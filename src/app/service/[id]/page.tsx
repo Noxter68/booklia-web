@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { PageLoader } from '@/components/ui/spinner';
 import { formatPrice, formatDate } from '@/lib/utils';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Calendar,
   Clock,
@@ -20,8 +20,6 @@ import {
   MessageCircle,
   Share2,
   Heart,
-  ChevronLeft,
-  ChevronRight,
   RefreshCw,
   AlertCircle,
   CheckCircle,
@@ -31,263 +29,12 @@ import {
   User,
   Quote,
   Euro,
-  X,
-  Images,
   Zap,
   CalendarDays,
   Send,
 } from 'lucide-react';
-import { PeopleImage, Review } from '@/types';
+import { Review } from '@/types';
 import { P2PBookingModal } from '@/components/booking/p2p-booking-modal';
-
-// Image Lightbox component
-function ImageLightbox({
-  images,
-  initialIndex,
-  onClose,
-}: {
-  images: PeopleImage[];
-  initialIndex: number;
-  onClose: () => void;
-}) {
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
-
-  const goNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev + 1) % images.length);
-  }, [images.length]);
-
-  const goPrev = useCallback(() => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-  }, [images.length]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'ArrowRight') goNext();
-      if (e.key === 'ArrowLeft') goPrev();
-      if (e.key === 'Escape') onClose();
-    },
-    [goNext, goPrev, onClose]
-  );
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-      onClick={onClose}
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-    >
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-      >
-        <X className="w-6 h-6" />
-      </button>
-
-      <div className="absolute top-4 left-4 z-10 px-3 py-1.5 rounded-full bg-white/10 text-white text-sm">
-        {currentIndex + 1} / {images.length}
-      </div>
-
-      {images.length > 1 && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            goPrev();
-          }}
-          className="absolute left-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-      )}
-
-      <motion.img
-        key={currentIndex}
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        src={images[currentIndex].url}
-        alt=""
-        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
-        onClick={(e) => e.stopPropagation()}
-      />
-
-      {images.length > 1 && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            goNext();
-          }}
-          className="absolute right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-        >
-          <ChevronRight className="w-6 h-6" />
-        </button>
-      )}
-
-      {images.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 px-4 py-2 rounded-full bg-black/50">
-          {images.map((img, idx) => (
-            <button
-              key={img.id}
-              onClick={(e) => {
-                e.stopPropagation();
-                setCurrentIndex(idx);
-              }}
-              className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                idx === currentIndex
-                  ? 'border-white scale-110'
-                  : 'border-transparent opacity-60 hover:opacity-100'
-              }`}
-            >
-              <img src={img.url} alt="" className="w-full h-full object-cover" />
-            </button>
-          ))}
-        </div>
-      )}
-    </motion.div>
-  );
-}
-
-// Image Gallery Mosaic component
-function ImageGalleryMosaic({
-  images,
-  onImageClick,
-}: {
-  images: PeopleImage[];
-  onImageClick: (index: number) => void;
-}) {
-  if (!images || images.length === 0) return null;
-
-  const sortedImages = [...images].sort((a, b) => a.sortOrder - b.sortOrder);
-
-  if (sortedImages.length === 1) {
-    return (
-      <div className="mb-6">
-        <button
-          onClick={() => onImageClick(0)}
-          className="w-full aspect-[21/9] rounded-2xl overflow-hidden relative group cursor-pointer"
-        >
-          <img
-            src={sortedImages[0].url}
-            alt=""
-            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-        </button>
-      </div>
-    );
-  }
-
-  if (sortedImages.length <= 4) {
-    return (
-      <div className="mb-6 grid grid-cols-3 gap-2 h-64 sm:h-80">
-        <button
-          onClick={() => onImageClick(0)}
-          className="col-span-2 rounded-l-2xl overflow-hidden relative group cursor-pointer"
-        >
-          <img
-            src={sortedImages[0].url}
-            alt=""
-            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-        </button>
-
-        <div className="flex flex-col gap-2">
-          {sortedImages.slice(1, 4).map((img, idx) => (
-            <button
-              key={img.id}
-              onClick={() => onImageClick(idx + 1)}
-              className={`flex-1 overflow-hidden relative group cursor-pointer ${
-                idx === 0 ? 'rounded-tr-2xl' : ''
-              } ${idx === sortedImages.slice(1, 4).length - 1 ? 'rounded-br-2xl' : ''}`}
-            >
-              <img
-                src={img.url}
-                alt=""
-                className="w-full h-full object-cover transition-transform group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mb-6 grid grid-cols-4 gap-2 h-64 sm:h-80">
-      <button
-        onClick={() => onImageClick(0)}
-        className="col-span-2 row-span-2 rounded-l-2xl overflow-hidden relative group cursor-pointer"
-      >
-        <img
-          src={sortedImages[0].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-      </button>
-
-      <button
-        onClick={() => onImageClick(1)}
-        className="overflow-hidden relative group cursor-pointer"
-      >
-        <img
-          src={sortedImages[1].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-      </button>
-
-      <button
-        onClick={() => onImageClick(2)}
-        className="rounded-tr-2xl overflow-hidden relative group cursor-pointer"
-      >
-        <img
-          src={sortedImages[2].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-      </button>
-
-      <button
-        onClick={() => onImageClick(3)}
-        className="overflow-hidden relative group cursor-pointer"
-      >
-        <img
-          src={sortedImages[3].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-      </button>
-
-      <button
-        onClick={() => onImageClick(4)}
-        className="rounded-br-2xl overflow-hidden relative group cursor-pointer"
-      >
-        <img
-          src={sortedImages[4].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-        {sortedImages.length > 5 && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="text-white font-medium flex items-center gap-1.5">
-              <Images className="w-4 h-4" />
-              +{sortedImages.length - 5}
-            </span>
-          </div>
-        )}
-      </button>
-    </div>
-  );
-}
 
 // Star rating component
 function StarRating({ score, size = 'sm' }: { score: number; size?: 'sm' | 'md' }) {
@@ -360,19 +107,12 @@ const DAY_LABELS: Record<string, string> = {
 export default function ServicePage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
 
   const { data: service, isLoading } = useQuery({
     queryKey: ['service', id],
     queryFn: () => api.getService(id),
     enabled: !!id,
-  });
-
-  const { data: userImages } = useQuery({
-    queryKey: ['profile-images', service?.createdByUserId],
-    queryFn: () => api.getPeopleImages(service!.createdByUserId),
-    enabled: !!service?.createdByUserId,
   });
 
   const { data: userReviews } = useQuery({
@@ -395,7 +135,7 @@ export default function ServicePage() {
   });
 
   const existingBooking = myBookings?.find(
-    (b) => b.serviceId === id && ['PENDING', 'ACCEPTED', 'IN_PROGRESS'].includes(b.status)
+    (b) => b.serviceId === id && ['PENDING', 'ACCEPTED'].includes(b.status)
   );
 
   // Filter out current service from other services
@@ -431,10 +171,7 @@ export default function ServicePage() {
   const profile = service.createdBy?.profile;
   const reputation = service.createdBy?.reputation;
 
-  // Use first profile image if available, otherwise use userImages (fetched separately), then fall back to avatarUrl
-  const providerAvatarUrl = userImages && userImages.length > 0
-    ? [...userImages].sort((a, b) => a.sortOrder - b.sortOrder)[0]?.url
-    : profile?.avatarUrl;
+  const providerAvatarUrl = profile?.avatarUrl;
 
   const avgRating = reputation?.ratingAvg5 ? reputation.ratingAvg5.toFixed(1) : null;
   const reviewCount = reputation?.ratingCount || 0;
@@ -467,14 +204,6 @@ export default function ServicePage() {
   return (
     <div className="min-h-screen bg-background pb-24 lg:pb-12 pt-24">
       <div className="container mx-auto px-4 sm:px-6">
-        {/* Image Gallery */}
-        {userImages && userImages.length > 0 && (
-          <ImageGalleryMosaic
-            images={userImages}
-            onImageClick={(index) => setLightboxIndex(index)}
-          />
-        )}
-
         {/* Service Header */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -803,19 +532,14 @@ export default function ServicePage() {
                 {/* Rating */}
                 {reputation && (
                   <div className="px-6 py-4 border-b border-border">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                        <span className="font-bold text-lg">
-                          {reputation.ratingAvg5?.toFixed(1) || '0.0'}
-                        </span>
-                        <span className="text-muted-foreground text-sm">
-                          ({reputation.ratingCount || 0} avis)
-                        </span>
-                      </div>
-                      <Badge variant="secondary" className="bg-gold-soft text-primary rounded-full">
-                        Niveau {reputation.level || 1}
-                      </Badge>
+                    <div className="flex items-center gap-2">
+                      <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                      <span className="font-bold text-lg">
+                        {reputation.ratingAvg5?.toFixed(1) || '0.0'}
+                      </span>
+                      <span className="text-muted-foreground text-sm">
+                        ({reputation.ratingCount || 0} avis)
+                      </span>
                     </div>
                   </div>
                 )}
@@ -1087,17 +811,6 @@ export default function ServicePage() {
           )}
         </div>
       )}
-
-      {/* Image Lightbox */}
-      <AnimatePresence>
-        {lightboxIndex !== null && userImages && userImages.length > 0 && (
-          <ImageLightbox
-            images={userImages}
-            initialIndex={lightboxIndex}
-            onClose={() => setLightboxIndex(null)}
-          />
-        )}
-      </AnimatePresence>
 
       {/* P2P Booking Modal */}
       <P2PBookingModal

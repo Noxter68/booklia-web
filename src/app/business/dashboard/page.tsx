@@ -114,19 +114,17 @@ export default function BusinessDashboardPage() {
   const statusLabels: Record<BookingStatus, string> = {
     PENDING: 'En attente',
     ACCEPTED: 'Confirmé',
-    IN_PROGRESS: 'En cours',
+    REJECTED: 'Refusé',
     COMPLETED: 'Terminé',
     CANCELED: 'Annulé',
-    DISPUTED: 'Litige',
   };
 
   const statusColors: Record<BookingStatus, string> = {
     PENDING: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400',
     ACCEPTED: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400',
-    IN_PROGRESS: 'bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400',
+    REJECTED: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
     COMPLETED: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
     CANCELED: 'bg-stone-100 text-stone-600 dark:bg-stone-800/50 dark:text-stone-400',
-    DISPUTED: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
   };
 
   const acceptBookingMutation = useMutation({
