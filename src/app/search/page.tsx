@@ -83,54 +83,67 @@ function BusinessCard({ business }: { business: Business }) {
     <Link href={`/business/${business.slug}`}>
       <motion.div
         whileHover={{ y: -2 }}
-        className="bg-surface border border-border rounded-2xl p-5 h-full hover:border-primary/30 transition-colors cursor-pointer"
+        className="bg-surface border border-border rounded-2xl overflow-hidden h-full hover:border-primary/30 transition-colors cursor-pointer"
       >
-        <div className="flex items-start gap-4 mb-3">
-          <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-            {business.logoUrl ? (
-              <img src={business.logoUrl} alt="" className="w-full h-full rounded-xl object-cover" />
-            ) : (
-              <Building2 className="w-7 h-7 text-primary" />
+        {/* Cover image */}
+        <div className="h-24 relative">
+          {business.coverUrl ? (
+            <img src={business.coverUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+
+          {/* Logo overlay */}
+          <div className="absolute -bottom-5 left-4">
+            <div className="w-12 h-12 bg-surface border-2 border-surface rounded-xl shadow-md flex items-center justify-center overflow-hidden">
+              {business.logoUrl ? (
+                <img src={business.logoUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <Building2 className="w-6 h-6 text-primary" />
+              )}
+            </div>
+          </div>
+
+          {/* Verified badge */}
+          {business.isVerified && (
+            <Badge variant="outline" className="absolute top-2 right-2 text-xs bg-white/90 text-green-700 border-green-200">
+              Vérifié
+            </Badge>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="p-4 pt-7">
+          <h3 className="font-semibold truncate mb-1">{business.name}</h3>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2">
+            {business.city && (
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5" />
+                {business.city}
+              </span>
+            )}
+            {business.owner?.reputation && business.owner.reputation.ratingCount > 0 && (
+              <span className="flex items-center gap-1">
+                <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                {business.owner.reputation.ratingAvg5.toFixed(1)}
+              </span>
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold truncate">{business.name}</h3>
-              {business.isVerified && (
-                <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-200 flex-shrink-0">
-                  Vérifié
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              {business.city && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5" />
-                  {business.city}
-                </span>
-              )}
-              {business.owner?.reputation && business.owner.reputation.ratingCount > 0 && (
-                <span className="flex items-center gap-1">
-                  <Star className="w-3.5 h-3.5 text-yellow-500" />
-                  {business.owner.reputation.ratingAvg5.toFixed(1)}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        {business.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-            {business.description}
-          </p>
-        )}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {business._count && (
-            <>
-              <span>{business._count.services} prestation{business._count.services !== 1 ? 's' : ''}</span>
-              <span>•</span>
-              <span>{business._count.employees} employé{business._count.employees !== 1 ? 's' : ''}</span>
-            </>
+          {business.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+              {business.description}
+            </p>
           )}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {business._count && (
+              <>
+                <span>{business._count.services} prestation{business._count.services !== 1 ? 's' : ''}</span>
+                <span>•</span>
+                <span>{business._count.employees} employé{business._count.employees !== 1 ? 's' : ''}</span>
+              </>
+            )}
+          </div>
         </div>
       </motion.div>
     </Link>

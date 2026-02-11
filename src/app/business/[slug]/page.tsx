@@ -12,8 +12,8 @@ import {
   Clock,
   Star,
   CheckCircle,
-  Calendar,
   ChevronRight,
+  ChevronDown,
   User,
   Quote,
   MessageCircle,
@@ -372,40 +372,101 @@ function ServiceCard({
   onSelect: (service: BusinessService) => void;
   disabled?: boolean;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasDetails = service.detailedDescription && service.detailedDescription.trim().length > 0;
+
   return (
-    <motion.button
-      onClick={() => !disabled && onSelect(service)}
-      className={`w-full text-left bg-surface border border-border rounded-2xl p-4 sm:p-5 transition-all ${
-        disabled
-          ? 'opacity-60 cursor-not-allowed'
-          : 'hover:border-primary/50 hover:shadow-md cursor-pointer active:scale-[0.99]'
+    <div
+      className={`bg-surface border border-border rounded-xl overflow-hidden transition-all ${
+        disabled ? 'opacity-60' : ''
       }`}
-      whileTap={disabled ? {} : { scale: 0.99 }}
-      disabled={disabled}
     >
-      <div className="flex items-start sm:items-center justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-base sm:text-lg mb-1 truncate pr-2">{service.name}</h3>
-          {service.description && (
-            <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-              {service.description}
-            </p>
-          )}
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm">
-            <span className="font-semibold text-primary text-base">
-              {formatPrice(service.priceCents)}
-            </span>
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Clock className="w-4 h-4" />
-              {service.durationMinutes} min
-            </span>
+      {/* Main content */}
+      <div className="px-4 py-3">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left: Text content */}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium">{service.name}</h3>
+
+            {/* Description */}
+            {service.description && (
+              <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">
+                {service.description}
+              </p>
+            )}
+
+            {/* Price and duration */}
+            <div className="flex items-center gap-3 mt-1.5 text-sm">
+              <span className="font-semibold text-primary">
+                {formatPrice(service.priceCents)}
+              </span>
+              <span className="text-muted-foreground">
+                {service.durationMinutes} min
+              </span>
+              {/* Details toggle inline */}
+              {hasDetails && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                  }}
+                  className="text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer"
+                >
+                  {isExpanded ? 'Moins' : 'Plus de détails'}
+                  <motion.span
+                    animate={{ rotate: isExpanded ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </motion.span>
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <ChevronRight className="w-5 h-5 text-primary" />
+
+          {/* Right: CTA button - vertically centered */}
+          <button
+            onClick={() => !disabled && onSelect(service)}
+            disabled={disabled}
+            className={`shrink-0 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              disabled
+                ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                : 'bg-foreground text-background hover:opacity-90 cursor-pointer'
+            }`}
+          >
+            Sélectionner
+          </button>
         </div>
       </div>
-    </motion.button>
+
+      {/* Expandable details */}
+      <AnimatePresence>
+        {isExpanded && hasDetails && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-3 pt-0 border-t border-border/50">
+              <div
+                className="pt-3 text-sm text-muted-foreground prose prose-sm max-w-none
+                  [&>*]:my-2
+                  [&>h3]:text-sm [&>h3]:font-semibold [&>h3]:text-foreground
+                  [&>p]:text-sm [&>p]:text-muted-foreground [&>p]:leading-relaxed
+                  [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:text-sm
+                  [&>ol]:list-decimal [&>ol]:pl-5 [&>ol]:text-sm
+                  [&>li]:text-muted-foreground [&>li]:leading-relaxed
+                  [&_strong]:font-medium [&_strong]:text-foreground
+                  [&_em]:italic"
+                dangerouslySetInnerHTML={{ __html: service.detailedDescription || '' }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -874,28 +935,6 @@ export default function BusinessPublicPage() {
           {/* Sidebar - Desktop only */}
           <div className="hidden lg:block lg:col-span-1">
             <div className="sticky top-24 space-y-4">
-              {/* Quick Book Card */}
-              <div className="bg-surface border border-border rounded-2xl p-6">
-                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Réserver
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {business.isOnVacation
-                    ? 'Les réservations sont suspendues pendant les vacances'
-                    : 'Sélectionnez une prestation pour réserver un créneau'}
-                </p>
-                {business.services && business.services.length > 0 && (
-                  <Button
-                    className="w-full rounded-full"
-                    onClick={() => handleServiceSelect(business.services![0])}
-                    disabled={business.isOnVacation}
-                  >
-                    {business.isOnVacation ? 'En vacances' : 'Réserver maintenant'}
-                  </Button>
-                )}
-              </div>
-
               {/* Business Hours Card */}
               {business.hours && business.hours.length > 0 && (
                 <div className="bg-surface border border-border rounded-2xl p-6">
@@ -1017,32 +1056,6 @@ export default function BusinessPublicPage() {
           </div>
         </div>
 
-      </div>
-
-      {/* Mobile Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-surface/95 backdrop-blur-lg border-t border-border p-4 z-40">
-        <Button
-          className="w-full rounded-full shadow-lg"
-          size="lg"
-          onClick={() => {
-            if (business.services && business.services.length > 0) {
-              handleServiceSelect(business.services[0]);
-            }
-          }}
-          disabled={!business.services || business.services.length === 0 || business.isOnVacation}
-        >
-          {business.isOnVacation ? (
-            <>
-              <Palmtree className="w-5 h-5 mr-2" />
-              En vacances
-            </>
-          ) : (
-            <>
-              <Calendar className="w-5 h-5 mr-2" />
-              Réserver maintenant
-            </>
-          )}
-        </Button>
       </div>
 
       {/* Review Form Modal */}

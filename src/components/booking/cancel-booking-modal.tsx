@@ -77,7 +77,12 @@ export function CancelBookingModal({
           <div className="p-5 space-y-4">
             {/* Service info */}
             <div className="bg-muted/30 rounded-xl p-4">
-              <p className="font-medium">{booking.service?.title || 'Réservation'}</p>
+              <p className="font-medium">{booking.service?.title || booking.businessService?.name || 'Réservation'}</p>
+              {booking.businessService?.business?.name && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  chez {booking.businessService.business.name}
+                </p>
+              )}
               {booking.scheduledAt && (
                 <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                   <Calendar className="w-4 h-4" />
@@ -181,7 +186,7 @@ export function CancelBookingModal({
               ) : (
                 <>
                   <Ban className="w-4 h-4 mr-2" />
-                  {isLateCancellation ? 'Annuler quand même' : 'Confirmer l\'annulation'}
+                  {isLateCancellation ? 'Annuler quand même' : 'Confirmer'}
                 </>
               )}
             </Button>

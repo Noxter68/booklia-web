@@ -577,87 +577,17 @@ export default function DashboardPage() {
                       </thead>
                       <tbody>
                         {businessReservations.map((booking) => (
-                          <tr key={booking.id} className="border-b border-border/30 last:border-0 hover:bg-muted/20 transition-colors">
-                            <td className="py-3 px-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
-                                  <Building2 className="w-5 h-5 text-primary" />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="font-medium text-sm truncate">{booking.businessService?.business?.name || 'Établissement'}</p>
-                                  {booking.employee && (
-                                    <p className="text-xs text-muted-foreground">
-                                      avec {booking.employee.firstName}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-3 px-4">
-                              <p className="text-sm">{booking.businessService?.name || 'Prestation'}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {booking.businessService?.durationMinutes} min
-                              </p>
-                            </td>
-                            <td className="py-3 px-4 hidden sm:table-cell">
-                              {booking.scheduledAt ? (
-                                <div>
-                                  <p className="text-sm font-medium">
-                                    {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
-                                      weekday: 'short',
-                                      day: 'numeric',
-                                      month: 'short',
-                                    })}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                    })}
-                                  </p>
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className="font-semibold text-sm">
-                                {formatPrice(booking.agreedPriceCents || 0)}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[booking.status]}`}>
-                                {statusIcons[booking.status]}
-                                {statusLabels[booking.status]}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                {booking.status === 'PENDING' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                    onClick={() => cancelBookingMutation.mutate(booking.id)}
-                                    disabled={cancelBookingMutation.isPending}
-                                  >
-                                    <XCircle className="w-4 h-4" />
-                                  </Button>
-                                )}
-                                {booking.status === 'CANCELED' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                                    onClick={() => deleteBookingMutation.mutate(booking.id)}
-                                    disabled={deleteBookingMutation.isPending}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
+                          <BusinessReservationRow
+                            key={booking.id}
+                            booking={booking}
+                            statusColors={statusColors}
+                            statusIcons={statusIcons}
+                            statusLabels={statusLabels}
+                            onCancel={() => cancelBookingMutation.mutate(booking.id)}
+                            onDelete={() => deleteBookingMutation.mutate(booking.id)}
+                            isCanceling={cancelBookingMutation.isPending}
+                            isDeleting={deleteBookingMutation.isPending}
+                          />
                         ))}
                       </tbody>
                     </table>
@@ -1289,6 +1219,130 @@ function BookingCard({
           </motion.div>
         )}
       </AnimatePresence>
+    </>
+  );
+}
+
+// Business Reservation Row Component (for "Mes RDV pros" table)
+function BusinessReservationRow({
+  booking,
+  statusColors,
+  statusIcons,
+  statusLabels,
+  onCancel,
+  onDelete,
+  isCanceling,
+  isDeleting,
+}: {
+  booking: Booking;
+  statusColors: Record<BookingStatus, string>;
+  statusIcons: Record<BookingStatus, React.ReactNode>;
+  statusLabels: Record<BookingStatus, string>;
+  onCancel: () => void;
+  onDelete: () => void;
+  isCanceling: boolean;
+  isDeleting: boolean;
+}) {
+  const [showCancelModal, setShowCancelModal] = useState(false);
+
+  return (
+    <>
+      <tr className="border-b border-border/30 last:border-0 hover:bg-muted/20 transition-colors">
+        <td className="py-3 px-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
+              <Building2 className="w-5 h-5 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-medium text-sm truncate">{booking.businessService?.business?.name || 'Établissement'}</p>
+              {booking.employee && (
+                <p className="text-xs text-muted-foreground">
+                  avec {booking.employee.firstName}
+                </p>
+              )}
+            </div>
+          </div>
+        </td>
+        <td className="py-3 px-4">
+          <p className="text-sm">{booking.businessService?.name || 'Prestation'}</p>
+          <p className="text-xs text-muted-foreground">
+            {booking.businessService?.durationMinutes} min
+          </p>
+        </td>
+        <td className="py-3 px-4 hidden sm:table-cell">
+          {booking.scheduledAt ? (
+            <div>
+              <p className="text-sm font-medium">
+                {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                })}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            </div>
+          ) : (
+            <span className="text-muted-foreground">-</span>
+          )}
+        </td>
+        <td className="py-3 px-4">
+          <span className="font-semibold text-sm">
+            {formatPrice(booking.agreedPriceCents || 0)}
+          </span>
+        </td>
+        <td className="py-3 px-4">
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[booking.status]}`}>
+            {statusIcons[booking.status]}
+            {statusLabels[booking.status]}
+          </span>
+        </td>
+        <td className="py-3 px-4 text-right">
+          <div className="flex items-center justify-end gap-2">
+            {/* Cancel button for PENDING or ACCEPTED status */}
+            {(booking.status === 'PENDING' || booking.status === 'ACCEPTED') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setShowCancelModal(true)}
+                disabled={isCanceling}
+              >
+                <XCircle className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Annuler</span>
+              </Button>
+            )}
+            {/* Delete button for CANCELED status */}
+            {booking.status === 'CANCELED' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                onClick={() => onDelete()}
+                disabled={isDeleting}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </td>
+      </tr>
+
+      {/* Cancel Modal with penalty warning */}
+      <CancelBookingModal
+        booking={booking}
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={() => {
+          onCancel();
+          setShowCancelModal(false);
+        }}
+        isLoading={isCanceling}
+      />
     </>
   );
 }

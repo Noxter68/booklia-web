@@ -35,6 +35,7 @@ export default function DashboardSettingsPage() {
   const [tab, setTab] = useState<Tab>('profile');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   // Redirect business users to business settings
   useEffect(() => {
@@ -48,8 +49,10 @@ export default function DashboardSettingsPage() {
   const [bio, setBio] = useState('');
   const [city, setCity] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [coverUrl, setCoverUrl] = useState('');
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   // Images state
   const [images, setImages] = useState<PeopleImage[]>([]);
@@ -66,6 +69,7 @@ export default function DashboardSettingsPage() {
         setBio(data.profile.bio || '');
         setCity(data.profile.city || '');
         setAvatarUrl(data.profile.avatarUrl || '');
+        setCoverUrl(data.profile.coverUrl || '');
         setIsProfileLoaded(true);
       }
       return data;
@@ -86,7 +90,7 @@ export default function DashboardSettingsPage() {
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: (data: { displayName?: string; bio?: string; city?: string; avatarUrl?: string }) =>
+    mutationFn: (data: { displayName?: string; bio?: string; city?: string; avatarUrl?: string; coverUrl?: string }) =>
       api.updateMyProfile(data),
     onSuccess: () => {
       success('Profil mis à jour');
@@ -133,6 +137,7 @@ export default function DashboardSettingsPage() {
       bio: bio || undefined,
       city: city || undefined,
       avatarUrl: avatarUrl || undefined,
+      coverUrl: coverUrl || undefined,
     });
   };
 
@@ -151,6 +156,25 @@ export default function DashboardSettingsPage() {
       setIsUploadingAvatar(false);
       if (avatarInputRef.current) {
         avatarInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleCoverUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingCover(true);
+    try {
+      const result = await api.uploadFile(file, 'image');
+      setCoverUrl(result.url);
+      success('Photo de couverture uploadée');
+    } catch (err) {
+      showError('Erreur lors de l\'upload de la couverture');
+    } finally {
+      setIsUploadingCover(false);
+      if (coverInputRef.current) {
+        coverInputRef.current.value = '';
       }
     }
   };
@@ -301,6 +325,45 @@ export default function DashboardSettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Cliquez pour uploader (max 2 Mo)
                   </p>
+                </div>
+              </div>
+
+              {/* Cover Photo */}
+              <div className="mb-6 pb-6 border-b border-border/50">
+                <p className="font-medium mb-3">Photo de couverture</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Cette image sera affichée sur votre profil public
+                </p>
+                <div className="relative">
+                  <div className="w-full h-40 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+                    {isUploadingCover ? (
+                      <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+                    ) : coverUrl ? (
+                      <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <Images className="w-10 h-10" />
+                        <span className="text-sm">Aucune couverture</span>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={coverInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handleCoverUpload}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => coverInputRef.current?.click()}
+                    disabled={isUploadingCover}
+                    className="absolute bottom-3 right-3 px-4 py-2 bg-surface/90 backdrop-blur-sm text-foreground rounded-lg flex items-center gap-2 shadow-lg hover:bg-surface transition-colors cursor-pointer disabled:opacity-50 border border-border/50"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {coverUrl ? 'Changer' : 'Ajouter'}
+                    </span>
+                  </button>
                 </div>
               </div>
 

@@ -25,6 +25,7 @@ export interface Profile {
   userId: string;
   displayName?: string;
   avatarUrl?: string;
+  coverUrl?: string;
   bio?: string;
   city?: string;
   images?: PeopleImage[];
@@ -258,6 +259,7 @@ export interface BusinessService {
   businessId: string;
   name: string;
   description?: string;
+  detailedDescription?: string; // Rich text HTML content
   priceCents: number;
   currency: string;
   durationMinutes: number;

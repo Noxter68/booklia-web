@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -30,14 +30,17 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { formatPrice } from '@/lib/utils';
 import { createPortal } from 'react-dom';
 import { Business, Employee, BusinessService, Booking, BookingStatus, BusinessHours, BusinessCategory, BusinessImage } from '@/types';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 
 export default function BusinessDashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
+  const { onBookingStatus } = useWebSocket();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings'>('overview');
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
@@ -86,6 +89,16 @@ export default function BusinessDashboardPage() {
   const goToToday = () => {
     setCurrentDate(new Date());
   };
+
+  // Listen for real-time booking status updates
+  useEffect(() => {
+    const unsubscribe = onBookingStatus(() => {
+      // Update bookings cache - invalidate to refetch with current filters
+      queryClient.invalidateQueries({ queryKey: ['business-bookings'] });
+    });
+
+    return unsubscribe;
+  }, [onBookingStatus, queryClient]);
 
   const { data: business, isLoading } = useQuery({
     queryKey: ['my-business'],
@@ -1036,6 +1049,7 @@ function EditServiceModal({
   const [formData, setFormData] = useState({
     name: service.name,
     description: service.description || '',
+    detailedDescription: service.detailedDescription || '',
     priceCents: service.priceCents,
     durationMinutes: service.durationMinutes,
     businessCategoryId: service.businessCategoryId || null,
@@ -1051,6 +1065,7 @@ function EditServiceModal({
       api.updateBusinessService(service.id, {
         name: formData.name,
         description: formData.description || undefined,
+        detailedDescription: formData.detailedDescription || undefined,
         priceCents: formData.priceCents,
         durationMinutes: formData.durationMinutes,
         businessCategoryId: formData.businessCategoryId || undefined,
@@ -1085,7 +1100,7 @@ function EditServiceModal({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-surface rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden"
+          className="bg-surface rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-border">
@@ -1117,14 +1132,30 @@ function EditServiceModal({
             {/* Description */}
             <div>
               <label className="text-sm font-medium mb-2 block">
-                Description
+                Description courte
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Décrivez cette prestation..."
-                rows={3}
+                placeholder="Résumé de la prestation (affiché dans la liste)"
+                rows={2}
                 className="flex w-full rounded-xl border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+              />
+            </div>
+
+            {/* Detailed Description */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Description détaillée
+              </label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Ajoutez des informations complémentaires (idéal pour, bénéfices, contre-indications...)
+              </p>
+              <RichTextEditor
+                value={formData.detailedDescription}
+                onChange={(value) => setFormData({ ...formData, detailedDescription: value })}
+                placeholder="Décrivez en détail ce que comprend cette prestation..."
+                minHeight="120px"
               />
             </div>
 

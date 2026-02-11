@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Category, BusinessCategory } from '@/types';
 
 type Step = 1 | 2 | 3;
@@ -28,6 +29,7 @@ type Step = 1 | 2 | 3;
 interface FormData {
   name: string;
   description: string;
+  detailedDescription: string;
   priceCents: number | null;
   durationMinutes: number | null;
   businessCategoryId: string | null;
@@ -49,6 +51,7 @@ export default function NewBusinessServicePage() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
+    detailedDescription: '',
     priceCents: null,
     durationMinutes: null,
     businessCategoryId: null,
@@ -65,6 +68,7 @@ export default function NewBusinessServicePage() {
       api.createBusinessService({
         name: formData.name,
         description: formData.description || undefined,
+        detailedDescription: formData.detailedDescription || undefined,
         priceCents: formData.priceCents || 0,
         durationMinutes: formData.durationMinutes || 30,
         businessCategoryId: formData.businessCategoryId || undefined,
@@ -203,6 +207,7 @@ export default function NewBusinessServicePage() {
               <StepInfo
                 name={formData.name}
                 description={formData.description}
+                detailedDescription={formData.detailedDescription}
                 onChange={(updates) => updateForm(updates)}
               />
             )}
@@ -262,11 +267,13 @@ export default function NewBusinessServicePage() {
 function StepInfo({
   name,
   description,
+  detailedDescription,
   onChange,
 }: {
   name: string;
   description: string;
-  onChange: (updates: { name?: string; description?: string }) => void;
+  detailedDescription: string;
+  onChange: (updates: { name?: string; description?: string; detailedDescription?: string }) => void;
 }) {
   return (
     <div className="space-y-6">
@@ -297,15 +304,30 @@ function StepInfo({
 
       <div>
         <label className="text-sm font-medium mb-2 block">
-          Description
+          Description courte
         </label>
         <textarea
           value={description}
           onChange={(e) => onChange({ description: e.target.value })}
-          placeholder="Décrivez ce que comprend cette prestation..."
+          placeholder="Résumé de la prestation (affiché dans la liste)"
           maxLength={500}
-          rows={4}
+          rows={2}
           className="flex w-full rounded-xl border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium mb-2 block">
+          Description détaillée
+        </label>
+        <p className="text-xs text-muted-foreground mb-2">
+          Ajoutez des informations complémentaires (idéal pour, bénéfices, contre-indications...)
+        </p>
+        <RichTextEditor
+          value={detailedDescription}
+          onChange={(value) => onChange({ detailedDescription: value })}
+          placeholder="Décrivez en détail ce que comprend cette prestation..."
+          minHeight="150px"
         />
       </div>
     </div>

@@ -39,6 +39,7 @@ export default function BusinessSettingsPage() {
   const [tab, setTab] = useState<Tab>('profile');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [name, setName] = useState('');
@@ -50,8 +51,10 @@ export default function BusinessSettingsPage() {
   const [city, setCity] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [coverUrl, setCoverUrl] = useState('');
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   // Images state
   const [images, setImages] = useState<BusinessImage[]>([]);
@@ -76,6 +79,7 @@ export default function BusinessSettingsPage() {
         setCity(data.city || '');
         setPostalCode(data.postalCode || '');
         setLogoUrl(data.logoUrl || '');
+        setCoverUrl(data.coverUrl || '');
         setIsProfileLoaded(true);
       }
       return data;
@@ -130,6 +134,7 @@ export default function BusinessSettingsPage() {
       city?: string;
       postalCode?: string;
       logoUrl?: string;
+      coverUrl?: string;
     }) => api.updateBusiness(data),
     onSuccess: () => {
       success('Informations mises à jour');
@@ -192,6 +197,7 @@ export default function BusinessSettingsPage() {
       city: city || undefined,
       postalCode: postalCode || undefined,
       logoUrl: logoUrl || undefined,
+      coverUrl: coverUrl || undefined,
     });
   };
 
@@ -210,6 +216,25 @@ export default function BusinessSettingsPage() {
       setIsUploadingLogo(false);
       if (logoInputRef.current) {
         logoInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleCoverUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingCover(true);
+    try {
+      const result = await api.uploadFile(file, 'image');
+      setCoverUrl(result.url);
+      success('Photo de couverture uploadée');
+    } catch {
+      showError("Erreur lors de l'upload de la couverture");
+    } finally {
+      setIsUploadingCover(false);
+      if (coverInputRef.current) {
+        coverInputRef.current.value = '';
       }
     }
   };
@@ -406,6 +431,45 @@ export default function BusinessSettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Cliquez pour uploader (max 2 Mo)
                   </p>
+                </div>
+              </div>
+
+              {/* Cover Photo */}
+              <div className="mb-6 pb-6 border-b border-border/50">
+                <p className="font-medium mb-3">Photo de couverture</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Cette image sera affichée sur la page d'accueil et dans les résultats de recherche
+                </p>
+                <div className="relative">
+                  <div className="w-full h-40 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+                    {isUploadingCover ? (
+                      <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+                    ) : coverUrl ? (
+                      <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <Images className="w-10 h-10" />
+                        <span className="text-sm">Aucune couverture</span>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={coverInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handleCoverUpload}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => coverInputRef.current?.click()}
+                    disabled={isUploadingCover}
+                    className="absolute bottom-3 right-3 px-4 py-2 bg-surface/90 backdrop-blur-sm text-foreground rounded-lg flex items-center gap-2 shadow-lg hover:bg-surface transition-colors cursor-pointer disabled:opacity-50 border border-border/50"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {coverUrl ? 'Changer' : 'Ajouter'}
+                    </span>
+                  </button>
                 </div>
               </div>
 

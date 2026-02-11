@@ -320,6 +320,7 @@ class ApiClient {
   async createBusinessService(data: {
     name: string;
     description?: string;
+    detailedDescription?: string;
     priceCents: number;
     durationMinutes: number;
     categoryId?: string;
