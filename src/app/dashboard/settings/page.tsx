@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, ChangeEvent } from 'react';
+import { useState, useRef, ChangeEvent, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
   User,
@@ -28,11 +29,19 @@ type Tab = 'profile' | 'images';
 
 export default function DashboardSettingsPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>('profile');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  // Redirect business users to business settings
+  useEffect(() => {
+    if (user?.isBusiness) {
+      router.replace('/business/settings');
+    }
+  }, [user, router]);
 
   // Profile form state
   const [displayName, setDisplayName] = useState('');
@@ -175,7 +184,8 @@ export default function DashboardSettingsPage() {
     setIsReordering(false);
   };
 
-  if (authLoading || profileLoading) {
+  // Show loading while checking or redirecting business users
+  if (authLoading || profileLoading || user?.isBusiness) {
     return (
       <div className="min-h-screen flex items-center justify-center pt-24">
         <PageLoader text="Chargement..." />

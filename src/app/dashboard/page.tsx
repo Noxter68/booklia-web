@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -48,11 +49,19 @@ type TabType = 'activity' | 'reservations' | 'services';
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
   const { onBookingStatus } = useWebSocket();
 
   const [activeTab, setActiveTab] = useState<TabType>('activity');
+
+  // Redirect business users to business dashboard
+  useEffect(() => {
+    if (user?.isBusiness) {
+      router.replace('/business/dashboard');
+    }
+  }, [user, router]);
   const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
   const [replyReview, setReplyReview] = useState<Review | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<{ booking: Booking; role: 'provider' | 'requester' } | null>(null);
@@ -216,22 +225,11 @@ export default function DashboardPage() {
     );
   }
 
-  // Redirect business users
+  // Show loading while redirecting business users
   if (user.isBusiness) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background pt-24">
-        <div className="text-center max-w-md px-4">
-          <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Building2 className="w-10 h-10 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold mb-3">Espace Professionnel</h1>
-          <p className="text-muted-foreground mb-6">
-            En tant que professionnel, accédez à votre espace dédié.
-          </p>
-          <Link href="/business/dashboard">
-            <Button size="lg" className="rounded-xl px-8">Accéder au dashboard pro</Button>
-          </Link>
-        </div>
+      <div className="min-h-screen flex items-center justify-center pt-24">
+        <PageLoader text="Redirection..." />
       </div>
     );
   }
@@ -814,13 +812,9 @@ function ServiceRow({
       <tr className="border-b border-border/30 last:border-0 hover:bg-muted/20 transition-colors">
         <td className="py-3 px-4">
           <div className="flex items-center gap-3">
-            {service.coverUrl ? (
-              <img src={service.coverUrl} alt="" className="w-10 h-10 rounded-xl object-cover" />
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                <Briefcase className="w-5 h-5 text-primary" />
-              </div>
-            )}
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+              <Briefcase className="w-5 h-5 text-primary" />
+            </div>
             <div className="min-w-0">
               <Link href={`/services/${service.id}`} className="font-medium text-sm hover:text-primary transition-colors line-clamp-1">
                 {service.title}

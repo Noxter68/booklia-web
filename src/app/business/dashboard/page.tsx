@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -14,8 +14,6 @@ import {
   TrendingUp,
   Clock,
   MapPin,
-  Phone,
-  Mail,
   Edit2,
   Trash2,
   MoreVertical,
@@ -23,10 +21,6 @@ import {
   Euro,
   ChevronLeft,
   ChevronRight,
-  Crown,
-  Palmtree,
-  Image as ImageIcon,
-  GripVertical,
   AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -45,7 +39,7 @@ export default function BusinessDashboardPage() {
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings'>('overview');
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -212,7 +206,6 @@ export default function BusinessDashboardPage() {
     { id: 'services', label: 'Prestations', icon: Scissors },
     { id: 'employees', label: 'Équipe', icon: Users },
     { id: 'bookings', label: 'Réservations', icon: Calendar },
-    { id: 'settings', label: 'Paramètres', icon: Settings },
   ] as const;
 
   return (
@@ -254,19 +247,31 @@ export default function BusinessDashboardPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+      {/* Tabs - Toggle Switcher */}
+      <div className="flex p-1 bg-muted/50 rounded-lg mb-6 w-fit overflow-x-auto">
         {tabs.map((tab) => (
-          <Button
+          <button
             key={tab.id}
-            variant={activeTab === tab.id ? 'default' : 'outline'}
-            size="sm"
             onClick={() => setActiveTab(tab.id)}
-            className="rounded-full whitespace-nowrap"
+            className={`relative flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer ${
+              activeTab === tab.id
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
-            <tab.icon className="w-4 h-4 mr-2" />
-            {tab.label}
-          </Button>
+            {activeTab === tab.id && (
+              <motion.div
+                layoutId="activeTabBg"
+                className="absolute inset-0 bg-background rounded-md shadow-sm"
+                initial={false}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
+            <span className="relative z-10 flex items-center gap-2">
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </span>
+          </button>
         ))}
       </div>
 
@@ -764,143 +769,7 @@ export default function BusinessDashboardPage() {
           </motion.div>
         )}
 
-        {activeTab === 'settings' && (
-          <motion.div
-            key="settings"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="space-y-6"
-          >
-            <h2 className="text-xl font-bold mb-6">Paramètres</h2>
-
-            {/* Vacation Mode */}
-            <VacationModeEditor business={business} />
-
-            {/* Gallery Images */}
-            <BusinessGalleryEditor business={business} />
-
-            {/* Business Hours */}
-            <BusinessHoursEditor business={business} />
-          </motion.div>
-        )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-// Business Hours Editor Component
-const DAY_NAMES = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-
-function BusinessHoursEditor({ business }: { business: Business }) {
-  const { success, error: showError } = useToast();
-  const queryClient = useQueryClient();
-
-  // Initialize hours state from business.hours or with defaults
-  const getInitialHours = () => {
-    const defaultHours = [1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
-      const existing = business.hours?.find((h) => h.dayOfWeek === dayOfWeek);
-      return {
-        dayOfWeek,
-        startTime: existing?.startTime || '09:00',
-        endTime: existing?.endTime || '18:00',
-        isClosed: existing?.isClosed ?? (dayOfWeek === 0), // Closed on Sunday by default
-      };
-    });
-    return defaultHours;
-  };
-
-  const [hours, setHours] = useState(getInitialHours);
-
-  const updateHoursMutation = useMutation({
-    mutationFn: (data: { dayOfWeek: number; startTime: string; endTime: string; isClosed?: boolean }[]) =>
-      api.updateBusinessHours(data),
-    onSuccess: () => {
-      success('Horaires mis à jour');
-      queryClient.invalidateQueries({ queryKey: ['my-business'] });
-    },
-    onError: () => showError('Erreur lors de la mise à jour'),
-  });
-
-  const handleSave = () => {
-    updateHoursMutation.mutate(hours);
-  };
-
-  const updateHour = (dayOfWeek: number, field: 'startTime' | 'endTime' | 'isClosed', value: string | boolean) => {
-    setHours((prev) =>
-      prev.map((h) =>
-        h.dayOfWeek === dayOfWeek ? { ...h, [field]: value } : h
-      )
-    );
-  };
-
-  return (
-    <div className="bg-surface border border-border rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="font-semibold flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            Horaires d'ouverture
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Définissez les horaires d'ouverture de votre établissement
-          </p>
-        </div>
-        <Button
-          onClick={handleSave}
-          disabled={updateHoursMutation.isPending}
-          className="rounded-full"
-        >
-          {updateHoursMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
-        </Button>
-      </div>
-
-      <div className="space-y-3">
-        {hours.map((hour) => (
-          <div
-            key={hour.dayOfWeek}
-            className={`flex items-center gap-4 p-3 rounded-xl ${
-              hour.isClosed ? 'bg-muted/50' : 'bg-background'
-            }`}
-          >
-            <div className="w-24 font-medium text-sm">
-              {DAY_NAMES[hour.dayOfWeek]}
-            </div>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={!hour.isClosed}
-                onChange={(e) => updateHour(hour.dayOfWeek, 'isClosed', !e.target.checked)}
-                className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-muted-foreground">Ouvert</span>
-            </label>
-
-            {!hour.isClosed && (
-              <>
-                <input
-                  type="time"
-                  value={hour.startTime}
-                  onChange={(e) => updateHour(hour.dayOfWeek, 'startTime', e.target.value)}
-                  className="px-3 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <span className="text-muted-foreground">à</span>
-                <input
-                  type="time"
-                  value={hour.endTime}
-                  onChange={(e) => updateHour(hour.dayOfWeek, 'endTime', e.target.value)}
-                  className="px-3 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </>
-            )}
-
-            {hour.isClosed && (
-              <span className="text-sm text-muted-foreground italic">Fermé</span>
-            )}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -1485,226 +1354,3 @@ function EmployeeCard({ employee, onDelete }: { employee: Employee; onDelete: ()
   );
 }
 
-// Vacation Mode Editor Component
-function VacationModeEditor({ business }: { business: Business }) {
-  const { success, error: showError } = useToast();
-  const queryClient = useQueryClient();
-
-  const [isOnVacation, setIsOnVacation] = useState(business.isOnVacation || false);
-  const [vacationMessage, setVacationMessage] = useState(business.vacationMessage || '');
-
-  const updateVacationMutation = useMutation({
-    mutationFn: () => api.updateVacationMode(isOnVacation, vacationMessage),
-    onSuccess: () => {
-      success(isOnVacation ? 'Mode vacances activé' : 'Mode vacances désactivé');
-      queryClient.invalidateQueries({ queryKey: ['my-business'] });
-    },
-    onError: () => showError('Erreur lors de la mise à jour'),
-  });
-
-  const handleSave = () => {
-    updateVacationMutation.mutate();
-  };
-
-  return (
-    <div className="bg-surface border border-border rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="font-semibold flex items-center gap-2">
-            <Palmtree className="w-5 h-5" />
-            Mode vacances
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Activez le mode vacances pour informer vos clients et bloquer les réservations
-          </p>
-        </div>
-        <Button
-          onClick={handleSave}
-          disabled={updateVacationMutation.isPending}
-          className="rounded-full"
-        >
-          {updateVacationMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
-        </Button>
-      </div>
-
-      <div className="space-y-4">
-        {/* Toggle */}
-        <div className="flex items-center justify-between p-4 rounded-xl bg-background">
-          <div className="flex items-center gap-3">
-            {isOnVacation && (
-              <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
-                <Palmtree className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-              </div>
-            )}
-            <div>
-              <p className="font-medium">
-                {isOnVacation ? 'Mode vacances activé' : 'Mode vacances désactivé'}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {isOnVacation
-                  ? 'Les clients ne peuvent pas prendre de rendez-vous'
-                  : 'Les clients peuvent prendre des rendez-vous normalement'}
-              </p>
-            </div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isOnVacation}
-              onChange={(e) => setIsOnVacation(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-          </label>
-        </div>
-
-        {/* Message */}
-        {isOnVacation && (
-          <div>
-            <label className="text-sm font-medium mb-2 block">
-              Message pour vos clients (optionnel)
-            </label>
-            <textarea
-              value={vacationMessage}
-              onChange={(e) => setVacationMessage(e.target.value)}
-              placeholder="Ex: Nous sommes en congés du 15 au 30 août. À très bientôt !"
-              rows={3}
-              maxLength={500}
-              className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Ce message sera affiché sur votre page publique
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Business Gallery Editor Component
-function BusinessGalleryEditor({ business }: { business: Business }) {
-  const { success, error: showError } = useToast();
-  const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
-
-  const images = business.images || [];
-
-  const addImageMutation = useMutation({
-    mutationFn: (url: string) => api.addBusinessImage(url),
-    onSuccess: () => {
-      success('Image ajoutée');
-      queryClient.invalidateQueries({ queryKey: ['my-business'] });
-    },
-    onError: (err: Error) => showError(err.message || 'Erreur lors de l\'ajout'),
-  });
-
-  const deleteImageMutation = useMutation({
-    mutationFn: (id: string) => api.deleteBusinessImage(id),
-    onSuccess: () => {
-      success('Image supprimée');
-      queryClient.invalidateQueries({ queryKey: ['my-business'] });
-    },
-    onError: () => showError('Erreur lors de la suppression'),
-  });
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    try {
-      // Upload to Cloudinary first
-      const result = await api.uploadFile(file, 'image');
-      // Then save URL to BusinessImage table
-      await addImageMutation.mutateAsync(result.url);
-    } catch {
-      showError('Erreur lors de l\'upload de l\'image');
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  return (
-    <div className="bg-surface border border-border rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="font-semibold flex items-center gap-2">
-            <ImageIcon className="w-5 h-5" />
-            Galerie photos
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Ajoutez jusqu'à 10 photos de votre établissement ({images.length}/10)
-          </p>
-        </div>
-        {images.length < 10 && (
-          <>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              isLoading={isUploading}
-              variant="outline"
-              className="rounded-full"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {isUploading ? 'Upload...' : 'Ajouter une photo'}
-            </Button>
-          </>
-        )}
-      </div>
-
-      {/* Images Grid */}
-      {images.length === 0 ? (
-        <div className="text-center py-8">
-          <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <ImageIcon className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <p className="text-muted-foreground mb-2">Aucune photo</p>
-          <p className="text-sm text-muted-foreground">
-            Ajoutez des photos pour présenter votre établissement
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          {images.map((image, index) => (
-            <div
-              key={image.id}
-              className="relative aspect-square rounded-xl overflow-hidden group"
-            >
-              <img
-                src={image.url}
-                alt={`Photo ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <button
-                  onClick={() => deleteImageMutation.mutate(image.id)}
-                  disabled={deleteImageMutation.isPending}
-                  className="p-2 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-              {index === 0 && (
-                <div className="absolute top-2 left-2 px-2 py-1 bg-black/70 text-white text-xs rounded-full">
-                  Principale
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}

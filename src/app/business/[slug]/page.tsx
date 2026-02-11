@@ -21,7 +21,6 @@ import {
   X,
   ChevronLeft,
   Palmtree,
-  Images,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -147,8 +146,11 @@ function ImageLightbox({
   );
 }
 
-// Image Gallery Mosaic component (Planity-style)
-function ImageGalleryMosaic({
+// ============================================
+// IMAGE GALLERY - Adaptive layout (matches profile page)
+// ============================================
+
+function ImageGallery({
   images,
   onImageClick,
 }: {
@@ -157,143 +159,156 @@ function ImageGalleryMosaic({
 }) {
   if (!images || images.length === 0) return null;
 
-  // Sort images by sortOrder
   const sortedImages = [...images].sort((a, b) => a.sortOrder - b.sortOrder);
+  const count = sortedImages.length;
 
-  // Single image layout
-  if (sortedImages.length === 1) {
-    return (
-      <div className="mb-6">
-        <button
-          onClick={() => onImageClick(0)}
-          className="w-full aspect-[21/9] rounded-2xl overflow-hidden relative group"
-        >
-          <img
-            src={sortedImages[0].url}
-            alt=""
-            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-        </button>
-      </div>
-    );
-  }
-
-  // 2-4 images: main image left, stack on right
-  if (sortedImages.length <= 4) {
-    return (
-      <div className="mb-6 grid grid-cols-3 gap-2 h-64 sm:h-80">
-        {/* Main image */}
-        <button
-          onClick={() => onImageClick(0)}
-          className="col-span-2 rounded-l-2xl overflow-hidden relative group"
-        >
-          <img
-            src={sortedImages[0].url}
-            alt=""
-            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-        </button>
-
-        {/* Right stack */}
-        <div className="flex flex-col gap-2">
-          {sortedImages.slice(1, 4).map((img, idx) => (
-            <button
-              key={img.id}
-              onClick={() => onImageClick(idx + 1)}
-              className={`flex-1 overflow-hidden relative group ${
-                idx === 0 ? 'rounded-tr-2xl' : ''
-              } ${idx === sortedImages.slice(1, 4).length - 1 ? 'rounded-br-2xl' : ''}`}
-            >
-              <img
-                src={img.url}
-                alt=""
-                className="w-full h-full object-cover transition-transform group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // 5+ images: Planity-style mosaic with "Voir les X photos" button
-  return (
-    <div className="mb-6 grid grid-cols-4 gap-2 h-64 sm:h-80">
-      {/* Main image - takes 2 columns */}
+  // Mobile: single image with photo count badge
+  const MobileGallery = () => (
+    <div className="sm:hidden mb-6">
       <button
         onClick={() => onImageClick(0)}
-        className="col-span-2 row-span-2 rounded-l-2xl overflow-hidden relative group"
+        className="w-full h-64 rounded-xl overflow-hidden relative group cursor-pointer"
       >
-        <img
-          src={sortedImages[0].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
+        <img src={sortedImages[0].url} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-      </button>
-
-      {/* Top right images */}
-      <button
-        onClick={() => onImageClick(1)}
-        className="overflow-hidden relative group"
-      >
-        <img
-          src={sortedImages[1].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-      </button>
-
-      <button
-        onClick={() => onImageClick(2)}
-        className="rounded-tr-2xl overflow-hidden relative group"
-      >
-        <img
-          src={sortedImages[2].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-      </button>
-
-      {/* Bottom right images */}
-      <button
-        onClick={() => onImageClick(3)}
-        className="overflow-hidden relative group"
-      >
-        <img
-          src={sortedImages[3].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-      </button>
-
-      {/* Last visible image with overlay for more */}
-      <button
-        onClick={() => onImageClick(4)}
-        className="rounded-br-2xl overflow-hidden relative group"
-      >
-        <img
-          src={sortedImages[4].url}
-          alt=""
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-        {sortedImages.length > 5 && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="text-white font-medium flex items-center gap-1.5">
-              <Images className="w-4 h-4" />
-              +{sortedImages.length - 5}
-            </span>
+        {count > 1 && (
+          <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs font-medium px-3 py-1.5 rounded-full">
+            1/{count}
           </div>
         )}
       </button>
     </div>
+  );
+
+  // 1 image - full width
+  if (count === 1) {
+    return (
+      <>
+        <MobileGallery />
+        <div className="hidden sm:block mb-6">
+          <button
+            onClick={() => onImageClick(0)}
+            className="w-full h-96 rounded-xl overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[0].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  // 2 images - side by side on desktop
+  if (count === 2) {
+    return (
+      <>
+        <MobileGallery />
+        <div className="hidden sm:flex mb-6 gap-2 h-96">
+          <button
+            onClick={() => onImageClick(0)}
+            className="flex-1 rounded-l-xl overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[0].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+          <button
+            onClick={() => onImageClick(1)}
+            className="flex-1 rounded-r-xl overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[1].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  // 3 images - 1 big left + 2 stacked right on desktop
+  if (count === 3) {
+    return (
+      <>
+        <MobileGallery />
+        <div className="hidden sm:flex mb-6 gap-2 h-96">
+          <button
+            onClick={() => onImageClick(0)}
+            className="w-1/2 rounded-l-xl overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[0].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+          <div className="w-1/2 flex flex-col gap-2">
+            <button
+              onClick={() => onImageClick(1)}
+              className="flex-1 rounded-tr-xl overflow-hidden relative group cursor-pointer"
+            >
+              <img src={sortedImages[1].url} alt="" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            </button>
+            <button
+              onClick={() => onImageClick(2)}
+              className="flex-1 rounded-br-xl overflow-hidden relative group cursor-pointer"
+            >
+              <img src={sortedImages[2].url} alt="" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // 4+ images - 1 big left + 2x2 grid right on desktop (with +N overlay if more)
+  return (
+    <>
+      <MobileGallery />
+      <div className="hidden sm:flex mb-6 gap-2 h-96">
+        <button
+          onClick={() => onImageClick(0)}
+          className="w-1/2 rounded-l-xl overflow-hidden relative group cursor-pointer"
+        >
+          <img src={sortedImages[0].url} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+        </button>
+        <div className="w-1/2 grid grid-cols-2 grid-rows-2 gap-2">
+          <button
+            onClick={() => onImageClick(1)}
+            className="overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[1].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+          <button
+            onClick={() => onImageClick(2)}
+            className="rounded-tr-xl overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[2].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+          <button
+            onClick={() => onImageClick(3)}
+            className="overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[3].url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </button>
+          <button
+            onClick={() => onImageClick(count > 4 ? 4 : 3)}
+            className="rounded-br-xl overflow-hidden relative group cursor-pointer"
+          >
+            <img src={sortedImages[Math.min(4, count - 1)].url} alt="" className="w-full h-full object-cover" />
+            {count > 4 ? (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center group-hover:bg-black/60 transition-colors">
+                <span className="text-white font-medium text-sm">
+                  +{count - 4} photos
+                </span>
+              </div>
+            ) : (
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            )}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -537,9 +552,9 @@ export default function BusinessPublicPage() {
       {/* Image Gallery Mosaic */}
       {images && images.length > 0 && (
         <div className="container mx-auto px-4 sm:px-6">
-          <ImageGalleryMosaic
+          <ImageGallery
             images={images}
-            onImageClick={(index) => setLightboxIndex(index)}
+            onImageClick={(index: number) => setLightboxIndex(index)}
           />
         </div>
       )}

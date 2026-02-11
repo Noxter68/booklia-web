@@ -293,6 +293,10 @@ class ApiClient {
     return this.request<import('@/types').Business>(`/business/${slug}`);
   }
 
+  async getBusinessByOwnerId(userId: string) {
+    return this.request<import('@/types').Business | null>(`/business/owner/${userId}`);
+  }
+
   async searchBusinesses(filters: {
     q?: string;
     city?: string;

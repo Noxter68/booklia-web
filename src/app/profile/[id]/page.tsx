@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useCallback, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -392,30 +392,67 @@ function TrustBadge({ elo }: { elo: number }) {
 
 export default function ProfilePage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
+  // Fetch user profile
   const { data: user, isLoading } = useQuery({
     queryKey: ['profile', id],
     queryFn: () => api.getProfile(id),
     enabled: !!id,
   });
 
+  // Check if user has a business (redirect to business page if so)
+  const { data: business, isLoading: businessLoading } = useQuery({
+    queryKey: ['business-by-owner', id],
+    queryFn: () => api.getBusinessByOwnerId(id),
+    enabled: !!id,
+  });
+
+  // Redirect to business page if user has an active business
+  useEffect(() => {
+    if (business?.slug) {
+      router.replace(`/business/${business.slug}`);
+    }
+  }, [business, router]);
+
   const { data: reviews } = useQuery({
     queryKey: ['reviews', id],
     queryFn: () => api.getUserReviews(id),
-    enabled: !!id,
+    enabled: !!id && !business,
   });
 
   const { data: services } = useQuery({
     queryKey: ['user-services', id],
     queryFn: () => api.getUserServices(id),
-    enabled: !!id,
+    enabled: !!id && !business,
   });
 
   const images = user?.profile?.images || [];
   const publishedServices = services?.filter(s => s.status === 'PUBLISHED') || [];
 
-  if (isLoading) {
+  // Show loading while checking for business
+  if (isLoading || businessLoading) {
+    return (
+      <div className="min-h-screen bg-background pt-24">
+        <div className="container mx-auto px-4 sm:px-6 max-w-5xl">
+          <div className="animate-pulse space-y-6">
+            <div className="h-48 sm:h-64 bg-muted rounded-2xl" />
+            <div className="flex items-start gap-4">
+              <div className="w-20 h-20 bg-muted rounded-2xl" />
+              <div className="flex-1 space-y-3">
+                <div className="h-7 w-48 bg-muted rounded-lg" />
+                <div className="h-5 w-32 bg-muted rounded-lg" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading while redirecting to business page
+  if (business?.slug) {
     return (
       <div className="min-h-screen bg-background pt-24">
         <div className="container mx-auto px-4 sm:px-6 max-w-5xl">
