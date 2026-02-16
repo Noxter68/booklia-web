@@ -22,6 +22,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
+import { AddressAutocomplete, AddressResult } from '@/components/ui/address-autocomplete';
 import Link from 'next/link';
 import { PeopleImage } from '@/types';
 
@@ -48,6 +49,9 @@ export default function DashboardSettingsPage() {
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [city, setCity] = useState('');
+  const [address, setAddress] = useState('');
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
@@ -68,6 +72,9 @@ export default function DashboardSettingsPage() {
         setDisplayName(data.profile.displayName || '');
         setBio(data.profile.bio || '');
         setCity(data.profile.city || '');
+        setAddress(data.profile.address || '');
+        setLatitude(data.profile.latitude || null);
+        setLongitude(data.profile.longitude || null);
         setAvatarUrl(data.profile.avatarUrl || '');
         setCoverUrl(data.profile.coverUrl || '');
         setIsProfileLoaded(true);
@@ -90,7 +97,7 @@ export default function DashboardSettingsPage() {
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: (data: { displayName?: string; bio?: string; city?: string; avatarUrl?: string; coverUrl?: string }) =>
+    mutationFn: (data: { displayName?: string; bio?: string; city?: string; address?: string; latitude?: number; longitude?: number; avatarUrl?: string; coverUrl?: string }) =>
       api.updateMyProfile(data),
     onSuccess: () => {
       success('Profil mis à jour');
@@ -136,9 +143,25 @@ export default function DashboardSettingsPage() {
       displayName: displayName || undefined,
       bio: bio || undefined,
       city: city || undefined,
+      address: address || undefined,
+      latitude: latitude || undefined,
+      longitude: longitude || undefined,
       avatarUrl: avatarUrl || undefined,
       coverUrl: coverUrl || undefined,
     });
+  };
+
+  const handleAddressSelect = (result: AddressResult) => {
+    setAddress(result.label);
+    setCity(result.city);
+    setLatitude(result.latitude);
+    setLongitude(result.longitude);
+  };
+
+  const handleAddressClear = () => {
+    setAddress('');
+    setLatitude(null);
+    setLongitude(null);
   };
 
   const handleAvatarUpload = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -384,15 +407,21 @@ export default function DashboardSettingsPage() {
 
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Ville
+                    Adresse
                   </label>
-                  <input
-                    type="text"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="Paris, Lyon, Marseille..."
-                    className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                  <AddressAutocomplete
+                    value={address}
+                    onSelect={handleAddressSelect}
+                    onClear={handleAddressClear}
+                    placeholder="Rechercher votre adresse..."
+                    hideIcon
+                    inputClassName="px-4 py-3 h-auto rounded-xl bg-muted/50"
                   />
+                  {city && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Ville : {city}
+                    </p>
+                  )}
                 </div>
 
                 <div>

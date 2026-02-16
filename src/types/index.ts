@@ -15,6 +15,8 @@ export interface User {
   email: string;
   name?: string;
   image?: string;
+  isAdmin?: boolean;
+  isBusiness?: boolean;
   subscriptionStatus: SubscriptionStatus;
   createdAt: string;
   profile?: Profile;
@@ -28,6 +30,9 @@ export interface Profile {
   coverUrl?: string;
   bio?: string;
   city?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
   images?: PeopleImage[];
 }
 
@@ -96,6 +101,7 @@ export interface Service {
     profile?: {
       displayName?: string;
       avatarUrl?: string;
+      coverUrl?: string;
       city?: string;
       images?: PeopleImage[];
     };
@@ -233,6 +239,7 @@ export interface Business {
   subscriptionStatus: SubscriptionStatus;
   isVerified: boolean;
   isActive: boolean;
+  isEarlyAdopter: boolean;
   acceptsOnlineBooking: boolean;
   isOnVacation: boolean;
   vacationMessage?: string;
@@ -252,6 +259,7 @@ export interface Business {
     employees: number;
     services: number;
   };
+  distance?: number;
 }
 
 export interface BusinessService {

@@ -25,6 +25,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
+import { AddressAutocomplete, AddressResult } from '@/components/ui/address-autocomplete';
 import Link from 'next/link';
 import { BusinessImage, BusinessHours } from '@/types';
 
@@ -50,6 +51,8 @@ export default function BusinessSettingsPage() {
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [postalCode, setPostalCode] = useState('');
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [logoUrl, setLogoUrl] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
@@ -78,6 +81,8 @@ export default function BusinessSettingsPage() {
         setAddress(data.address || '');
         setCity(data.city || '');
         setPostalCode(data.postalCode || '');
+        setLatitude(data.latitude || null);
+        setLongitude(data.longitude || null);
         setLogoUrl(data.logoUrl || '');
         setCoverUrl(data.coverUrl || '');
         setIsProfileLoaded(true);
@@ -133,6 +138,8 @@ export default function BusinessSettingsPage() {
       address?: string;
       city?: string;
       postalCode?: string;
+      latitude?: number;
+      longitude?: number;
       logoUrl?: string;
       coverUrl?: string;
     }) => api.updateBusiness(data),
@@ -196,9 +203,27 @@ export default function BusinessSettingsPage() {
       address: address || undefined,
       city: city || undefined,
       postalCode: postalCode || undefined,
+      latitude: latitude || undefined,
+      longitude: longitude || undefined,
       logoUrl: logoUrl || undefined,
       coverUrl: coverUrl || undefined,
     });
+  };
+
+  const handleAddressSelect = (result: AddressResult) => {
+    setAddress(result.label);
+    setCity(result.city);
+    setPostalCode(result.postalCode);
+    setLatitude(result.latitude);
+    setLongitude(result.longitude);
+  };
+
+  const handleAddressClear = () => {
+    setAddress('');
+    setCity('');
+    setPostalCode('');
+    setLatitude(null);
+    setLongitude(null);
   };
 
   const handleLogoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -553,40 +578,19 @@ export default function BusinessSettingsPage() {
                     <MapPin className="w-4 h-4 inline mr-1" />
                     Adresse
                   </label>
-                  <input
-                    type="text"
+                  <AddressAutocomplete
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="123 Rue Exemple"
-                    className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                    onSelect={handleAddressSelect}
+                    onClear={handleAddressClear}
+                    placeholder="Rechercher votre adresse..."
+                    hideIcon
+                    inputClassName="px-4 py-3 h-auto rounded-xl bg-muted/50"
                   />
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Ville
-                    </label>
-                    <input
-                      type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="Paris"
-                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Code postal
-                    </label>
-                    <input
-                      type="text"
-                      value={postalCode}
-                      onChange={(e) => setPostalCode(e.target.value)}
-                      placeholder="75001"
-                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                    />
-                  </div>
+                  {city && postalCode && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {postalCode} {city}
+                    </p>
+                  )}
                 </div>
               </div>
 

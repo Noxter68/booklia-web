@@ -301,9 +301,12 @@ class ApiClient {
     q?: string;
     city?: string;
     categoryId?: string;
+    lat?: number;
+    lng?: number;
+    radius?: number;
     limit?: number;
     offset?: number;
-    sortBy?: 'recent' | 'popular' | 'rating';
+    sortBy?: 'recent' | 'popular' | 'rating' | 'distance';
   }) {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
@@ -598,6 +601,109 @@ class ApiClient {
     return this.request<{ success: boolean }>(`/notifications/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Geocoding
+  async searchAddress(query: string, limit = 5) {
+    return this.request<{
+      suggestions: {
+        label: string;
+        address: string;
+        city: string;
+        postalCode: string;
+        latitude: number;
+        longitude: number;
+      }[];
+    }>(`/geocoding/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+  }
+
+  async reverseGeocode(lat: number, lng: number) {
+    return this.request<{
+      address: {
+        label: string;
+        address: string;
+        city: string;
+        postalCode: string;
+        latitude: number;
+        longitude: number;
+      } | null;
+    }>(`/geocoding/reverse?lat=${lat}&lng=${lng}`);
+  }
+
+  // Admin
+  async adminCreateBusiness(data: {
+    businessName: string;
+    ownerEmail: string;
+    ownerFirstName: string;
+    ownerLastName: string;
+    phone?: string;
+    city?: string;
+    address?: string;
+    postalCode?: string;
+    latitude?: number;
+    longitude?: number;
+    isEarlyAdopter?: boolean;
+  }) {
+    return this.request<{
+      business: import('@/types').Business;
+      owner: { id: string; email: string; name: string };
+      generatedPassword: string;
+    }>('/admin/business', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async adminListBusinesses(page = 1, limit = 20) {
+    return this.request<{
+      data: (import('@/types').Business & {
+        owner: { id: string; email: string; name: string; createdAt: string };
+        _count: { services: number; employees: number };
+      })[];
+      meta: { total: number; page: number; limit: number; totalPages: number };
+    }>(`/admin/businesses?page=${page}&limit=${limit}`);
+  }
+
+  async adminGetBusiness(id: string) {
+    return this.request<import('@/types').Business>(`/admin/business/${id}`);
+  }
+
+  async adminResetBusinessPassword(id: string) {
+    return this.request<{ email: string; generatedPassword: string }>(
+      `/admin/business/${id}/reset-password`,
+      { method: 'PATCH' }
+    );
+  }
+
+  async adminToggleBusinessActive(id: string) {
+    return this.request<import('@/types').Business>(
+      `/admin/business/${id}/toggle-active`,
+      { method: 'PATCH' }
+    );
+  }
+
+  async adminVerifyBusiness(id: string) {
+    return this.request<import('@/types').Business>(
+      `/admin/business/${id}/verify`,
+      { method: 'PATCH' }
+    );
+  }
+
+  async adminListUsers(page = 1, limit = 20) {
+    return this.request<{
+      data: (import('@/types').User & {
+        profile?: import('@/types').Profile;
+        reputation?: import('@/types').UserReputation;
+      })[];
+      meta: { total: number; page: number; limit: number; totalPages: number };
+    }>(`/admin/users?page=${page}&limit=${limit}`);
+  }
+
+  async adminToggleEarlyAdopter(id: string) {
+    return this.request<import('@/types').Business>(
+      `/admin/business/${id}/toggle-early-adopter`,
+      { method: 'PATCH' }
+    );
   }
 }
 

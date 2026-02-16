@@ -79,6 +79,13 @@ function FilterChip({
 }
 
 function BusinessCard({ business }: { business: Business }) {
+  const formatDistance = (km: number) => {
+    if (km < 1) {
+      return `${Math.round(km * 1000)} m`;
+    }
+    return `${km.toFixed(1)} km`;
+  };
+
   return (
     <Link href={`/business/${business.slug}`}>
       <motion.div
@@ -104,6 +111,14 @@ function BusinessCard({ business }: { business: Business }) {
               )}
             </div>
           </div>
+
+          {/* Distance badge */}
+          {business.distance !== undefined && (
+            <Badge variant="outline" className="absolute top-2 left-2 text-xs bg-white/90 text-primary border-primary/30 gap-1">
+              <Navigation className="w-3 h-3" />
+              {formatDistance(business.distance)}
+            </Badge>
+          )}
 
           {/* Verified badge */}
           {business.isVerified && (
@@ -697,33 +712,30 @@ function SearchContent() {
         </div>
 
         {/* Radius selector - shown when using geolocation */}
-        <AnimatePresence>
-          {userLocation && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="flex items-center justify-center gap-2 mb-4"
-            >
-              <span className="text-sm text-muted-foreground">Rayon :</span>
-              <div className="flex items-center gap-1 bg-muted rounded-full p-1 overflow-x-auto">
-                {RADIUS_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setRadius(option.value)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                      radius === option.value
-                        ? 'bg-surface text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {userLocation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center justify-center gap-2 mb-4"
+          >
+            <span className="text-sm text-muted-foreground">Rayon :</span>
+            <div className="flex items-center gap-1 bg-muted rounded-full p-1 overflow-x-auto">
+              {RADIUS_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setRadius(option.value)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                    radius === option.value
+                      ? 'bg-surface text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Filters Bar - Desktop */}
         <div className="hidden md:flex items-center gap-2 flex-wrap">

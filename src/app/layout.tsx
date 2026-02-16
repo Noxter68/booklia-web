@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
+import { ConditionalLayout } from "@/components/layout/conditional-layout";
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -26,11 +25,7 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <body className={`${roboto.variable} font-sans antialiased`}>
         <Providers>
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
+          <ConditionalLayout>{children}</ConditionalLayout>
         </Providers>
       </body>
     </html>

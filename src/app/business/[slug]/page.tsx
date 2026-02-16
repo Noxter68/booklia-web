@@ -21,6 +21,7 @@ import {
   X,
   ChevronLeft,
   Palmtree,
+  Award,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -644,6 +645,12 @@ export default function BusinessPublicPage() {
               <h1 className="text-2xl sm:text-3xl font-bold">{business.name}</h1>
               {business.isVerified && (
                 <CheckCircle className="w-5 h-5 text-primary shrink-0" />
+              )}
+              {business.isEarlyAdopter && (
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">
+                  <Award className="w-3 h-3" />
+                  Membre fondateur
+                </span>
               )}
             </div>
 
