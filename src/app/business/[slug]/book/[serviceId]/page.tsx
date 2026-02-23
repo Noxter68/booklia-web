@@ -269,7 +269,7 @@ export default function BookingPage() {
   const selectedEmployeeData = employeesForService.find(e => e.id === selectedEmployee);
 
   return (
-    <div className="min-h-screen bg-background pt-20 pb-32 md:pb-12">
+    <div className="min-h-screen bg-background pt-28 pb-32 md:pb-12">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="mb-6">

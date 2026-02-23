@@ -6,8 +6,6 @@ import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin,
-  Phone,
-  Mail,
   Globe,
   Clock,
   Star,
@@ -22,11 +20,13 @@ import {
   ChevronLeft,
   Palmtree,
   Award,
+  Gift,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { PageLoader } from '@/components/ui/spinner';
+import { RichTextDisplay } from '@/components/ui/rich-text-editor';
 import { formatPrice } from '@/lib/utils';
 import { BusinessService, Review, Booking, BusinessImage } from '@/types';
 import { ReviewFormModal } from '@/components/reviews/review-form-modal';
@@ -363,8 +363,8 @@ function StarRating({ score, size = 'sm' }: { score: number; size?: 'sm' | 'md' 
   );
 }
 
-// Service card component for public page
-function ServiceCard({
+// Service row component for public page (flat list style)
+function ServiceRow({
   service,
   onSelect,
   disabled = false
@@ -376,66 +376,63 @@ function ServiceCard({
   const [isExpanded, setIsExpanded] = useState(false);
   const hasDetails = service.detailedDescription && service.detailedDescription.trim().length > 0;
 
+  const formatDuration = (minutes: number) => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h === 0) return `${m}min`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m.toString().padStart(2, '0')}min`;
+  };
+
   return (
-    <div
-      className={`bg-surface border border-border rounded-xl overflow-hidden transition-all ${
-        disabled ? 'opacity-60' : ''
-      }`}
-    >
-      {/* Main content */}
-      <div className="px-4 py-3">
-        <div className="flex items-center justify-between gap-4">
-          {/* Left: Text content */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-medium">{service.name}</h3>
+    <div className={disabled ? 'opacity-60' : ''}>
+      <div className="flex items-center justify-between gap-4 py-4 sm:py-5">
+        {/* Left: Text content */}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-medium text-[15px]">{service.name}</h3>
+          {service.description && (
+            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">
+              {service.description}
+            </p>
+          )}
+          {hasDetails && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+              className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1 cursor-pointer"
+            >
+              {isExpanded ? 'Moins' : 'Plus de détails'}
+              <motion.span
+                animate={{ rotate: isExpanded ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+              </motion.span>
+            </button>
+          )}
+        </div>
 
-            {/* Description */}
-            {service.description && (
-              <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">
-                {service.description}
-              </p>
-            )}
-
-            {/* Price and duration */}
-            <div className="flex items-center gap-3 mt-1.5 text-sm">
-              <span className="font-semibold text-primary">
-                {formatPrice(service.priceCents)}
-              </span>
-              <span className="text-muted-foreground">
-                {service.durationMinutes} min
-              </span>
-              {/* Details toggle inline */}
-              {hasDetails && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsExpanded(!isExpanded);
-                  }}
-                  className="text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer"
-                >
-                  {isExpanded ? 'Moins' : 'Plus de détails'}
-                  <motion.span
-                    animate={{ rotate: isExpanded ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ChevronDown className="w-4 h-4" />
-                  </motion.span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Right: CTA button - vertically centered */}
+        {/* Right: Duration, Price, Button */}
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-sm text-muted-foreground hidden sm:inline">
+            {formatDuration(service.durationMinutes)}
+          </span>
+          <span className="hidden sm:inline text-muted-foreground/40">·</span>
+          <span className="text-sm font-semibold">
+            {formatPrice(service.priceCents)}
+          </span>
           <button
             onClick={() => !disabled && onSelect(service)}
             disabled={disabled}
-            className={`shrink-0 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
               disabled
                 ? 'bg-muted text-muted-foreground cursor-not-allowed'
                 : 'bg-foreground text-background hover:opacity-90 cursor-pointer'
             }`}
           >
-            Sélectionner
+            Choisir
           </button>
         </div>
       </div>
@@ -450,9 +447,9 @@ function ServiceCard({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-3 pt-0 border-t border-border/50">
+            <div className="pb-4">
               <div
-                className="pt-3 text-sm text-muted-foreground prose prose-sm max-w-none
+                className="text-sm text-muted-foreground prose prose-sm max-w-none
                   [&>*]:my-2
                   [&>h3]:text-sm [&>h3]:font-semibold [&>h3]:text-foreground
                   [&>p]:text-sm [&>p]:text-muted-foreground [&>p]:leading-relaxed
@@ -565,6 +562,15 @@ export default function BusinessPublicPage() {
       !booking.reviews?.some((r) => r.type === 'REVIEW_PROVIDER')
   );
 
+  // Active bookings (PENDING or ACCEPTED) for this business
+  const activeBookings = myBookings?.filter(
+    (booking) =>
+      booking.businessService?.business?.id === business?.id &&
+      (booking.status === 'PENDING' || booking.status === 'ACCEPTED') &&
+      booking.scheduledAt &&
+      new Date(booking.scheduledAt) >= new Date()
+  ) || [];
+
   // Check if user is the business owner (can't review own business)
   const isOwnBusiness = user?.id === business?.ownerId;
 
@@ -612,7 +618,7 @@ export default function BusinessPublicPage() {
       )}
 
       {/* Business Header */}
-      <div className="container mx-auto px-4 sm:px-6 mb-8">
+      <div className="container mx-auto px-4 sm:px-6 mb-10">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -674,28 +680,8 @@ export default function BusinessPublicPage() {
             )}
 
             {/* Contact Links */}
-            <div className="flex flex-wrap gap-2">
-              {business.phone && (
-                <a
-                  href={`tel:${business.phone}`}
-                  className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors bg-muted/50 hover:bg-muted px-3 py-1.5 rounded-lg"
-                >
-                  <Phone className="w-4 h-4" />
-                  <span className="hidden sm:inline">{business.phone}</span>
-                  <span className="sm:hidden">Appeler</span>
-                </a>
-              )}
-              {business.email && (
-                <a
-                  href={`mailto:${business.email}`}
-                  className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors bg-muted/50 hover:bg-muted px-3 py-1.5 rounded-lg"
-                >
-                  <Mail className="w-4 h-4" />
-                  <span className="hidden sm:inline">{business.email}</span>
-                  <span className="sm:hidden">Email</span>
-                </a>
-              )}
-              {business.website && (
+            {business.website && (
+              <div className="flex flex-wrap gap-2">
                 <a
                   href={business.website}
                   target="_blank"
@@ -705,8 +691,8 @@ export default function BusinessPublicPage() {
                   <Globe className="w-4 h-4" />
                   Site web
                 </a>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
@@ -714,8 +700,8 @@ export default function BusinessPublicPage() {
       <div className="container mx-auto px-4 sm:px-6">
         {/* Team Section */}
         {business.employees && business.employees.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-lg sm:text-xl font-bold mb-4">Notre équipe</h2>
+          <section className="mb-10">
+            <h2 className="text-xl sm:text-2xl font-bold mb-5">Notre équipe</h2>
             <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible">
               {business.employees.map((employee) => (
                 <motion.div
@@ -753,19 +739,116 @@ export default function BusinessPublicPage() {
           </section>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid lg:grid-cols-3 gap-8 lg:gap-10">
           {/* Services List */}
-          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
+          <div className="lg:col-span-2 space-y-8 sm:space-y-10">
+
+            {/* My Active Bookings */}
+            {activeBookings.length > 0 && (
+              <section>
+                <h2 className="text-xl sm:text-2xl font-bold mb-5">Mes RDV</h2>
+                <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+                  {activeBookings.map((booking) => (
+                    <motion.div
+                      key={booking.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-surface border border-border rounded-2xl p-4 min-w-70 shrink-0 sm:min-w-80"
+                    >
+                      <div className="font-semibold text-sm mb-2">
+                        {booking.scheduledAt
+                          ? new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
+                              weekday: 'long',
+                              day: 'numeric',
+                              month: 'short',
+                            }) + ' ' + new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : ''}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <span>{booking.businessService?.name || 'Prestation'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {booking.businessService && (
+                          <span>{booking.businessService.durationMinutes}min</span>
+                        )}
+                        <span>·</span>
+                        <span>
+                          {booking.agreedPriceCents
+                            ? formatPrice(booking.agreedPriceCents)
+                            : booking.businessService
+                            ? formatPrice(booking.businessService.priceCents)
+                            : ''}
+                        </span>
+                        {booking.employee && (
+                          <>
+                            <span>·</span>
+                            <span>avec {booking.employee.firstName}</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          booking.status === 'ACCEPTED'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {booking.status === 'ACCEPTED' ? 'Confirmé' : 'En attente'}
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Promotional Offers */}
+            {business.promotions && business.promotions.length > 0 && (
+              <section>
+                <div className="space-y-3">
+                  {business.promotions.map((promo) => (
+                    <motion.div
+                      key={promo.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-linear-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-2xl p-5 sm:p-6"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                          <Gift className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-base">{promo.title}</h3>
+                          {promo.description && (
+                            <p className="text-sm text-muted-foreground mt-1">{promo.description}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Jusqu&apos;au {new Date(promo.endDate).toLocaleDateString('fr-FR', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Services - Grouped by Category */}
             <section>
-              <h2 className="text-lg sm:text-xl font-bold mb-4">Nos prestations</h2>
+              <h2 className="text-xl sm:text-2xl font-bold mb-6">Choix de la prestation</h2>
 
               {business.services?.length === 0 ? (
                 <div className="bg-surface border border-border rounded-2xl p-8 text-center">
                   <p className="text-muted-foreground">Aucune prestation disponible</p>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {/* Group services by businessCategory */}
                   {(() => {
                     const services = business.services || [];
@@ -787,17 +870,19 @@ export default function BusinessPublicPage() {
                         {/* Categorized services */}
                         {categorizedGroups.map(({ category, services: categoryServices }) => (
                           <div key={category.id}>
-                            <h3 className="font-semibold text-base mb-3 text-muted-foreground uppercase tracking-wide">
+                            <h3 className="font-bold text-base sm:text-lg mb-3">
                               {category.name}
                             </h3>
-                            <div className="space-y-3">
-                              {categoryServices.map((service) => (
-                                <ServiceCard
-                                  key={service.id}
-                                  service={service}
-                                  onSelect={handleServiceSelect}
-                                  disabled={business.isOnVacation}
-                                />
+                            <div className="bg-surface border border-border rounded-2xl px-5">
+                              {categoryServices.map((service, idx) => (
+                                <div key={service.id}>
+                                  {idx > 0 && <div className="border-t border-border" />}
+                                  <ServiceRow
+                                    service={service}
+                                    onSelect={handleServiceSelect}
+                                    disabled={business.isOnVacation}
+                                  />
+                                </div>
                               ))}
                             </div>
                           </div>
@@ -807,18 +892,20 @@ export default function BusinessPublicPage() {
                         {uncategorizedServices.length > 0 && (
                           <div>
                             {categorizedGroups.length > 0 && (
-                              <h3 className="font-semibold text-base mb-3 text-muted-foreground uppercase tracking-wide">
+                              <h3 className="font-bold text-base sm:text-lg mb-3">
                                 Autres prestations
                               </h3>
                             )}
-                            <div className="space-y-3">
-                              {uncategorizedServices.map((service) => (
-                                <ServiceCard
-                                  key={service.id}
-                                  service={service}
-                                  onSelect={handleServiceSelect}
-                                  disabled={business.isOnVacation}
-                                />
+                            <div className="bg-surface border border-border rounded-2xl px-5">
+                              {uncategorizedServices.map((service, idx) => (
+                                <div key={service.id}>
+                                  {idx > 0 && <div className="border-t border-border" />}
+                                  <ServiceRow
+                                    service={service}
+                                    onSelect={handleServiceSelect}
+                                    disabled={business.isOnVacation}
+                                  />
+                                </div>
                               ))}
                             </div>
                           </div>
@@ -830,10 +917,20 @@ export default function BusinessPublicPage() {
               )}
             </section>
 
+            {/* Presentation Section */}
+            {business.presentation && (
+              <section>
+                <h2 className="text-xl sm:text-2xl font-bold mb-5">Présentation</h2>
+                <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
+                  <RichTextDisplay content={business.presentation} />
+                </div>
+              </section>
+            )}
+
             {/* Reviews Section - Mobile */}
             <section className="lg:hidden">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg sm:text-xl font-bold">Avis clients</h2>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-xl font-bold">Avis clients</h2>
                 {avgRating && reviews && reviews.length > 0 && (
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1">
@@ -879,9 +976,9 @@ export default function BusinessPublicPage() {
             {/* Business Hours - Mobile only */}
             {business.hours && business.hours.length > 0 && (
               <section className="lg:hidden">
-                <h2 className="text-lg sm:text-xl font-bold mb-4">Horaires</h2>
-                <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5">
-                  <div className="space-y-2">
+                <h2 className="text-xl font-bold mb-5">Horaires d'ouverture</h2>
+                <div className="bg-surface border border-border rounded-2xl p-5">
+                  <div className="space-y-3">
                     {[1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
                       const dayHours = business.hours?.find((h) => h.dayOfWeek === dayOfWeek);
                       const isToday = new Date().getDay() === dayOfWeek;
@@ -889,14 +986,14 @@ export default function BusinessPublicPage() {
                       return (
                         <div
                           key={dayOfWeek}
-                          className={`flex items-center justify-between text-sm py-1 ${
-                            isToday ? 'font-medium text-primary' : ''
+                          className={`flex items-center justify-between text-sm ${
+                            isToday ? 'font-semibold' : ''
                           }`}
                         >
-                          <span className={isToday ? 'font-semibold' : 'text-muted-foreground'}>
+                          <span className={isToday ? 'font-bold' : 'text-foreground'}>
                             {getDayName(dayOfWeek)}
                           </span>
-                          <span className={dayHours?.isClosed ? 'text-muted-foreground' : ''}>
+                          <span className={`font-medium ${dayHours?.isClosed ? 'text-muted-foreground' : ''}`}>
                             {dayHours?.isClosed
                               ? 'Fermé'
                               : dayHours
@@ -914,7 +1011,7 @@ export default function BusinessPublicPage() {
             {/* Address - Mobile only */}
             {business.address && (
               <section className="lg:hidden">
-                <h2 className="text-lg sm:text-xl font-bold mb-4">Adresse</h2>
+                <h2 className="text-xl font-bold mb-5">Adresse</h2>
                 <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5">
                   <div className="flex items-start gap-3">
                     <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
@@ -931,15 +1028,14 @@ export default function BusinessPublicPage() {
 
           {/* Sidebar - Desktop only */}
           <div className="hidden lg:block lg:col-span-1">
-            <div className="sticky top-24 space-y-4">
+            <div className="sticky top-24 space-y-5">
               {/* Business Hours Card */}
               {business.hours && business.hours.length > 0 && (
                 <div className="bg-surface border border-border rounded-2xl p-6">
-                  <h3 className="font-bold mb-4 flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    Horaires
+                  <h3 className="font-bold text-base mb-4">
+                    Horaires d'ouverture
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {[1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
                       const dayHours = business.hours?.find((h) => h.dayOfWeek === dayOfWeek);
                       const isToday = new Date().getDay() === dayOfWeek;
@@ -947,14 +1043,14 @@ export default function BusinessPublicPage() {
                       return (
                         <div
                           key={dayOfWeek}
-                          className={`flex items-center justify-between text-sm py-1 ${
-                            isToday ? 'font-medium text-primary' : ''
+                          className={`flex items-center justify-between text-sm ${
+                            isToday ? 'font-semibold' : ''
                           }`}
                         >
-                          <span className={isToday ? 'font-semibold' : 'text-muted-foreground'}>
+                          <span className={isToday ? 'font-bold' : 'text-foreground'}>
                             {getDayName(dayOfWeek)}
                           </span>
-                          <span className={dayHours?.isClosed ? 'text-muted-foreground' : ''}>
+                          <span className={`font-medium ${dayHours?.isClosed ? 'text-muted-foreground' : ''}`}>
                             {dayHours?.isClosed
                               ? 'Fermé'
                               : dayHours
@@ -971,9 +1067,8 @@ export default function BusinessPublicPage() {
               {/* Reviews Card - Desktop */}
               <div className="bg-surface border border-border rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold flex items-center gap-2">
-                    <Star className="w-5 h-5" />
-                    Avis
+                  <h3 className="font-bold text-base">
+                    Avis clients
                   </h3>
                   {avgRating && (
                     <div className="flex items-center gap-1.5">
@@ -1038,8 +1133,7 @@ export default function BusinessPublicPage() {
               {/* Address Card - Desktop */}
               {business.address && (
                 <div className="bg-surface border border-border rounded-2xl p-6">
-                  <h3 className="font-bold mb-3 flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
+                  <h3 className="font-bold text-base mb-3">
                     Adresse
                   </h3>
                   <p className="text-sm text-muted-foreground">

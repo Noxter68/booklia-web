@@ -92,6 +92,7 @@ export interface Business {
   name: string;
   slug: string;
   description?: string;
+  presentation?: string;
   categoryId?: string;
   category?: Category;
   logoUrl?: string;
@@ -124,6 +125,7 @@ export interface Business {
   hours?: BusinessHours[];
   categories?: BusinessCategory[];
   images?: BusinessImage[];
+  promotions?: BusinessPromotion[];
   _count?: {
     employees: number;
     services: number;
@@ -203,6 +205,19 @@ export interface BusinessImage {
   url: string;
   sortOrder: number;
   createdAt: string;
+}
+
+export interface BusinessPromotion {
+  id: string;
+  businessId: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Notifications

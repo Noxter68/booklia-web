@@ -423,6 +423,45 @@ class ApiClient {
     });
   }
 
+  // Business Promotions
+  async getMyBusinessPromotions() {
+    return this.request<import('@/types').BusinessPromotion[]>('/business/promotions/mine');
+  }
+
+  async createBusinessPromotion(data: {
+    title: string;
+    description?: string;
+    imageUrl?: string;
+    startDate: string;
+    endDate: string;
+    isActive?: boolean;
+  }) {
+    return this.request<import('@/types').BusinessPromotion>('/business/promotions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateBusinessPromotion(id: string, data: Partial<{
+    title: string;
+    description: string;
+    imageUrl: string;
+    startDate: string;
+    endDate: string;
+    isActive: boolean;
+  }>) {
+    return this.request<import('@/types').BusinessPromotion>(`/business/promotions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteBusinessPromotion(id: string) {
+    return this.request<{ success: boolean }>(`/business/promotions/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Notifications
   async getNotifications(limit = 20) {
     return this.request<{

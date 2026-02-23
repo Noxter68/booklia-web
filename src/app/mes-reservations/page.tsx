@@ -14,6 +14,7 @@ import {
   Building2,
   User,
   Ban,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -239,14 +240,30 @@ export default function MesReservationsPage() {
     return new Date(b.scheduledAt || b.createdAt).getTime() - new Date(a.scheduledAt || a.createdAt).getTime();
   }) : [];
 
+  // Find the most recent booking that has a business (for "Reprendre RDV")
+  const lastBookedBusiness = sortedBookings
+    .find((b) => b.businessService?.business)
+    ?.businessService?.business;
+
   return (
-    <div className="container mx-auto px-4 py-8 pt-24 max-w-3xl">
+    <div className="container mx-auto px-4 py-8 pt-28 max-w-6xl">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold">Mes reservations</h1>
-        <p className="text-muted-foreground mt-1">
-          Retrouvez toutes vos reservations
-        </p>
+      <div className="flex items-start justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold">Mes reservations</h1>
+          <p className="text-muted-foreground mt-1">
+            Retrouvez toutes vos reservations
+          </p>
+        </div>
+        {lastBookedBusiness && (
+          <Link href={`/business/${lastBookedBusiness.slug}`}>
+            <Button variant="outline" size="sm" className="rounded-full shrink-0">
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              <span className="hidden sm:inline">Reprendre RDV</span>
+              <span className="sm:hidden">Re-RDV</span>
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Content */}
@@ -273,7 +290,7 @@ export default function MesReservationsPage() {
           </Link>
         </motion.div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedBookings.map((booking) => (
             <BookingCard
               key={booking.id}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, ChangeEvent } from 'react';
+import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
@@ -19,6 +19,8 @@ import {
   Phone,
   Mail,
   Globe,
+  Gift,
+  Pencil,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -26,10 +28,11 @@ import { Button } from '@/components/ui/button';
 import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { AddressAutocomplete, AddressResult } from '@/components/ui/address-autocomplete';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import Link from 'next/link';
-import { BusinessImage, BusinessHours, Category } from '@/types';
+import { BusinessImage, BusinessHours, Category, BusinessPromotion } from '@/types';
 
-type Tab = 'profile' | 'images' | 'hours';
+type Tab = 'profile' | 'images' | 'hours' | 'promotions';
 
 const DAY_NAMES = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 
@@ -45,6 +48,7 @@ export default function BusinessSettingsPage() {
   // Form state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [presentation, setPresentation] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [website, setWebsite] = useState('');
@@ -68,31 +72,42 @@ export default function BusinessSettingsPage() {
   // Hours state
   const [hours, setHours] = useState<BusinessHours[]>([]);
 
+  // Promotions state
+  const [promotionForm, setPromotionForm] = useState<{
+    title: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+  } | null>(null);
+  const [editingPromotionId, setEditingPromotionId] = useState<string | null>(null);
+
   // Fetch business
   const { data: business, isLoading: businessLoading } = useQuery({
     queryKey: ['my-business'],
-    queryFn: async () => {
-      const data = await api.getMyBusiness();
-      if (!isProfileLoaded && data) {
-        setName(data.name || '');
-        setDescription(data.description || '');
-        setPhone(data.phone || '');
-        setEmail(data.email || '');
-        setWebsite(data.website || '');
-        setAddress(data.address || '');
-        setCity(data.city || '');
-        setPostalCode(data.postalCode || '');
-        setLatitude(data.latitude || null);
-        setLongitude(data.longitude || null);
-        setLogoUrl(data.logoUrl || '');
-        setCoverUrl(data.coverUrl || '');
-        setSelectedCategoryId(data.categoryId || '');
-        setIsProfileLoaded(true);
-      }
-      return data;
-    },
+    queryFn: () => api.getMyBusiness(),
     enabled: !!user,
   });
+
+  // Populate form state when business data first loads
+  useEffect(() => {
+    if (business && !isProfileLoaded) {
+      setName(business.name || '');
+      setDescription(business.description || '');
+      setPresentation(business.presentation || '');
+      setPhone(business.phone || '');
+      setEmail(business.email || '');
+      setWebsite(business.website || '');
+      setAddress(business.address || '');
+      setCity(business.city || '');
+      setPostalCode(business.postalCode || '');
+      setLatitude(business.latitude ?? null);
+      setLongitude(business.longitude ?? null);
+      setLogoUrl(business.logoUrl || '');
+      setCoverUrl(business.coverUrl || '');
+      setSelectedCategoryId(business.categoryId || '');
+      setIsProfileLoaded(true);
+    }
+  }, [business, isProfileLoaded]);
 
   // Fetch categories
   const { data: categories } = useQuery({
@@ -101,23 +116,30 @@ export default function BusinessSettingsPage() {
   });
 
   // Fetch business images
-  const { isLoading: imagesLoading } = useQuery({
+  const { data: imagesData, isLoading: imagesLoading } = useQuery({
     queryKey: ['my-business-images'],
-    queryFn: async () => {
-      const data = await api.getMyBusinessImages();
-      setImages(data);
-      return data;
-    },
+    queryFn: () => api.getMyBusinessImages(),
     enabled: !!user,
   });
 
+  // Sync images state from query data
+  useEffect(() => {
+    if (imagesData) {
+      setImages(imagesData);
+    }
+  }, [imagesData]);
+
   // Fetch business hours
-  const { isLoading: hoursLoading } = useQuery({
+  const { data: hoursData, isLoading: hoursLoading } = useQuery({
     queryKey: ['my-business-hours'],
-    queryFn: async () => {
-      const data = await api.getMyBusinessHours();
-      // Initialize default hours if empty
-      if (data.length === 0) {
+    queryFn: () => api.getMyBusinessHours(),
+    enabled: !!user && !!business,
+  });
+
+  // Sync hours state from query data
+  useEffect(() => {
+    if (hoursData) {
+      if (hoursData.length === 0) {
         const defaultHours = [1, 2, 3, 4, 5, 6, 0].map((day) => ({
           id: `temp-${day}`,
           businessId: business?.id || '',
@@ -127,12 +149,50 @@ export default function BusinessSettingsPage() {
           isClosed: day === 0,
         }));
         setHours(defaultHours);
-        return defaultHours;
+      } else {
+        setHours(hoursData);
       }
-      setHours(data);
-      return data;
+    }
+  }, [hoursData, business?.id]);
+
+  // Fetch promotions
+  const { data: promotions } = useQuery({
+    queryKey: ['my-business-promotions'],
+    queryFn: () => api.getMyBusinessPromotions(),
+    enabled: !!user,
+  });
+
+  // Promotion mutations
+  const createPromotionMutation = useMutation({
+    mutationFn: (data: { title: string; description?: string; startDate: string; endDate: string }) =>
+      api.createBusinessPromotion(data),
+    onSuccess: () => {
+      success('Offre créée');
+      queryClient.invalidateQueries({ queryKey: ['my-business-promotions'] });
+      setPromotionForm(null);
     },
-    enabled: !!user && !!business,
+    onError: () => showError("Erreur lors de la création de l'offre"),
+  });
+
+  const updatePromotionMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<{ title: string; description: string; startDate: string; endDate: string; isActive: boolean }> }) =>
+      api.updateBusinessPromotion(id, data),
+    onSuccess: () => {
+      success('Offre mise à jour');
+      queryClient.invalidateQueries({ queryKey: ['my-business-promotions'] });
+      setPromotionForm(null);
+      setEditingPromotionId(null);
+    },
+    onError: () => showError("Erreur lors de la mise à jour"),
+  });
+
+  const deletePromotionMutation = useMutation({
+    mutationFn: (id: string) => api.deleteBusinessPromotion(id),
+    onSuccess: () => {
+      success('Offre supprimée');
+      queryClient.invalidateQueries({ queryKey: ['my-business-promotions'] });
+    },
+    onError: () => showError("Erreur lors de la suppression"),
   });
 
   // Update business mutation
@@ -140,6 +200,7 @@ export default function BusinessSettingsPage() {
     mutationFn: (data: {
       name?: string;
       description?: string;
+      presentation?: string;
       categoryId?: string;
       phone?: string;
       email?: string;
@@ -204,19 +265,20 @@ export default function BusinessSettingsPage() {
 
   const handleSaveProfile = () => {
     updateBusinessMutation.mutate({
-      name: name || undefined,
-      description: description || undefined,
-      categoryId: selectedCategoryId || undefined,
-      phone: phone || undefined,
-      email: email || undefined,
-      website: website || undefined,
-      address: address || undefined,
-      city: city || undefined,
-      postalCode: postalCode || undefined,
-      latitude: latitude || undefined,
-      longitude: longitude || undefined,
-      logoUrl: logoUrl || undefined,
-      coverUrl: coverUrl || undefined,
+      name,
+      description,
+      presentation,
+      categoryId: selectedCategoryId,
+      phone,
+      email,
+      website,
+      address,
+      city,
+      postalCode,
+      latitude: latitude ?? undefined,
+      longitude: longitude ?? undefined,
+      logoUrl,
+      coverUrl,
     });
   };
 
@@ -422,6 +484,17 @@ export default function BusinessSettingsPage() {
             <Clock className="w-4 h-4" />
             Horaires
           </button>
+          <button
+            onClick={() => setTab('promotions')}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
+              tab === 'promotions'
+                ? 'bg-surface text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Gift className="w-4 h-4" />
+            Offres
+          </button>
         </div>
 
         <AnimatePresence mode="wait">
@@ -538,6 +611,21 @@ export default function BusinessSettingsPage() {
                   <p className="text-xs text-muted-foreground mt-1 text-right">
                     {description.length}/1000 caractères
                   </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Présentation détaillée
+                  </label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Présentez votre établissement en détail (affiché sur votre page publique)
+                  </p>
+                  <RichTextEditor
+                    value={presentation}
+                    onChange={setPresentation}
+                    placeholder="Présentez votre établissement en détail..."
+                    minHeight="150px"
+                  />
                 </div>
 
                 <div>
@@ -872,6 +960,205 @@ export default function BusinessSettingsPage() {
                   {updateHoursMutation.isPending ? 'Enregistrement...' : 'Enregistrer les horaires'}
                 </Button>
               </div>
+            </motion.div>
+          )}
+
+          {/* Promotions Tab */}
+          {tab === 'promotions' && (
+            <motion.div
+              key="promotions"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-4"
+            >
+              {/* Add promotion button */}
+              {!promotionForm && (
+                <Button
+                  onClick={() => setPromotionForm({ title: '', description: '', startDate: '', endDate: '' })}
+                  className="rounded-xl"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Ajouter une offre
+                </Button>
+              )}
+
+              {/* Promotion form */}
+              {promotionForm && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-surface border border-border/50 rounded-2xl p-6"
+                >
+                  <h3 className="font-semibold mb-4">
+                    {editingPromotionId ? 'Modifier l\'offre' : 'Nouvelle offre'}
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Titre</label>
+                      <input
+                        type="text"
+                        value={promotionForm.title}
+                        onChange={(e) => setPromotionForm({ ...promotionForm, title: e.target.value })}
+                        placeholder="ex: Offre Saint-Valentin"
+                        className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Description</label>
+                      <textarea
+                        value={promotionForm.description}
+                        onChange={(e) => setPromotionForm({ ...promotionForm, description: e.target.value })}
+                        placeholder="Décrivez votre offre..."
+                        rows={3}
+                        className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none"
+                      />
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Date de début</label>
+                        <input
+                          type="date"
+                          value={promotionForm.startDate}
+                          onChange={(e) => setPromotionForm({ ...promotionForm, startDate: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Date de fin</label>
+                        <input
+                          type="date"
+                          value={promotionForm.endDate}
+                          onChange={(e) => setPromotionForm({ ...promotionForm, endDate: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <Button
+                        onClick={() => {
+                          if (!promotionForm.title || !promotionForm.startDate || !promotionForm.endDate) return;
+                          if (editingPromotionId) {
+                            updatePromotionMutation.mutate({
+                              id: editingPromotionId,
+                              data: {
+                                title: promotionForm.title,
+                                description: promotionForm.description || undefined,
+                                startDate: promotionForm.startDate,
+                                endDate: promotionForm.endDate,
+                              },
+                            });
+                          } else {
+                            createPromotionMutation.mutate({
+                              title: promotionForm.title,
+                              description: promotionForm.description || undefined,
+                              startDate: promotionForm.startDate,
+                              endDate: promotionForm.endDate,
+                            });
+                          }
+                        }}
+                        disabled={!promotionForm.title || !promotionForm.startDate || !promotionForm.endDate || createPromotionMutation.isPending || updatePromotionMutation.isPending}
+                        className="rounded-xl"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        {createPromotionMutation.isPending || updatePromotionMutation.isPending
+                          ? 'Enregistrement...'
+                          : editingPromotionId ? 'Modifier' : 'Créer l\'offre'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setPromotionForm(null);
+                          setEditingPromotionId(null);
+                        }}
+                        className="rounded-xl"
+                      >
+                        Annuler
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Existing promotions list */}
+              {promotions && promotions.length > 0 ? (
+                <div className="space-y-3">
+                  {promotions.map((promo) => (
+                    <div
+                      key={promo.id}
+                      className="bg-surface border border-border/50 rounded-2xl p-5 flex items-start justify-between gap-4"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-medium">{promo.title}</h3>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            promo.isActive
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {promo.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        {promo.description && (
+                          <p className="text-sm text-muted-foreground mb-2">{promo.description}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Du {new Date(promo.startDate).toLocaleDateString('fr-FR')} au{' '}
+                          {new Date(promo.endDate).toLocaleDateString('fr-FR')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => updatePromotionMutation.mutate({
+                            id: promo.id,
+                            data: { isActive: !promo.isActive },
+                          })}
+                          className="p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                          title={promo.isActive ? 'Désactiver' : 'Activer'}
+                        >
+                          <div className={`w-8 h-5 rounded-full transition-colors flex items-center ${
+                            promo.isActive ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'
+                          }`}>
+                            <div className="w-4 h-4 rounded-full bg-white shadow mx-0.5" />
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingPromotionId(promo.id);
+                            setPromotionForm({
+                              title: promo.title,
+                              description: promo.description || '',
+                              startDate: promo.startDate.split('T')[0],
+                              endDate: promo.endDate.split('T')[0],
+                            });
+                          }}
+                          className="p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm('Supprimer cette offre ?')) {
+                              deletePromotionMutation.mutate(promo.id);
+                            }
+                          }}
+                          className="p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : !promotionForm ? (
+                <div className="bg-surface border border-border/50 rounded-2xl p-8 text-center">
+                  <Gift className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-muted-foreground">Aucune offre pour le moment</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Créez des offres pour attirer de nouveaux clients
+                  </p>
+                </div>
+              ) : null}
             </motion.div>
           )}
         </AnimatePresence>

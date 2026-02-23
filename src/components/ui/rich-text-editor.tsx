@@ -31,12 +31,12 @@ export function RichTextEditor({
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
 
-  // Initialize content
+  // Sync content when value changes externally (skip while editing to preserve cursor)
   useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== value) {
+    if (editorRef.current && !isFocused && editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value || '';
     }
-  }, []);
+  }, [value, isFocused]);
 
   const execCommand = useCallback((command: string, value?: string) => {
     document.execCommand(command, false, value);
