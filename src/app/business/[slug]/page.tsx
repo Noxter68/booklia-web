@@ -9,7 +9,7 @@ import {
   Globe,
   Clock,
   Star,
-  CheckCircle,
+  BadgeCheck,
   ChevronRight,
   ChevronDown,
   User,
@@ -640,7 +640,10 @@ export default function BusinessPublicPage() {
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <h1 className="text-2xl sm:text-3xl font-bold">{business.name}</h1>
               {business.isVerified && (
-                <CheckCircle className="w-5 h-5 text-primary shrink-0" />
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-foreground/5 border border-foreground/10">
+                  <BadgeCheck className="w-4 h-4 text-foreground" />
+                  Vérifié
+                </span>
               )}
               {business.isEarlyAdopter && (
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">

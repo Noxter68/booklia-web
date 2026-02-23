@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sun, Moon, LogOut, ChevronDown, Menu, X, Search, Building2, Calendar, ChevronRight } from 'lucide-react';
+import { Sun, Moon, LogOut, ChevronDown, Menu, X, Search, Building2, Calendar, ChevronRight, BadgeCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
@@ -208,7 +208,12 @@ export function Header() {
                       >
                         {/* User info */}
                         <div className="px-4 py-2 border-b border-border">
-                          <p className="font-medium text-sm">{user.name || 'Utilisateur'}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-medium text-sm">{user.name || 'Utilisateur'}</p>
+                            {user.emailVerified && (
+                              <BadgeCheck className="w-4 h-4 text-foreground shrink-0" />
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                         </div>
 
@@ -325,7 +330,12 @@ export function Header() {
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold truncate">{user.name || 'Utilisateur'}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-semibold truncate">{user.name || 'Utilisateur'}</p>
+                              {user.emailVerified && (
+                                <BadgeCheck className="w-4 h-4 text-foreground shrink-0" />
+                              )}
+                            </div>
                             <p className="text-sm text-muted-foreground truncate">{user.email}</p>
                           </div>
                         </div>

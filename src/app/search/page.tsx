@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, ChevronRight, SlidersHorizontal, Building2, MapPin, Star, Navigation, Loader2 } from 'lucide-react';
+import { Search, X, ChevronRight, SlidersHorizontal, Building2, MapPin, Star, Navigation, Loader2, BadgeCheck } from 'lucide-react';
 import { api } from '@/lib/api';
 import { CategoryDropdown } from '@/components/search/category-dropdown';
 import { Button } from '@/components/ui/button';
@@ -121,9 +121,10 @@ function BusinessCard({ business }: { business: Business }) {
 
           {/* Verified badge */}
           {business.isVerified && (
-            <Badge variant="outline" className="absolute top-2 right-2 text-xs bg-white/90 text-green-700 border-green-200">
-              Verifie
-            </Badge>
+            <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+              <BadgeCheck className="w-3.5 h-3.5 text-foreground" />
+              <span className="text-xs font-semibold text-foreground">Vérifié</span>
+            </div>
           )}
         </div>
 

@@ -8,6 +8,7 @@ export interface AuthUser {
   email: string;
   name: string | null;
   isAdmin?: boolean;
+  emailVerified?: boolean;
 }
 
 export interface AuthResponse {

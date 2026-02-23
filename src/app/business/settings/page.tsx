@@ -21,6 +21,7 @@ import {
   Globe,
   Gift,
   Pencil,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -80,6 +81,11 @@ export default function BusinessSettingsPage() {
     endDate: string;
   } | null>(null);
   const [editingPromotionId, setEditingPromotionId] = useState<string | null>(null);
+
+  // Password state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // Fetch business
   const { data: business, isLoading: businessLoading } = useQuery({
@@ -218,6 +224,17 @@ export default function BusinessSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['my-business'] });
     },
     onError: () => showError('Erreur lors de la mise à jour'),
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: () => api.changePassword(currentPassword, newPassword),
+    onSuccess: () => {
+      success('Mot de passe modifié');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    },
+    onError: (err: Error) => showError(err.message || 'Erreur lors du changement de mot de passe'),
   });
 
   // Add image mutation
@@ -722,6 +739,74 @@ export default function BusinessSettingsPage() {
                   <Save className="w-4 h-4 mr-2" />
                   {updateBusinessMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
                 </Button>
+              </div>
+
+              {/* Change Password */}
+              <div className="mt-6 pt-6 border-t border-border/50">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Lock className="w-5 h-5" />
+                  Changer le mot de passe
+                </h3>
+                <div className="grid grid-cols-1 gap-4 max-w-md">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Mot de passe actuel</label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Nouveau mot de passe</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="6 caractères minimum"
+                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Confirmer le nouveau mot de passe</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                    />
+                  </div>
+                  {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                    <p className="text-sm text-destructive">Les mots de passe ne correspondent pas</p>
+                  )}
+                  <div>
+                    <Button
+                      onClick={() => {
+                        if (!currentPassword || !newPassword) {
+                          showError('Veuillez remplir tous les champs');
+                          return;
+                        }
+                        if (newPassword.length < 6) {
+                          showError('Le nouveau mot de passe doit faire au moins 6 caractères');
+                          return;
+                        }
+                        if (newPassword !== confirmPassword) {
+                          showError('Les mots de passe ne correspondent pas');
+                          return;
+                        }
+                        changePasswordMutation.mutate();
+                      }}
+                      disabled={changePasswordMutation.isPending || !currentPassword || !newPassword || newPassword !== confirmPassword}
+                      variant="outline"
+                      className="rounded-xl"
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      {changePasswordMutation.isPending ? 'Modification...' : 'Modifier le mot de passe'}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}

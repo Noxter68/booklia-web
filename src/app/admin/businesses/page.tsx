@@ -11,12 +11,13 @@ import {
   Copy,
   Check,
   RefreshCw,
-  CheckCircle,
+  BadgeCheck,
   Search,
   X,
   MapPin,
   Phone,
   Mail,
+  Send,
   ExternalLink,
   Award,
 } from 'lucide-react';
@@ -125,6 +126,18 @@ export default function AdminBusinessesPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-businesses'] });
     },
     onError: () => showError('Erreur lors de la mise a jour'),
+  });
+
+  const resendVerificationMutation = useMutation({
+    mutationFn: (id: string) => api.adminResendVerification(id),
+    onSuccess: (result) => {
+      if (result.alreadyVerified) {
+        success('Email deja verifie');
+      } else {
+        success('Email de verification envoye');
+      }
+    },
+    onError: () => showError("Erreur lors de l'envoi"),
   });
 
   const resetForm = () => {
@@ -330,7 +343,7 @@ export default function AdminBusinessesPage() {
                               {business.name}
                             </p>
                             {business.isVerified && (
-                              <CheckCircle className="w-4 h-4 text-primary shrink-0" />
+                              <BadgeCheck className="w-4 h-4 text-foreground shrink-0" />
                             )}
                           </div>
                           <p className="text-sm text-gray-500 truncate flex items-center gap-1">
@@ -341,10 +354,22 @@ export default function AdminBusinessesPage() {
                       </div>
                     </td>
                     <td className="p-4 hidden md:table-cell">
-                      <p className="text-gray-900 truncate">{business.owner?.name || '-'}</p>
-                      <p className="text-sm text-gray-500 truncate">
-                        {business.owner?.email}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-gray-900 truncate">{business.owner?.name || '-'}</p>
+                        {(business.owner as { emailVerified?: boolean })?.emailVerified && (
+                          <BadgeCheck className="w-3.5 h-3.5 text-foreground shrink-0" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm text-gray-500 truncate">
+                          {business.owner?.email}
+                        </p>
+                        {!(business.owner as { emailVerified?: boolean })?.emailVerified && (
+                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 whitespace-nowrap">
+                            Non vérifié
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4 hidden lg:table-cell">
                       <div className="space-y-1">
@@ -408,9 +433,19 @@ export default function AdminBusinessesPage() {
                             onClick={() => verifyMutation.mutate(business.id)}
                             disabled={verifyMutation.isPending}
                             className="p-2 text-gray-400 hover:text-green-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                            title="Verifier"
+                            title="Verifier le business"
                           >
-                            <CheckCircle className="w-4 h-4" />
+                            <BadgeCheck className="w-4 h-4" />
+                          </button>
+                        )}
+                        {!(business.owner as { emailVerified?: boolean })?.emailVerified && (
+                          <button
+                            onClick={() => resendVerificationMutation.mutate(business.id)}
+                            disabled={resendVerificationMutation.isPending}
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                            title="Relancer l'email de vérification"
+                          >
+                            <Send className="w-4 h-4" />
                           </button>
                         )}
                         <button

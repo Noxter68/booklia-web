@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { authClient, AuthUser } from '@/lib/auth';
 
 interface AuthContextType {
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const queryClient = useQueryClient();
   // Incremented on login/register to invalidate any in-flight checkSession
   const authVersion = useRef(0);
 
@@ -81,6 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedToken = localStorage.getItem('accessToken');
     setToken(storedToken);
     setIsLoading(false);
+    // Refetch all queries now that we're authenticated (e.g. my-business)
+    queryClient.invalidateQueries();
     return result;
   };
 
@@ -91,7 +95,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string;
   }) => {
     const result = await authClient.register(data);
+    authVersion.current++;
     setUser(result.user);
+    const storedToken = localStorage.getItem('accessToken');
+    setToken(storedToken);
+    setIsLoading(false);
+    queryClient.invalidateQueries();
     return result;
   };
 
@@ -99,8 +108,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authClient.logout();
     setUser(null);
     setToken(null);
+    queryClient.clear();
     router.push('/');
-  }, [router]);
+  }, [router, queryClient]);
 
   return (
     <AuthContext.Provider

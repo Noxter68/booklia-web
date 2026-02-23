@@ -65,6 +65,17 @@ class ApiClient {
     return this.request<import('@/types').User>('/auth/me');
   }
 
+  async verifyEmail(token: string) {
+    return this.request<{ success: boolean }>(`/auth/verify-email?token=${encodeURIComponent(token)}`);
+  }
+
+  async changePassword(currentPassword: string, newPassword: string) {
+    return this.request<{ success: boolean }>('/auth/change-password', {
+      method: 'PATCH',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  }
+
   // Bookings
 
   async acceptBooking(id: string) {
@@ -582,6 +593,13 @@ class ApiClient {
     return this.request<import('@/types').Business>(
       `/admin/business/${id}/toggle-early-adopter`,
       { method: 'PATCH' }
+    );
+  }
+
+  async adminResendVerification(id: string) {
+    return this.request<{ sent?: boolean; alreadyVerified?: boolean }>(
+      `/admin/business/${id}/resend-verification`,
+      { method: 'POST' }
     );
   }
 }

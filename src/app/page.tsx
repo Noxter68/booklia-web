@@ -7,7 +7,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import {
   Star,
-  CheckCircle,
+  BadgeCheck,
   ArrowRight,
   Search,
   MapPin,
@@ -162,9 +162,9 @@ function HomeBusinessCard({ business }: { business: Business }) {
           <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
 
           {business.isVerified && (
-            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1">
-              <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-              <span className="text-xs font-medium text-green-700">Verifie</span>
+            <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+              <BadgeCheck className="w-4 h-4 text-foreground" />
+              <span className="text-xs font-semibold text-foreground">Vérifié</span>
             </div>
           )}
 
@@ -600,7 +600,7 @@ export default function HomePage() {
 
                 <div className="space-y-4">
                   {[
-                    { icon: CheckCircle, text: 'Avis lies a des prestations reelles' },
+                    { icon: BadgeCheck, text: 'Avis lies a des prestations reelles' },
                     { icon: Shield, text: 'Professionnels verifies par notre equipe' },
                     { icon: Users, text: 'Communaute de confiance' },
                   ].map((item, i) => (
@@ -635,7 +635,7 @@ export default function HomePage() {
                     "Super experience ! L'interface est intuitive, j'ai pu reserver en 2 minutes. Le coiffeur etait ponctuel et professionnel. Je recommande !"
                   </p>
                   <div className="mt-4 pt-4 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
-                    <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                    <BadgeCheck className="w-3.5 h-3.5 text-green-500" />
                     Prestation verifiee
                   </div>
                 </div>

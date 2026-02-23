@@ -11,6 +11,7 @@ export interface User {
   name?: string;
   image?: string;
   isAdmin?: boolean;
+  emailVerified?: boolean;
   createdAt: string;
 }
 
