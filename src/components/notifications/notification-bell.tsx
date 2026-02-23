@@ -24,7 +24,6 @@ const notificationIcons: Record<NotificationType, React.ReactNode> = {
   BOOKING_REJECTED: <XCircle className="w-4 h-4 text-destructive" />,
   BOOKING_CANCELED: <XCircle className="w-4 h-4 text-muted-foreground" />,
   BOOKING_COMPLETED: <CheckCircle className="w-4 h-4 text-success" />,
-  BOOKING_COMMENT: <MessageCircle className="w-4 h-4 text-primary" />,
   REVIEW_RECEIVED: <Star className="w-4 h-4 text-yellow-500" />,
 };
 
@@ -34,11 +33,14 @@ const notificationColors: Record<NotificationType, string> = {
   BOOKING_REJECTED: 'bg-destructive/10',
   BOOKING_CANCELED: 'bg-muted',
   BOOKING_COMPLETED: 'bg-success-soft',
-  BOOKING_COMMENT: 'bg-primary/10',
   REVIEW_RECEIVED: 'bg-yellow-50 dark:bg-yellow-900/20',
 };
 
-export function NotificationBell() {
+interface NotificationBellProps {
+  hasBusiness?: boolean;
+}
+
+export function NotificationBell({ hasBusiness }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -107,17 +109,26 @@ export function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const getNotificationRoute = (notification: Notification): string => {
+    // BOOKING_NEW is sent to the business owner
+    // BOOKING_ACCEPTED/REJECTED/CANCELED/COMPLETED are sent to the customer
+    // REVIEW_RECEIVED is sent to the business owner
+    const isBusinessNotification = notification.type === 'BOOKING_NEW' || notification.type === 'REVIEW_RECEIVED';
+
+    if (isBusinessNotification || hasBusiness) {
+      return '/business/dashboard?tab=bookings';
+    }
+    return '/mes-reservations';
+  };
+
   const handleNotificationClick = (notification: Notification) => {
     // Mark as read
     if (!notification.isRead) {
       markAsReadMutation.mutate(notification.id);
     }
 
-    // Navigate based on notification type
-    if (notification.bookingId) {
-      router.push('/dashboard');
-    }
-
+    // Navigate to the appropriate page
+    router.push(getNotificationRoute(notification));
     setIsOpen(false);
   };
 
@@ -237,12 +248,12 @@ export function NotificationBell() {
               <div className="p-3 border-t border-border/50 bg-muted/30">
                 <button
                   onClick={() => {
-                    router.push('/dashboard');
+                    router.push(hasBusiness ? '/business/dashboard?tab=bookings' : '/mes-reservations');
                     setIsOpen(false);
                   }}
                   className="w-full text-center text-sm text-primary hover:underline cursor-pointer"
                 >
-                  Voir tout dans le dashboard
+                  {hasBusiness ? 'Voir tout dans le dashboard' : 'Voir mes réservations'}
                 </button>
               </div>
             )}

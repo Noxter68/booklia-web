@@ -107,7 +107,7 @@ export default function AboutPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="relative"
             >
-              <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-primary/5 rounded-3xl blur-2xl" />
+              <div className="absolute -inset-4 bg-linear-to-r from-primary/20 to-primary/5 rounded-3xl blur-2xl" />
               <div className="relative bg-surface border border-border rounded-3xl p-8 shadow-xl">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">

@@ -51,8 +51,8 @@ export function ReviewFormModal({ booking, onClose, onSuccess }: ReviewFormModal
 
   if (!booking) return null;
 
-  const serviceName = booking.businessService?.name || booking.service?.title || 'la prestation';
-  const targetName = booking.businessService?.business?.name || booking.provider?.profile?.displayName || 'le prestataire';
+  const serviceName = booking.businessService?.name || 'la prestation';
+  const targetName = booking.businessService?.business?.name || booking.provider?.name || 'le prestataire';
 
   const handleSubmit = () => {
     if (score === 0) {

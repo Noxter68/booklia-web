@@ -28,7 +28,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
       success('Connexion réussie !');
-      router.push('/dashboard');
+      router.push('/');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Email ou mot de passe incorrect';
       setError(message);

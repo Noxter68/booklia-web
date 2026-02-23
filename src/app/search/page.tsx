@@ -6,15 +6,14 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, ChevronDown, ChevronRight, SlidersHorizontal, User, Building2, MapPin, Star, Navigation, Loader2 } from 'lucide-react';
+import { Search, X, ChevronRight, SlidersHorizontal, Building2, MapPin, Star, Navigation, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { ServiceCard } from '@/components/services/service-card';
 import { CategoryDropdown } from '@/components/search/category-dropdown';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { PageLoader } from '@/components/ui/spinner';
-import { SearchFilters, ServiceKind, Urgency, Category, Business } from '@/types';
+import { Category, Business } from '@/types';
 
 // Custom hook for debounced value
 function useDebounce<T>(value: T, delay: number): T {
@@ -97,9 +96,9 @@ function BusinessCard({ business }: { business: Business }) {
           {business.coverUrl ? (
             <img src={business.coverUrl} alt="" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5" />
+            <div className="w-full h-full bg-linear-to-br from-primary/20 via-primary/10 to-primary/5" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
 
           {/* Logo overlay */}
           <div className="absolute -bottom-5 left-4">
@@ -123,7 +122,7 @@ function BusinessCard({ business }: { business: Business }) {
           {/* Verified badge */}
           {business.isVerified && (
             <Badge variant="outline" className="absolute top-2 right-2 text-xs bg-white/90 text-green-700 border-green-200">
-              Vérifié
+              Verifie
             </Badge>
           )}
         </div>
@@ -138,12 +137,6 @@ function BusinessCard({ business }: { business: Business }) {
                 {business.city}
               </span>
             )}
-            {business.owner?.reputation && business.owner.reputation.ratingCount > 0 && (
-              <span className="flex items-center gap-1">
-                <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                {business.owner.reputation.ratingAvg5.toFixed(1)}
-              </span>
-            )}
           </div>
           {business.description && (
             <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
@@ -155,7 +148,7 @@ function BusinessCard({ business }: { business: Business }) {
               <>
                 <span>{business._count.services} prestation{business._count.services !== 1 ? 's' : ''}</span>
                 <span>•</span>
-                <span>{business._count.employees} employé{business._count.employees !== 1 ? 's' : ''}</span>
+                <span>{business._count.employees} employe{business._count.employees !== 1 ? 's' : ''}</span>
               </>
             )}
           </div>
@@ -170,12 +163,11 @@ function MobileFiltersModal({
   isOpen,
   onClose,
   categories,
-  filters,
+  categoryId,
   subcategoryId,
-  searchType,
   userLocation,
   radius,
-  onFilterChange,
+  onCategoryChange,
   onSubcategoryChange,
   onRadiusChange,
   onClearAll,
@@ -183,31 +175,24 @@ function MobileFiltersModal({
   isOpen: boolean;
   onClose: () => void;
   categories: Category[];
-  filters: SearchFilters;
+  categoryId: string | undefined;
   subcategoryId: string | undefined;
-  searchType: 'services' | 'businesses';
   userLocation: { lat: number; lng: number } | null;
   radius: number;
-  onFilterChange: (key: keyof SearchFilters, value: string | undefined) => void;
+  onCategoryChange: (id: string | undefined) => void;
   onSubcategoryChange: (id: string | undefined) => void;
   onRadiusChange: (radius: number) => void;
   onClearAll: () => void;
 }) {
   const [isMounted, setIsMounted] = useState(false);
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(filters.categoryId || null);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(categoryId || null);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const selectedCategory = filters.categoryId
-    ? categories.find((c) => c.id === filters.categoryId)
-    : null;
-
   const activeFiltersCount = [
-    filters.kind,
-    filters.categoryId,
-    filters.urgency,
+    categoryId,
     userLocation,
   ].filter(Boolean).length;
 
@@ -255,63 +240,37 @@ function MobileFiltersModal({
 
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {/* Type de recherche */}
-                {searchType === 'services' && (
-                  <div>
-                    <label className="text-sm font-semibold mb-3 block">Type de service</label>
-                    <div className="flex flex-wrap gap-2">
-                      <FilterChip
-                        label="Tous"
-                        active={!filters.kind}
-                        onClick={() => onFilterChange('kind', undefined)}
-                      />
-                      <FilterChip
-                        label="Offres"
-                        active={filters.kind === 'OFFER'}
-                        onClick={() => onFilterChange('kind', 'OFFER')}
-                        onClear={() => onFilterChange('kind', undefined)}
-                      />
-                      <FilterChip
-                        label="Demandes"
-                        active={filters.kind === 'REQUEST'}
-                        onClick={() => onFilterChange('kind', 'REQUEST')}
-                        onClear={() => onFilterChange('kind', undefined)}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Catégories */}
+                {/* Categories */}
                 <div>
-                  <label className="text-sm font-semibold mb-3 block">Catégorie</label>
+                  <label className="text-sm font-semibold mb-3 block">Categorie</label>
                   <div className="space-y-2">
                     <button
                       onClick={() => {
-                        onFilterChange('categoryId', undefined);
+                        onCategoryChange(undefined);
                         onSubcategoryChange(undefined);
                       }}
                       className={`w-full text-left p-3 rounded-xl transition-colors cursor-pointer ${
-                        !filters.categoryId
+                        !categoryId
                           ? 'bg-primary/10 text-primary border border-primary/30'
                           : 'bg-muted/50 hover:bg-muted'
                       }`}
                     >
-                      Toutes les catégories
+                      Toutes les categories
                     </button>
                     {categories.map((category) => (
                       <div key={category.id}>
                         <button
                           onClick={() => {
-                            if (filters.categoryId === category.id) {
+                            if (categoryId === category.id) {
                               setExpandedCategory(expandedCategory === category.id ? null : category.id);
                             } else {
-                              onFilterChange('categoryId', category.id);
+                              onCategoryChange(category.id);
                               onSubcategoryChange(undefined);
                               setExpandedCategory(category.id);
                             }
                           }}
                           className={`w-full text-left p-3 rounded-xl transition-colors cursor-pointer flex items-center justify-between ${
-                            filters.categoryId === category.id
+                            categoryId === category.id
                               ? 'bg-primary/10 text-primary border border-primary/30'
                               : 'bg-muted/50 hover:bg-muted'
                           }`}
@@ -339,7 +298,7 @@ function MobileFiltersModal({
                                 <button
                                   key={sub.id}
                                   onClick={() => {
-                                    onFilterChange('categoryId', category.id);
+                                    onCategoryChange(category.id);
                                     onSubcategoryChange(sub.id);
                                   }}
                                   className={`w-full text-left p-2.5 rounded-lg text-sm transition-colors cursor-pointer ${
@@ -359,39 +318,7 @@ function MobileFiltersModal({
                   </div>
                 </div>
 
-                {/* Urgence */}
-                {searchType === 'services' && (
-                  <div>
-                    <label className="text-sm font-semibold mb-3 block">Urgence</label>
-                    <div className="flex flex-wrap gap-2">
-                      <FilterChip
-                        label="Toutes"
-                        active={!filters.urgency}
-                        onClick={() => onFilterChange('urgency', undefined)}
-                      />
-                      <FilterChip
-                        label="Urgent"
-                        active={filters.urgency === 'URGENT'}
-                        onClick={() => onFilterChange('urgency', 'URGENT')}
-                        onClear={() => onFilterChange('urgency', undefined)}
-                      />
-                      <FilterChip
-                        label="Bientôt"
-                        active={filters.urgency === 'SOON'}
-                        onClick={() => onFilterChange('urgency', 'SOON')}
-                        onClear={() => onFilterChange('urgency', undefined)}
-                      />
-                      <FilterChip
-                        label="Flexible"
-                        active={filters.urgency === 'FLEXIBLE'}
-                        onClick={() => onFilterChange('urgency', 'FLEXIBLE')}
-                        onClear={() => onFilterChange('urgency', undefined)}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Rayon (si géoloc active) */}
+                {/* Radius (if geolocation active) */}
                 {userLocation && (
                   <div>
                     <label className="text-sm font-semibold mb-3 block">Rayon de recherche</label>
@@ -446,9 +373,6 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [showFiltersModal, setShowFiltersModal] = useState(false);
-  const [searchType, setSearchType] = useState<'services' | 'businesses'>(
-    (searchParams.get('type') as 'services' | 'businesses') || 'services'
-  );
 
   // Local state for inputs (before debounce)
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -463,32 +387,42 @@ function SearchContent() {
   const debouncedSearch = useDebounce(searchQuery, 400);
   const debouncedCity = useDebounce(cityQuery, 400);
 
-  const [filters, setFilters] = useState<SearchFilters>({
-    q: searchParams.get('q') || '',
-    kind: (searchParams.get('kind') as ServiceKind) || undefined,
-    categoryId: searchParams.get('categoryId') || undefined,
-    urgency: (searchParams.get('urgency') as Urgency) || undefined,
-    city: searchParams.get('city') || '',
-    limit: 20,
-    offset: 0,
-  });
+  // Support both slug-based (?category=coiffeur) and id-based (?categoryId=xxx) URL params
+  const categorySlugParam = searchParams.get('category') || undefined;
+  const subcategorySlugParam = searchParams.get('subcategory') || undefined;
+  const categoryIdParam = searchParams.get('categoryId') || undefined;
+  const subcategoryIdParam = searchParams.get('subcategoryId') || undefined;
 
-  const [subcategoryId, setSubcategoryId] = useState<string | undefined>(
-    searchParams.get('subcategoryId') || undefined
-  );
+  const [categoryId, setCategoryId] = useState<string | undefined>(categoryIdParam);
+  const [subcategoryId, setSubcategoryId] = useState<string | undefined>(subcategoryIdParam);
+  const [slugsResolved, setSlugsResolved] = useState(!categorySlugParam);
 
-  // Update filters when debounced values change
+  // Auto-detect location on mount: use URL params or request geolocation
   useEffect(() => {
-    if (debouncedSearch !== filters.q) {
-      setFilters((prev) => ({ ...prev, q: debouncedSearch, offset: 0 }));
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    if (lat && lng) {
+      setUserLocation({ lat: parseFloat(lat), lng: parseFloat(lng) });
+    } else if (!searchParams.get('city') && !searchParams.get('q')) {
+      // No location or search context provided — auto-detect position
+      if (navigator.geolocation) {
+        setLocationLoading(true);
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setUserLocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            });
+            setLocationLoading(false);
+          },
+          () => {
+            setLocationLoading(false);
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      }
     }
-  }, [debouncedSearch]);
-
-  useEffect(() => {
-    if (debouncedCity !== filters.city) {
-      setFilters((prev) => ({ ...prev, city: debouncedCity, offset: 0 }));
-    }
-  }, [debouncedCity]);
+  }, []);
 
   // Get user location
   const requestLocation = useCallback(() => {
@@ -513,75 +447,70 @@ function SearchContent() {
     );
   }, []);
 
+  const autoExpandedRef = useRef(false);
+
   const { data: categories } = useQuery({
     queryKey: ['categories'],
     queryFn: () => api.getCategories(),
   });
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['services', filters, subcategoryId, userLocation, radius],
-    queryFn: () => api.searchServices({
-      ...filters,
-      categoryId: subcategoryId || filters.categoryId,
-      ...(userLocation && { lat: userLocation.lat, lng: userLocation.lng, radius }),
-    }),
-    enabled: searchType === 'services',
-  });
+  // Resolve slug params to IDs once categories are loaded
+  useEffect(() => {
+    if (!categorySlugParam || !categories) return;
+    const cat = categories.find((c) => c.slug === categorySlugParam);
+    if (cat) {
+      setCategoryId(cat.id);
+      if (subcategorySlugParam && cat.children) {
+        const sub = cat.children.find((s) => s.slug === subcategorySlugParam);
+        if (sub) setSubcategoryId(sub.id);
+      }
+    }
+    setSlugsResolved(true);
+  }, [categories, categorySlugParam, subcategorySlugParam]);
 
-  const { data: businessesData, isLoading: businessesLoading } = useQuery({
-    queryKey: ['businesses', { q: debouncedSearch, city: debouncedCity, categoryId: subcategoryId || filters.categoryId, userLocation, radius }],
+  const { data: businessesData, isLoading } = useQuery({
+    queryKey: ['businesses', { q: debouncedSearch, city: debouncedCity, categoryId: subcategoryId || categoryId, userLocation, radius }],
     queryFn: () => api.searchBusinesses({
       q: debouncedSearch,
       city: debouncedCity,
-      categoryId: subcategoryId || filters.categoryId,
+      categoryId: subcategoryId || categoryId,
       limit: 20,
       ...(userLocation && { lat: userLocation.lat, lng: userLocation.lng, radius }),
     }),
-    enabled: searchType === 'businesses',
+    enabled: slugsResolved,
   });
 
-  const selectedCategory = filters.categoryId
-    ? categories?.find((c) => c.id === filters.categoryId)
+  // Auto-expand radius when no results found with geolocation active
+  useEffect(() => {
+    if (
+      userLocation &&
+      !isLoading &&
+      businessesData?.total === 0 &&
+      radius < 50 &&
+      !autoExpandedRef.current
+    ) {
+      autoExpandedRef.current = true;
+      const nextRadius = RADIUS_OPTIONS.find((r) => r.value > radius);
+      if (nextRadius) {
+        setRadius(nextRadius.value);
+      }
+    }
+    if (businessesData && businessesData.total > 0) {
+      autoExpandedRef.current = false;
+    }
+  }, [businessesData, userLocation, radius, isLoading]);
+
+  const selectedCategory = categoryId
+    ? categories?.find((c) => c.id === categoryId)
     : null;
 
-  const updateFilter = (key: keyof SearchFilters, value: string | undefined) => {
-    const newFilters = { ...filters, [key]: value, offset: 0 };
-    setFilters(newFilters);
-
-    if (key === 'categoryId') {
-      setSubcategoryId(undefined);
-    }
-
-    const params = new URLSearchParams();
-    Object.entries(newFilters).forEach(([k, v]) => {
-      if (v !== undefined && v !== '' && k !== 'limit' && k !== 'offset') {
-        params.set(k, String(v));
-      }
-    });
-    if (key !== 'categoryId' && subcategoryId) {
-      params.set('subcategoryId', subcategoryId);
-    }
-    router.push(`/search?${params.toString()}`, { scroll: false });
-  };
-
-  const updateSubcategory = (id: string | undefined) => {
-    setSubcategoryId(id);
-
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => {
-      if (v !== undefined && v !== '' && k !== 'limit' && k !== 'offset') {
-        params.set(k, String(v));
-      }
-    });
-    if (id) {
-      params.set('subcategoryId', id);
-    }
-    router.push(`/search?${params.toString()}`, { scroll: false });
+  const updateCategory = (id: string | undefined) => {
+    setCategoryId(id);
+    setSubcategoryId(undefined);
   };
 
   const clearAllFilters = () => {
-    const newFilters: SearchFilters = { q: '', limit: 20, offset: 0 };
-    setFilters(newFilters);
+    setCategoryId(undefined);
     setSubcategoryId(undefined);
     setSearchQuery('');
     setCityQuery('');
@@ -589,30 +518,24 @@ function SearchContent() {
     router.push('/search');
   };
 
-  const loadMore = () => {
-    setFilters((prev) => ({ ...prev, offset: (prev.offset || 0) + 20 }));
-  };
-
-  const hasActiveFilters = filters.kind || filters.categoryId || filters.urgency || filters.city || userLocation;
+  const hasActiveFilters = categoryId || cityQuery || userLocation;
 
   const activeFiltersCount = [
-    filters.kind,
-    filters.categoryId,
-    filters.urgency,
-    filters.city,
+    categoryId,
+    cityQuery,
     userLocation,
   ].filter(Boolean).length;
 
   return (
     <div className="container mx-auto px-4 py-6 pt-24">
-      {/* Search Header - Hero style */}
+      {/* Search Header */}
       <div className="mb-8">
         {/* Search Card */}
-        <div className="bg-gradient-to-br from-gold-soft/50 to-muted/30 rounded-3xl p-6 md:p-8 mb-6">
+        <div className="bg-linear-to-br from-gold-soft/50 to-muted/30 rounded-3xl p-6 md:p-8 mb-6">
           <div className="max-w-3xl mx-auto">
             {/* Title */}
             <h1 className="text-2xl md:text-3xl font-bold text-center mb-6">
-              Trouvez le service idéal
+              Trouvez le professionnel ideal
             </h1>
 
             {/* Search inputs */}
@@ -645,7 +568,7 @@ function SearchContent() {
                     setCityQuery(e.target.value);
                     if (userLocation) setUserLocation(null);
                   }}
-                  placeholder="Où ?"
+                  placeholder="Ou ?"
                   className="pl-12 pr-14 h-14 text-base rounded-2xl bg-surface border-border/50 shadow-sm"
                   disabled={!!userLocation}
                 />
@@ -680,34 +603,6 @@ function SearchContent() {
                 </div>
               </div>
             </div>
-
-            {/* Search Type Toggle - Centered */}
-            <div className="flex justify-center mt-5">
-              <div className="inline-flex items-center gap-1 bg-surface rounded-full p-1 shadow-sm border border-border/50">
-                <button
-                  onClick={() => setSearchType('services')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                    searchType === 'services'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <User className="w-4 h-4" />
-                  Particuliers
-                </button>
-                <button
-                  onClick={() => setSearchType('businesses')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                    searchType === 'businesses'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Building2 className="w-4 h-4" />
-                  Professionnels
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -739,74 +634,23 @@ function SearchContent() {
 
         {/* Filters Bar - Desktop */}
         <div className="hidden md:flex items-center gap-2 flex-wrap">
-          {/* Type filters - only for services */}
-          {searchType === 'services' && (
-            <>
-              <div className="flex items-center gap-1.5">
-                <FilterChip
-                  label="Tous"
-                  active={!filters.kind}
-                  onClick={() => updateFilter('kind', undefined)}
-                />
-                <FilterChip
-                  label="Offres"
-                  active={filters.kind === 'OFFER'}
-                  onClick={() => updateFilter('kind', 'OFFER')}
-                  onClear={() => updateFilter('kind', undefined)}
-                />
-                <FilterChip
-                  label="Demandes"
-                  active={filters.kind === 'REQUEST'}
-                  onClick={() => updateFilter('kind', 'REQUEST')}
-                  onClear={() => updateFilter('kind', undefined)}
-                />
-              </div>
-
-              <div className="w-px h-6 bg-border" />
-            </>
-          )}
-
-          {/* Category dropdown - Desktop only - Two-column layout */}
+          {/* Category dropdown */}
           <CategoryDropdown
             categories={categories || []}
-            selectedCategoryId={filters.categoryId}
+            selectedCategoryId={categoryId}
             subcategoryId={subcategoryId}
-            onCategorySelect={(categoryId) => {
-              updateFilter('categoryId', categoryId);
-            }}
-            onSubcategorySelect={(categoryId, subId) => {
-              updateFilter('categoryId', categoryId);
-              updateSubcategory(subId);
+            onCategorySelect={(id) => updateCategory(id)}
+            onSubcategorySelect={(catId, subId) => {
+              setCategoryId(catId);
+              setSubcategoryId(subId);
             }}
             onClear={() => {
-              updateFilter('categoryId', undefined);
-              updateSubcategory(undefined);
+              updateCategory(undefined);
+              setSubcategoryId(undefined);
             }}
           />
 
           <div className="w-px h-6 bg-border" />
-
-          {/* Urgency filters */}
-          {searchType === 'services' && (
-            <>
-              <div className="flex items-center gap-1.5">
-                <FilterChip
-                  label="Urgent"
-                  active={filters.urgency === 'URGENT'}
-                  onClick={() => updateFilter('urgency', filters.urgency === 'URGENT' ? undefined : 'URGENT')}
-                  onClear={() => updateFilter('urgency', undefined)}
-                />
-                <FilterChip
-                  label="Bientôt"
-                  active={filters.urgency === 'SOON'}
-                  onClick={() => updateFilter('urgency', filters.urgency === 'SOON' ? undefined : 'SOON')}
-                  onClear={() => updateFilter('urgency', undefined)}
-                />
-              </div>
-
-              <div className="w-px h-6 bg-border" />
-            </>
-          )}
 
           {/* Clear all */}
           <AnimatePresence>
@@ -822,10 +666,9 @@ function SearchContent() {
               </motion.button>
             )}
           </AnimatePresence>
-
         </div>
 
-        {/* Mobile Filter Button - Right aligned for easy thumb access */}
+        {/* Mobile Filter Button */}
         <div className="flex md:hidden justify-end mb-4">
           <Button
             variant="outline"
@@ -845,30 +688,12 @@ function SearchContent() {
         {/* Active filters preview on mobile */}
         {activeFiltersCount > 0 && (
           <div className="flex md:hidden flex-wrap gap-2 mt-3">
-            {filters.kind && (
-              <Badge variant="secondary" className="gap-1">
-                {filters.kind === 'OFFER' ? 'Offres' : 'Demandes'}
-                <X
-                  className="w-3 h-3 cursor-pointer"
-                  onClick={() => updateFilter('kind', undefined)}
-                />
-              </Badge>
-            )}
             {selectedCategory && (
               <Badge variant="secondary" className="gap-1">
                 {selectedCategory.name}
                 <X
                   className="w-3 h-3 cursor-pointer"
-                  onClick={() => updateFilter('categoryId', undefined)}
-                />
-              </Badge>
-            )}
-            {filters.urgency && (
-              <Badge variant="secondary" className="gap-1">
-                {filters.urgency === 'URGENT' ? 'Urgent' : filters.urgency === 'SOON' ? 'Bientôt' : 'Flexible'}
-                <X
-                  className="w-3 h-3 cursor-pointer"
-                  onClick={() => updateFilter('urgency', undefined)}
+                  onClick={() => updateCategory(undefined)}
                 />
               </Badge>
             )}
@@ -900,15 +725,15 @@ function SearchContent() {
                 <FilterChip
                   label="Toutes"
                   active={!subcategoryId}
-                  onClick={() => updateSubcategory(undefined)}
+                  onClick={() => setSubcategoryId(undefined)}
                 />
                 {selectedCategory.children.map((sub) => (
                   <FilterChip
                     key={sub.id}
                     label={sub.name}
                     active={subcategoryId === sub.id}
-                    onClick={() => updateSubcategory(sub.id)}
-                    onClear={() => updateSubcategory(undefined)}
+                    onClick={() => setSubcategoryId(sub.id)}
+                    onClear={() => setSubcategoryId(undefined)}
                   />
                 ))}
               </div>
@@ -919,139 +744,60 @@ function SearchContent() {
 
       {/* Results Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-lg font-semibold">
-          {searchType === 'businesses'
-            ? 'Professionnels'
-            : filters.kind === 'OFFER'
-            ? 'Offres de services'
-            : filters.kind === 'REQUEST'
-            ? 'Demandes de services'
-            : 'Tous les services'}
-        </h1>
-        {searchType === 'services' && data && (
+        <h1 className="text-lg font-semibold">Professionnels</h1>
+        {businessesData && (
           <span className="text-sm text-muted-foreground">
-            {data.total} résultat{data.total !== 1 ? 's' : ''}
-          </span>
-        )}
-        {searchType === 'businesses' && businessesData && (
-          <span className="text-sm text-muted-foreground">
-            {businessesData.total} résultat{businessesData.total !== 1 ? 's' : ''}
+            {businessesData.total} resultat{businessesData.total !== 1 ? 's' : ''}
           </span>
         )}
       </div>
 
-      {/* Results Grid - Services */}
-      {searchType === 'services' && (
-        <>
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {[...Array(8)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-48 rounded-xl bg-muted animate-pulse"
-                />
-              ))}
-            </div>
-          ) : data?.data.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-16"
-            >
-              <div className="text-4xl mb-4">🔍</div>
-              <h2 className="text-lg font-medium mb-2">Aucun service trouvé</h2>
-              <p className="text-muted-foreground mb-4">
-                Essayez de modifier vos critères de recherche
-              </p>
-              {hasActiveFilters && (
-                <Button variant="outline" onClick={clearAllFilters}>
-                  Effacer les filtres
-                </Button>
-              )}
-            </motion.div>
-          ) : (
-            <>
+      {/* Results Grid */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="h-40 rounded-2xl bg-muted animate-pulse"
+            />
+          ))}
+        </div>
+      ) : businessesData?.data.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-16"
+        >
+          <div className="text-4xl mb-4">🏢</div>
+          <h2 className="text-lg font-medium mb-2">Aucun professionnel trouve</h2>
+          <p className="text-muted-foreground mb-4">
+            Essayez de modifier vos criteres de recherche
+          </p>
+          {hasActiveFilters && (
+            <Button variant="outline" onClick={clearAllFilters}>
+              Effacer les filtres
+            </Button>
+          )}
+        </motion.div>
+      ) : (
+        <motion.div
+          layout
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
+          <AnimatePresence>
+            {businessesData?.data.map((business) => (
               <motion.div
+                key={business.id}
                 layout
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
               >
-                <AnimatePresence>
-                  {data?.data.map((service) => (
-                    <motion.div
-                      key={service.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                    >
-                      <ServiceCard service={service} />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                <BusinessCard business={business} />
               </motion.div>
-
-              {data && data.total > (filters.offset || 0) + data.data.length && (
-                <div className="text-center mt-8">
-                  <Button variant="outline" onClick={loadMore}>
-                    Charger plus
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </>
-      )}
-
-      {/* Results Grid - Businesses */}
-      {searchType === 'businesses' && (
-        <>
-          {businessesLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-40 rounded-2xl bg-muted animate-pulse"
-                />
-              ))}
-            </div>
-          ) : businessesData?.data.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-16"
-            >
-              <div className="text-4xl mb-4">🏢</div>
-              <h2 className="text-lg font-medium mb-2">Aucun professionnel trouvé</h2>
-              <p className="text-muted-foreground mb-4">
-                Essayez de modifier vos critères de recherche
-              </p>
-              {hasActiveFilters && (
-                <Button variant="outline" onClick={clearAllFilters}>
-                  Effacer les filtres
-                </Button>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              layout
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-            >
-              <AnimatePresence>
-                {businessesData?.data.map((business) => (
-                  <motion.div
-                    key={business.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                  >
-                    <BusinessCard business={business} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
-          )}
-        </>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       )}
 
       {/* Mobile Filters Modal */}
@@ -1059,13 +805,12 @@ function SearchContent() {
         isOpen={showFiltersModal}
         onClose={() => setShowFiltersModal(false)}
         categories={categories || []}
-        filters={filters}
+        categoryId={categoryId}
         subcategoryId={subcategoryId}
-        searchType={searchType}
         userLocation={userLocation}
         radius={radius}
-        onFilterChange={updateFilter}
-        onSubcategoryChange={updateSubcategory}
+        onCategoryChange={updateCategory}
+        onSubcategoryChange={setSubcategoryId}
         onRadiusChange={setRadius}
         onClearAll={clearAllFilters}
       />

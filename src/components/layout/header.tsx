@@ -7,13 +7,13 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sun, Moon, LogOut, ChevronDown, ChevronRight, ChevronLeft, User, LayoutDashboard, Plus, Settings, Menu, X, Search, Building2, Grid3X3 } from 'lucide-react';
+import { Sun, Moon, LogOut, ChevronDown, Menu, X, Search, Building2, Calendar, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { Spinner } from '@/components/ui/spinner';
 import { api } from '@/lib/api';
-import { Category, PeopleImage } from '@/types';
+import { Category } from '@/types';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 
 export function Header() {
@@ -22,16 +22,11 @@ export function Header() {
   const { user, isLoading, logout } = useAuth();
   const { success } = useToast();
 
-  const [servicesOpen, setServicesOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [mobileSelectedCategory, setMobileSelectedCategory] = useState<Category | null>(null);
-  const [mobileView, setMobileView] = useState<'main' | 'categories' | 'subcategories'>('main');
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
-  const servicesRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // For portal - need to wait for mount
@@ -39,49 +34,30 @@ export function Header() {
     setIsMounted(true);
   }, []);
 
+  // Fetch categories for nav links
   const { data: categories } = useQuery({
     queryKey: ['categories'],
     queryFn: () => api.getCategories(),
   });
 
-  // Fetch user's profile images for avatar (only for non-business users)
-  const { data: userImages } = useQuery({
-    queryKey: ['my-people-images'],
-    queryFn: () => api.getMyPeopleImages(),
-    enabled: !!user && !user.isBusiness,
+  // Detect if user owns a business (to show "Mon entreprise" vs "Mes reservations")
+  const { data: myBusiness } = useQuery({
+    queryKey: ['my-business'],
+    queryFn: () => api.getMyBusiness(),
+    enabled: !!user,
+    retry: false,
   });
-
-  // Get the first image as avatar (sorted by sortOrder)
-  const userAvatarUrl = userImages && userImages.length > 0
-    ? [...userImages].sort((a, b) => a.sortOrder - b.sortOrder)[0]?.url
-    : null;
+  const hasBusiness = !!myBusiness;
 
   const handleLogout = () => {
     logout();
-    success('Déconnexion réussie');
+    success('Deconnexion reussie');
     setUserMenuOpen(false);
     setMobileMenuOpen(false);
   };
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
-    // Reset mobile menu state after animation
-    setTimeout(() => {
-      setMobileView('main');
-      setMobileSelectedCategory(null);
-    }, 200);
-  };
-
-  const navigateToSubcategory = (categoryId: string, subcategoryId: string) => {
-    router.push(`/search?categoryId=${categoryId}&subcategoryId=${subcategoryId}`);
-    setServicesOpen(false);
-    setSelectedCategory(null);
-  };
-
-  const navigateToCategory = (categoryId: string) => {
-    router.push(`/search?categoryId=${categoryId}`);
-    setServicesOpen(false);
-    setSelectedCategory(null);
   };
 
   // Handle scroll visibility
@@ -107,9 +83,6 @@ export function Header() {
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (servicesRef.current && !servicesRef.current.contains(event.target as Node)) {
-        setServicesOpen(false);
-      }
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
       }
@@ -138,143 +111,44 @@ export function Header() {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-1">
-            {/* Services Dropdown */}
-            <div
-              ref={servicesRef}
-              className="relative"
-              onMouseEnter={() => setServicesOpen(true)}
-              onMouseLeave={() => setServicesOpen(false)}
-            >
-              <button
-                className="flex items-center gap-1 px-4 py-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded-xl hover:bg-muted/50"
-              >
-                Services
-                <ChevronDown className={`w-4 h-4 transition-transform ${servicesOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              <AnimatePresence>
-                {servicesOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                    className="absolute top-full left-1/2 -translate-x-1/2 pt-3 w-[800px]"
-                  >
-                    <div className="bg-surface/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-xl shadow-black/10 p-6">
-                      <div className="grid grid-cols-2 gap-6">
-                        {/* Left column - Categories */}
-                        <div className="border-r border-border pr-6">
-                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 px-1">
-                            Catégories
-                          </div>
-                          <div className="space-y-1 max-h-[400px] overflow-y-auto">
-                            {categories?.map((category) => (
-                              <button
-                                key={category.id}
-                                onClick={() => setSelectedCategory(selectedCategory?.id === category.id ? null : category)}
-                                className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer group ${
-                                  selectedCategory?.id === category.id
-                                    ? 'bg-primary/10 border border-primary/30'
-                                    : 'border border-transparent hover:border-primary/30 hover:bg-primary/5'
-                                }`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className={`font-medium transition-colors ${
-                                    selectedCategory?.id === category.id ? 'text-primary' : 'group-hover:text-primary'
-                                  }`}>
-                                    {category.name}
-                                  </span>
-                                  <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${
-                                    selectedCategory?.id === category.id ? 'rotate-90 text-primary' : ''
-                                  }`} />
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Right column - Subcategories */}
-                        <div className="pl-2">
-                          {selectedCategory ? (
-                            <>
-                              <div className="flex items-center justify-between mb-4">
-                                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
-                                  {selectedCategory.name}
-                                </div>
-                                <button
-                                  onClick={() => navigateToCategory(selectedCategory.id)}
-                                  className="text-xs text-primary hover:underline"
-                                >
-                                  Voir tout →
-                                </button>
-                              </div>
-                              <div className="space-y-1 max-h-[400px] overflow-y-auto">
-                                {selectedCategory.children && selectedCategory.children.length > 0 ? (
-                                  selectedCategory.children.map((subcategory) => (
-                                    <button
-                                      key={subcategory.id}
-                                      onClick={() => navigateToSubcategory(selectedCategory.id, subcategory.id)}
-                                      className="w-full text-left px-4 py-2.5 rounded-xl border border-transparent hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 cursor-pointer group"
-                                    >
-                                      <span className="text-sm group-hover:text-primary transition-colors">
-                                        {subcategory.name}
-                                      </span>
-                                    </button>
-                                  ))
-                                ) : (
-                                  <p className="text-sm text-muted-foreground px-4 py-2">
-                                    Aucune sous-catégorie
-                                  </p>
-                                )}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                                <Search className="w-7 h-7 text-muted-foreground" />
-                              </div>
-                              <p className="text-muted-foreground text-sm">
-                                Sélectionnez une catégorie<br />pour voir les sous-catégories
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Footer */}
-                      <div className="mt-6 pt-5 border-t border-border flex items-center justify-between">
-                        <Link
-                          href="/search"
-                          onClick={() => { setServicesOpen(false); setSelectedCategory(null); }}
-                          className="text-sm text-primary hover:underline font-medium"
-                        >
-                          Voir tous les services →
-                        </Link>
-                        {user && (
+            {categories?.map((category) => {
+              const hasChildren = category.children && category.children.length > 0;
+              if (hasChildren) {
+                return (
+                  <div key={category.id} className="relative group">
+                    <Link
+                      href={`/search?category=${category.slug}`}
+                      className="flex items-center gap-1 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-xl hover:bg-muted/50"
+                    >
+                      {category.name}
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </Link>
+                    <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                      <div className="bg-surface border border-border/50 rounded-xl shadow-xl shadow-black/10 py-2 min-w-[200px]">
+                        {category.children!.map((sub) => (
                           <Link
-                            href="/dashboard/services/new"
-                            onClick={() => { setServicesOpen(false); setSelectedCategory(null); }}
-                            className="flex items-center gap-2 text-sm bg-primary text-primary-foreground px-4 py-2 rounded-xl hover:bg-primary-hover transition-colors font-medium"
+                            key={sub.id}
+                            href={`/search?category=${category.slug}&subcategory=${sub.slug}`}
+                            className="block px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                           >
-                            <Plus className="w-4 h-4" />
-                            Créer un service
+                            {sub.name}
                           </Link>
-                        )}
+                        ))}
                       </div>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Simple link - Rechercher only */}
-            <Link
-              href="/search"
-              className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors rounded-xl hover:bg-muted/50"
-            >
-              Rechercher
-            </Link>
+                  </div>
+                );
+              }
+              return (
+                <Link
+                  key={category.id}
+                  href={`/search?category=${category.slug}`}
+                  className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-xl hover:bg-muted/50"
+                >
+                  {category.name}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Right side - Desktop */}
@@ -282,7 +156,7 @@ export function Header() {
             {/* Notifications - only for logged in users */}
             {user && (
               <div className="hidden md:block">
-                <NotificationBell />
+                <NotificationBell hasBusiness={hasBusiness} />
               </div>
             )}
 
@@ -313,17 +187,9 @@ export function Header() {
                     className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
                   >
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                      {userAvatarUrl ? (
-                        <img
-                          src={userAvatarUrl}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-sm font-medium text-primary">
-                          {(user.name || user.email)?.[0]?.toUpperCase()}
-                        </span>
-                      )}
+                      <span className="text-sm font-medium text-primary">
+                        {(user.name || user.email)?.[0]?.toUpperCase()}
+                      </span>
                     </div>
                     <span className="hidden sm:block text-sm font-medium">
                       {user.name || user.email?.split('@')[0]}
@@ -342,55 +208,31 @@ export function Header() {
                       >
                         {/* User info */}
                         <div className="px-4 py-2 border-b border-border">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium text-sm">{user.name || 'Utilisateur'}</p>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-gold-soft text-primary dark:bg-gold-soft dark:text-primary">
-                              {user.isBusiness ? 'Pro' : 'Particulier'}
-                            </span>
-                          </div>
+                          <p className="font-medium text-sm">{user.name || 'Utilisateur'}</p>
                           <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                         </div>
 
                         {/* Menu items */}
                         <div className="py-1">
-                          <Link
-                            href={`/profile/${user.id}`}
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors cursor-pointer"
-                          >
-                            <User className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm">Mon profil</span>
-                          </Link>
-                          <Link
-                            href={user.isBusiness ? '/business/dashboard' : '/dashboard'}
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors cursor-pointer"
-                          >
-                            {user.isBusiness ? (
-                              <Building2 className="w-4 h-4 text-muted-foreground" />
-                            ) : (
-                              <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
-                            )}
-                            <span className="text-sm">{user.isBusiness ? 'Mon entreprise' : 'Dashboard'}</span>
-                          </Link>
-                          {!user.isBusiness && (
+                          {hasBusiness ? (
                             <Link
-                              href="/dashboard/services/new"
+                              href="/business/dashboard"
                               onClick={() => setUserMenuOpen(false)}
                               className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors cursor-pointer"
                             >
-                              <Plus className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-sm">Créer un service</span>
+                              <Building2 className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm">Mon entreprise</span>
+                            </Link>
+                          ) : (
+                            <Link
+                              href="/mes-reservations"
+                              onClick={() => setUserMenuOpen(false)}
+                              className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors cursor-pointer"
+                            >
+                              <Calendar className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm">Mes reservations</span>
                             </Link>
                           )}
-                          <Link
-                            href="/dashboard/settings"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors cursor-pointer"
-                          >
-                            <Settings className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm">Paramètres</span>
-                          </Link>
                         </div>
 
                         {/* Logout */}
@@ -400,7 +242,7 @@ export function Header() {
                             className="flex items-center gap-3 px-4 py-2 w-full hover:bg-muted/50 transition-colors cursor-pointer text-destructive"
                           >
                             <LogOut className="w-4 h-4" />
-                            <span className="text-sm">Déconnexion</span>
+                            <span className="text-sm">Deconnexion</span>
                           </button>
                         </div>
                       </motion.div>
@@ -462,24 +304,7 @@ export function Header() {
                 <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden pointer-events-auto flex flex-col">
                   {/* Header */}
                   <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
-                    {mobileView !== 'main' ? (
-                      <button
-                        onClick={() => {
-                          if (mobileView === 'subcategories') {
-                            setMobileView('categories');
-                          } else {
-                            setMobileView('main');
-                            setMobileSelectedCategory(null);
-                          }
-                        }}
-                        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                      >
-                        <ChevronLeft className="w-5 h-5" />
-                        <span className="text-sm">Retour</span>
-                      </button>
-                    ) : (
-                      <span className="font-bold text-lg">Menu</span>
-                    )}
+                    <span className="font-bold text-lg">Menu</span>
                     <button
                       onClick={closeMobileMenu}
                       className="p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer"
@@ -489,223 +314,96 @@ export function Header() {
                   </div>
 
                   {/* Content - Scrollable */}
-                  <div className="flex-1 overflow-y-auto">
-                    <AnimatePresence mode="wait">
-                      {/* Main View */}
-                      {mobileView === 'main' && (
-                        <motion.div
-                          key="main"
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          transition={{ duration: 0.15 }}
-                          className="p-4 space-y-2"
-                        >
-                          {/* User section */}
-                          {user && (
-                            <div className="p-4 rounded-2xl bg-gradient-to-br from-gold-soft to-muted mb-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
-                                  {userAvatarUrl ? (
-                                    <img
-                                      src={userAvatarUrl}
-                                      alt=""
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <span className="text-lg font-bold text-primary">
-                                      {(user.name || user.email)?.[0]?.toUpperCase()}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-semibold truncate">{user.name || 'Utilisateur'}</p>
-                                  <p className="text-sm text-muted-foreground truncate">{user.email}</p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                    {/* User section */}
+                    {user && (
+                      <div className="p-4 rounded-2xl bg-linear-to-br from-gold-soft to-muted mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+                            <span className="text-lg font-bold text-primary">
+                              {(user.name || user.email)?.[0]?.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold truncate">{user.name || 'Utilisateur'}</p>
+                            <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-                          {/* Navigation Links */}
+                    {/* Category Links */}
+                    <div className="flex flex-wrap gap-2">
+                      {categories?.map((category) => (
+                        <Link
+                          key={category.id}
+                          href={`/search?category=${category.slug}`}
+                          onClick={closeMobileMenu}
+                          className="px-4 py-2 text-sm font-medium rounded-full border border-border hover:border-primary/30 hover:bg-primary/5 hover:text-primary transition-colors"
+                        >
+                          {category.name}
+                        </Link>
+                      ))}
+                    </div>
+
+                    {/* Rechercher */}
+                    <Link
+                      href="/search"
+                      onClick={closeMobileMenu}
+                      className="flex items-center gap-4 p-4 rounded-2xl hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Search className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <span className="font-medium">Rechercher</span>
+                        <p className="text-xs text-muted-foreground">Tous les professionnels</p>
+                      </div>
+                    </Link>
+
+                    {/* Divider */}
+                    <div className="border-t border-border my-2" />
+
+                    {/* User actions */}
+                    {user ? (
+                      <>
+                        {hasBusiness ? (
                           <Link
-                            href="/search"
+                            href="/business/dashboard"
                             onClick={closeMobileMenu}
                             className="flex items-center gap-4 p-4 rounded-2xl hover:bg-muted/50 transition-colors"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                              <Search className="w-5 h-5 text-primary" />
-                            </div>
-                            <div>
-                              <span className="font-medium">Rechercher</span>
-                              <p className="text-xs text-muted-foreground">Trouvez des services</p>
-                            </div>
+                            <Building2 className="w-5 h-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">Mon entreprise</span>
                           </Link>
-
-                          <button
-                            onClick={() => setMobileView('categories')}
-                            className="flex items-center justify-between w-full p-4 rounded-2xl hover:bg-muted/50 transition-colors cursor-pointer"
+                        ) : (
+                          <Link
+                            href="/mes-reservations"
+                            onClick={closeMobileMenu}
+                            className="flex items-center gap-4 p-4 rounded-2xl hover:bg-muted/50 transition-colors"
                           >
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                                <Grid3X3 className="w-5 h-5 text-primary" />
-                              </div>
-                              <div className="text-left">
-                                <span className="font-medium">Catégories</span>
-                                <p className="text-xs text-muted-foreground">Parcourir par catégorie</p>
-                              </div>
-                            </div>
-                            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                          </button>
-
-                          {/* Divider */}
-                          <div className="border-t border-border my-2" />
-
-                          {/* User actions */}
-                          {user ? (
-                            <>
-                              <Link
-                                href={`/profile/${user.id}`}
-                                onClick={closeMobileMenu}
-                                className="flex items-center gap-4 p-4 rounded-2xl hover:bg-muted/50 transition-colors"
-                              >
-                                <User className="w-5 h-5 text-muted-foreground" />
-                                <span className="text-sm font-medium">Mon profil</span>
-                              </Link>
-                              <Link
-                                href={user.isBusiness ? '/business/dashboard' : '/dashboard'}
-                                onClick={closeMobileMenu}
-                                className="flex items-center gap-4 p-4 rounded-2xl hover:bg-muted/50 transition-colors"
-                              >
-                                {user.isBusiness ? (
-                                  <Building2 className="w-5 h-5 text-muted-foreground" />
-                                ) : (
-                                  <LayoutDashboard className="w-5 h-5 text-muted-foreground" />
-                                )}
-                                <span className="text-sm font-medium">{user.isBusiness ? 'Mon entreprise' : 'Dashboard'}</span>
-                              </Link>
-                              {!user.isBusiness && (
-                                <Link
-                                  href="/dashboard/services/new"
-                                  onClick={closeMobileMenu}
-                                  className="flex items-center gap-4 p-4 rounded-2xl hover:bg-muted/50 transition-colors"
-                                >
-                                  <Plus className="w-5 h-5 text-muted-foreground" />
-                                  <span className="text-sm font-medium">Créer un service</span>
-                                </Link>
-                              )}
-                              <Link
-                                href="/dashboard/settings"
-                                onClick={closeMobileMenu}
-                                className="flex items-center gap-4 p-4 rounded-2xl hover:bg-muted/50 transition-colors"
-                              >
-                                <Settings className="w-5 h-5 text-muted-foreground" />
-                                <span className="text-sm font-medium">Paramètres</span>
-                              </Link>
-                              <button
-                                onClick={handleLogout}
-                                className="flex items-center gap-4 p-4 rounded-2xl w-full hover:bg-destructive/10 transition-colors text-destructive cursor-pointer"
-                              >
-                                <LogOut className="w-5 h-5" />
-                                <span className="text-sm font-medium">Déconnexion</span>
-                              </button>
-                            </>
-                          ) : (
-                            <div className="space-y-3 pt-2">
-                              <Link href="/auth/login" onClick={closeMobileMenu} className="block">
-                                <Button variant="outline" className="w-full rounded-xl h-12">Connexion</Button>
-                              </Link>
-                              <Link href="/auth/register" onClick={closeMobileMenu} className="block">
-                                <Button className="w-full rounded-xl h-12">Inscription</Button>
-                              </Link>
-                            </div>
-                          )}
-                        </motion.div>
-                      )}
-
-                      {/* Categories View */}
-                      {mobileView === 'categories' && (
-                        <motion.div
-                          key="categories"
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 20 }}
-                          transition={{ duration: 0.15 }}
-                          className="p-4"
+                            <Calendar className="w-5 h-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">Mes reservations</span>
+                          </Link>
+                        )}
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center gap-4 p-4 rounded-2xl w-full hover:bg-destructive/10 transition-colors text-destructive cursor-pointer"
                         >
-                          <h3 className="text-lg font-bold mb-4">Catégories</h3>
-                          <div className="space-y-2">
-                            {categories?.map((category) => (
-                              <button
-                                key={category.id}
-                                onClick={() => {
-                                  if (category.children && category.children.length > 0) {
-                                    setMobileSelectedCategory(category);
-                                    setMobileView('subcategories');
-                                  } else {
-                                    navigateToCategory(category.id);
-                                    closeMobileMenu();
-                                  }
-                                }}
-                                className="flex items-center justify-between w-full p-4 rounded-2xl hover:bg-muted/50 transition-colors cursor-pointer group"
-                              >
-                                <span className="font-medium group-hover:text-primary transition-colors">
-                                  {category.name}
-                                </span>
-                                {category.children && category.children.length > 0 && (
-                                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {/* Subcategories View */}
-                      {mobileView === 'subcategories' && mobileSelectedCategory && (
-                        <motion.div
-                          key="subcategories"
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 20 }}
-                          transition={{ duration: 0.15 }}
-                          className="p-4"
-                        >
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-bold">{mobileSelectedCategory.name}</h3>
-                            <button
-                              onClick={() => {
-                                navigateToCategory(mobileSelectedCategory.id);
-                                closeMobileMenu();
-                              }}
-                              className="text-sm text-primary font-medium hover:underline cursor-pointer"
-                            >
-                              Voir tout
-                            </button>
-                          </div>
-                          <div className="space-y-2">
-                            {mobileSelectedCategory.children?.map((subcategory) => (
-                              <button
-                                key={subcategory.id}
-                                onClick={() => {
-                                  navigateToSubcategory(mobileSelectedCategory.id, subcategory.id);
-                                  closeMobileMenu();
-                                }}
-                                className="flex items-center w-full p-4 rounded-2xl hover:bg-muted/50 transition-colors cursor-pointer group"
-                              >
-                                <span className="text-sm group-hover:text-primary transition-colors">
-                                  {subcategory.name}
-                                </span>
-                              </button>
-                            ))}
-                            {(!mobileSelectedCategory.children || mobileSelectedCategory.children.length === 0) && (
-                              <p className="text-sm text-muted-foreground p-4">
-                                Aucune sous-catégorie disponible
-                              </p>
-                            )}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                          <LogOut className="w-5 h-5" />
+                          <span className="text-sm font-medium">Deconnexion</span>
+                        </button>
+                      </>
+                    ) : (
+                      <div className="space-y-3 pt-2">
+                        <Link href="/auth/login" onClick={closeMobileMenu} className="block">
+                          <Button variant="outline" className="w-full rounded-xl h-12">Connexion</Button>
+                        </Link>
+                        <Link href="/auth/register" onClick={closeMobileMenu} className="block">
+                          <Button className="w-full rounded-xl h-12">Inscription</Button>
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>

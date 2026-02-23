@@ -3,44 +3,33 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import {
   Star,
-  TrendingUp,
-  Shield,
   CheckCircle,
   ArrowRight,
   Search,
-  ChevronDown,
   MapPin,
-  User,
   Building2,
   ChevronLeft,
   ChevronRight,
   Clock,
-  Briefcase,
-  Navigation,
-  Loader2,
-  MessageSquare,
-  Calendar,
-  Sparkles,
-  Scissors,
-  Wrench,
-  Home,
-  Heart,
-  GraduationCap,
-  Camera,
+  Shield,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
-import { Service, Business } from '@/types';
-import { formatPrice } from '@/lib/utils';
+import { Business, Category } from '@/types';
 import { useGeolocation } from '@/hooks/useGeolocation';
 
-const fadeInUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0 },
+// Category images (Unsplash)
+const CATEGORY_IMAGES: Record<string, string> = {
+  coiffeur: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=800&auto=format&fit=crop',
+  barbier: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=800&auto=format&fit=crop',
+  manucure: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=800&auto=format&fit=crop',
+  'institut-de-beaute': 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=800&auto=format&fit=crop',
+  'bien-etre': 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=800&auto=format&fit=crop',
 };
 
 // Horizontal Slider component with navigation arrows
@@ -48,18 +37,12 @@ function HorizontalSlider({
   children,
   title,
   subtitle,
-  icon: Icon,
-  iconColor,
-  iconBg,
   viewAllLink,
   viewAllLabel,
 }: {
   children: React.ReactNode;
   title: string;
   subtitle: string;
-  icon: React.ElementType;
-  iconColor: string;
-  iconBg: string;
   viewAllLink: string;
   viewAllLabel: string;
 }) {
@@ -100,21 +83,12 @@ function HorizontalSlider({
 
   return (
     <div>
-      {/* Header with title and navigation */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-end justify-between mb-8">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center`}>
-              <Icon className={`w-5 h-5 ${iconColor}`} />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold">{title}</h2>
-          </div>
+          <h2 className="text-2xl md:text-3xl font-bold mb-2">{title}</h2>
           <p className="text-muted-foreground">{subtitle}</p>
         </div>
-
-        {/* Navigation arrows and view all button */}
-        <div className="flex items-center gap-3">
-          {/* Arrow buttons - hidden on mobile */}
+        <div className="flex items-center gap-2">
           <div className="hidden sm:flex items-center gap-2">
             <button
               onClick={() => scroll('left')}
@@ -122,7 +96,7 @@ function HorizontalSlider({
               className={`w-10 h-10 rounded-full border border-border flex items-center justify-center transition-all ${
                 canScrollLeft
                   ? 'hover:bg-muted hover:border-primary/30 cursor-pointer'
-                  : 'opacity-40 cursor-not-allowed'
+                  : 'opacity-30 cursor-not-allowed'
               }`}
             >
               <ChevronLeft className="w-5 h-5" />
@@ -133,15 +107,14 @@ function HorizontalSlider({
               className={`w-10 h-10 rounded-full border border-border flex items-center justify-center transition-all ${
                 canScrollRight
                   ? 'hover:bg-muted hover:border-primary/30 cursor-pointer'
-                  : 'opacity-40 cursor-not-allowed'
+                  : 'opacity-30 cursor-not-allowed'
               }`}
             >
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
-
-          <Link href={viewAllLink}>
-            <Button variant="outline" className="rounded-full hidden md:flex">
+          <Link href={viewAllLink} className="hidden md:block">
+            <Button variant="outline" className="rounded-full">
               {viewAllLabel}
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
@@ -149,7 +122,6 @@ function HorizontalSlider({
         </div>
       </div>
 
-      {/* Scrollable container */}
       <div
         ref={scrollRef}
         className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory"
@@ -158,7 +130,6 @@ function HorizontalSlider({
         {children}
       </div>
 
-      {/* Mobile view all button */}
       <div className="md:hidden mt-6 text-center">
         <Link href={viewAllLink}>
           <Button variant="outline" className="rounded-full">
@@ -171,203 +142,47 @@ function HorizontalSlider({
   );
 }
 
-// Helper to get the best avatar URL (first image or avatarUrl fallback)
-function getProviderAvatarUrl(profile?: { avatarUrl?: string; images?: { url: string }[] }): string | undefined {
-  if (profile?.images && profile.images.length > 0) {
-    return profile.images[0].url;
-  }
-  return profile?.avatarUrl;
-}
-
-// Modern Service Card for homepage - with cover image support
-function HomeServiceCard({ service }: { service: Service }) {
-  const providerName = service.createdBy?.profile?.displayName || 'Utilisateur';
-  const providerCity = service.createdBy?.profile?.city || service.city;
-  const rating = service.createdBy?.reputation?.ratingAvg5;
-  const ratingCount = service.createdBy?.reputation?.ratingCount || 0;
-  const avatarUrl = getProviderAvatarUrl(service.createdBy?.profile);
-  const coverUrl = service.createdBy?.profile?.coverUrl;
-
-  return (
-    <Link href={`/service/${service.id}`} className="block snap-start">
-      <motion.div
-        whileHover={{ y: -4 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        className="w-72 sm:w-80 h-72 bg-surface border border-border rounded-2xl overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-300 flex flex-col"
-      >
-        {/* Cover image (if exists) */}
-        {coverUrl && (
-          <div className="h-28 relative">
-            <img src={coverUrl} alt="" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-
-            {/* Badge on cover */}
-            <span className={`absolute top-2 left-2 text-xs font-medium px-2.5 py-1 rounded-full ${
-              service.kind === 'OFFER'
-                ? 'bg-green-500/90 text-white'
-                : 'bg-blue-500/90 text-white'
-            }`}>
-              {service.kind === 'OFFER' ? 'Offre' : 'Demande'}
-            </span>
-
-            {/* Price on cover */}
-            <div className="absolute top-2 right-2">
-              {service.priceCents ? (
-                <span className="text-sm font-bold text-white bg-black/40 backdrop-blur-sm px-2 py-1 rounded-lg">
-                  {formatPrice(service.priceCents)}{service.pricingType === 'HOURLY' && '/h'}
-                </span>
-              ) : null}
-            </div>
-
-            {/* Avatar overlay */}
-            <div className="absolute -bottom-4 left-4">
-              <div className="w-10 h-10 bg-surface border-2 border-surface rounded-xl shadow-md flex items-center justify-center overflow-hidden">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-5 h-5 text-primary" />
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Content */}
-        <div className={`p-4 flex flex-col flex-1 ${coverUrl ? 'pt-6' : ''}`}>
-          {/* Header without cover */}
-          {!coverUrl && (
-            <div className="flex items-start justify-between mb-2">
-              <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                service.kind === 'OFFER'
-                  ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                  : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-              }`}>
-                {service.kind === 'OFFER' ? 'Offre' : 'Demande'}
-              </span>
-
-              <div className="text-right">
-                {service.priceCents ? (
-                  <span className="text-lg font-bold text-primary">
-                    {formatPrice(service.priceCents)}{service.pricingType === 'HOURLY' && '/h'}
-                  </span>
-                ) : (
-                  <span className="text-sm text-muted-foreground">À définir</span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Title */}
-          <h3 className="font-semibold text-base line-clamp-2 leading-snug mb-1">
-            {service.title}
-          </h3>
-
-          {/* Description */}
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-            {service.description || 'Aucune description disponible'}
-          </p>
-
-          {/* Provider info + Location */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-auto">
-            {!coverUrl && (
-              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-3.5 h-3.5 text-primary" />
-                )}
-              </div>
-            )}
-            <span className="font-medium text-foreground truncate max-w-20">{providerName}</span>
-            {providerCity && (
-              <>
-                <span className="text-border">•</span>
-                <span className="flex items-center gap-1 truncate">
-                  <MapPin className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{providerCity}</span>
-                </span>
-              </>
-            )}
-          </div>
-
-          {/* Footer: Rating */}
-          <div className="flex items-center justify-between pt-2 border-t border-border mt-2">
-            {rating && ratingCount > 0 ? (
-              <div className="flex items-center gap-1.5">
-                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                <span className="text-sm font-medium">{rating.toFixed(1)}</span>
-                <span className="text-xs text-muted-foreground">({ratingCount})</span>
-              </div>
-            ) : (
-              <span className="text-xs text-muted-foreground">Pas encore d'avis</span>
-            )}
-
-            <ArrowRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-        </div>
-      </motion.div>
-    </Link>
-  );
-}
-
-// Modern Business Card for homepage
+// Business Card
 function HomeBusinessCard({ business }: { business: Business }) {
-  const rating = business.owner?.reputation?.ratingAvg5;
-  const ratingCount = business.owner?.reputation?.ratingCount || 0;
   const serviceCount = business._count?.services || business.services?.length || 0;
 
   return (
     <Link href={`/business/${business.slug}`} className="block snap-start">
       <motion.div
-        whileHover={{ y: -6, scale: 1.02 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        className="w-72 sm:w-80 bg-surface border border-border rounded-2xl overflow-hidden hover:border-primary/40 hover:shadow-xl transition-all duration-300"
+        whileHover={{ y: -4 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+        className="w-72 sm:w-80 bg-surface border border-border rounded-2xl overflow-hidden hover:border-primary/30 hover:shadow-lg transition-all duration-300"
       >
-        {/* Cover image or gradient */}
-        <div className="h-32 relative">
+        <div className="h-36 relative">
           {business.coverUrl ? (
-            <img
-              src={business.coverUrl}
-              alt=""
-              className="w-full h-full object-cover"
-            />
+            <img src={business.coverUrl} alt="" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-primary/30 via-primary/20 to-primary/5" />
+            <div className="w-full h-full bg-linear-to-br from-primary/20 via-primary/10 to-primary/5" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
 
-          {/* Verified badge */}
           {business.isVerified && (
             <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1">
-              <CheckCircle className="w-3.5 h-3.5 text-primary" />
-              <span className="text-xs font-medium text-primary">Vérifié</span>
+              <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+              <span className="text-xs font-medium text-green-700">Verifie</span>
             </div>
           )}
 
-          {/* Logo overlay */}
-          <div className="absolute -bottom-6 left-5">
-            <div className="w-16 h-16 bg-surface border-4 border-surface rounded-2xl shadow-lg flex items-center justify-center overflow-hidden">
+          <div className="absolute -bottom-5 left-4">
+            <div className="w-14 h-14 bg-surface border-[3px] border-surface rounded-xl shadow-md flex items-center justify-center overflow-hidden">
               {business.logoUrl ? (
-                <img
-                  src={business.logoUrl}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
+                <img src={business.logoUrl} alt="" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-primary/10 flex items-center justify-center">
-                  <Building2 className="w-7 h-7 text-primary" />
+                  <Building2 className="w-6 h-6 text-primary" />
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Card content */}
-        <div className="p-5 pt-8">
-          {/* Business name */}
-          <h3 className="font-semibold text-lg mb-1 truncate">{business.name}</h3>
-
-          {/* Location and services count */}
+        <div className="p-4 pt-7">
+          <h3 className="font-semibold text-base mb-1 truncate">{business.name}</h3>
           <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
             {business.city && (
               <span className="flex items-center gap-1">
@@ -382,43 +197,9 @@ function HomeBusinessCard({ business }: { business: Business }) {
               </span>
             )}
           </div>
-
-          {/* Description */}
           {business.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-              {business.description}
-            </p>
+            <p className="text-sm text-muted-foreground line-clamp-2">{business.description}</p>
           )}
-
-          {/* Footer with rating */}
-          <div className="flex items-center justify-between pt-4 border-t border-border">
-            {rating && ratingCount > 0 ? (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Star
-                      key={i}
-                      className={`w-4 h-4 ${
-                        i <= Math.round(rating)
-                          ? 'text-yellow-500 fill-yellow-500'
-                          : 'text-muted-foreground/30'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  ({ratingCount})
-                </span>
-              </div>
-            ) : (
-              <span className="text-sm text-muted-foreground">Nouveau</span>
-            )}
-
-            <span className="text-sm font-medium text-primary flex items-center gap-1">
-              Voir
-              <ArrowRight className="w-4 h-4" />
-            </span>
-          </div>
         </div>
       </motion.div>
     </Link>
@@ -428,39 +209,25 @@ function HomeBusinessCard({ business }: { business: Business }) {
 export default function HomePage() {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
-  const [searchType, setSearchType] = useState<'services' | 'businesses'>('services');
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { latitude, longitude, loading: geoLoading, getCurrentPosition, hasPosition } = useGeolocation();
+  const { latitude, longitude, hasPosition } = useGeolocation();
 
-  // Fetch latest offers (services with kind=OFFER)
-  const { data: latestOffers } = useQuery({
-    queryKey: ['latestOffers'],
-    queryFn: () => api.searchServices({
-      kind: 'OFFER',
-      limit: 10,
-    }),
-  });
+  // Parallax for hero
+  const { scrollY } = useScroll();
+  const heroY = useTransform(scrollY, [0, 600], [0, 200]);
+  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
 
-  // Fetch latest businesses (sorted by most recent)
   const { data: latestBusinesses } = useQuery({
     queryKey: ['latestBusinesses'],
-    queryFn: () => api.searchBusinesses({
-      limit: 10,
-      sortBy: 'recent',
-    }),
+    queryFn: () => api.searchBusinesses({ limit: 10, sortBy: 'recent' }),
   });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setIsFocused(false);
     const params = new URLSearchParams();
-    if (query.trim()) {
-      params.set('q', query);
-    }
-    if (searchType === 'businesses') {
-      params.set('type', 'businesses');
-    }
+    if (query.trim()) params.set('q', query);
     if (hasPosition) {
       params.set('lat', String(latitude));
       params.set('lng', String(longitude));
@@ -468,283 +235,328 @@ export default function HomePage() {
     router.push(`/search?${params.toString()}`);
   };
 
-  const handleNearbySearch = () => {
-    if (hasPosition) {
-      const params = new URLSearchParams();
-      params.set('lat', String(latitude));
-      params.set('lng', String(longitude));
-      params.set('sortBy', 'distance');
-      if (searchType === 'businesses') {
-        params.set('type', 'businesses');
-      }
-      router.push(`/search?${params.toString()}`);
-    } else {
-      getCurrentPosition();
-    }
-  };
+  const { data: dbCategories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.getCategories(),
+  });
 
-  // Categories for the homepage
-  const categories = [
-    { name: 'Coiffure', icon: Scissors, color: 'bg-pink-500/10 text-pink-500' },
-    { name: 'Bricolage', icon: Wrench, color: 'bg-orange-500/10 text-orange-500' },
-    { name: 'Maison', icon: Home, color: 'bg-blue-500/10 text-blue-500' },
-    { name: 'Bien-etre', icon: Heart, color: 'bg-red-500/10 text-red-500' },
-    { name: 'Cours', icon: GraduationCap, color: 'bg-purple-500/10 text-purple-500' },
-    { name: 'Photo', icon: Camera, color: 'bg-teal-500/10 text-teal-500' },
-  ];
-
-  // How it works steps
-  const steps = [
+  const benefits = [
     {
-      number: '1',
-      title: 'Trouvez',
-      description: 'Recherchez un service ou un professionnel pres de chez vous',
-      icon: Search,
+      title: 'Reservation instantanee',
+      description: 'Reservez en quelques clics, 24h/24 et 7j/7. Plus besoin d\'appeler.',
     },
     {
-      number: '2',
-      title: 'Reservez',
-      description: 'Choisissez le creneau qui vous convient et confirmez',
-      icon: Calendar,
+      title: 'Professionnels verifies',
+      description: 'Chaque prestataire est verifie par notre equipe.',
     },
     {
-      number: '3',
-      title: 'Profitez',
-      description: 'Le service est realise, laissez un avis pour aider la communaute',
-      icon: Sparkles,
+      title: 'Avis authentiques',
+      description: 'Seuls les clients ayant realise une prestation peuvent laisser un avis.',
+    },
+    {
+      title: 'Confirmation immediate',
+      description: 'Confirmation instantanee et rappels avant votre rendez-vous.',
     },
   ];
 
-  const trustFeatures = [
-    {
-      icon: Star,
-      title: 'Notes sur 5',
-      description: 'Évaluez chaque prestation avec précision',
-      color: 'text-yellow-500',
-      bg: 'bg-yellow-500/10',
-    },
-    {
-      icon: TrendingUp,
-      title: 'Système XP',
-      description: 'Montez en niveau à chaque mission',
-      color: 'text-blue-500',
-      bg: 'bg-blue-500/10',
-    },
-    {
-      icon: CheckCircle,
-      title: 'Avis vérifiés',
-      description: 'Seuls les utilisateurs ayant terminé une mission peuvent noter',
-      color: 'text-green-500',
-      bg: 'bg-green-500/10',
-    },
-    {
-      icon: Shield,
-      title: 'Score de confiance',
-      description: 'Un algorithme qui calcule la fiabilité',
-      color: 'text-purple-500',
-      bg: 'bg-purple-500/10',
-    },
+  const stats = [
+    { value: '+50%', label: 'de frequence sur les rdv pris en ligne' },
+    { value: '4x', label: 'moins d\'oublis avec les rappels automatiques' },
+    { value: '50%', label: 'des rdv pris en dehors des horaires d\'ouverture' },
   ];
 
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden -mt-20 pt-20">
-        <div
-          className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700 ${
-            isFocused ? 'scale-110 blur-sm' : 'scale-100'
-          }`}
-          style={{
-            backgroundImage:
-              'url(https://images.unsplash.com/photo-1521737711867-e3b97375f902?q=80&w=2574&auto=format&fit=crop)',
-          }}
-        />
-        <div
-          className={`absolute inset-0 transition-all duration-500 ${
-            isFocused ? 'bg-black/80' : 'bg-black/50'
-          }`}
-        />
+      {/* ==================== HERO ==================== */}
+      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden -mt-20">
+        {/* Background with parallax */}
+        <motion.div
+          style={{ y: heroY }}
+          className="absolute inset-0"
+        >
+          <div
+            className={`absolute inset-0 bg-cover bg-center bg-no-repeat scale-110 transition-all duration-700 ${
+              isFocused ? 'blur-sm' : ''
+            }`}
+            style={{
+              backgroundImage:
+                'url(https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?q=80&w=2574&auto=format&fit=crop)',
+            }}
+          />
+        </motion.div>
 
-        <div className="relative z-10 container mx-auto px-4 text-center text-white">
-          <motion.h1
-            initial={{ opacity: 0, y: 40 }}
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/30 to-black/60" />
+
+        {/* Content */}
+        <motion.div
+          style={{ opacity: heroOpacity }}
+          className="relative z-10 container mx-auto px-4 text-center text-white pt-20"
+        >
+          {/* Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6"
+            transition={{ duration: 0.6 }}
+            className="mb-6"
           >
-            Services de confiance,
+            <span className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-sm font-medium">
+              La plateforme de reservation beaute & bien-etre
+            </span>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+            className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
+          >
+            Reservez chez les
             <br />
-            <span className="bg-linear-to-r from-white via-white/90 to-white/70 bg-clip-text">
-              entre particuliers
+            <span className="bg-linear-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent">
+              meilleurs professionnels
             </span>
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-lg md:text-xl text-white/80 mb-10 max-w-2xl mx-auto"
+            transition={{ duration: 0.7, delay: 0.2 }}
+            className="text-lg md:text-xl text-white/70 mb-10 max-w-2xl mx-auto leading-relaxed"
           >
-            Offrez vos compétences ou trouvez l&apos;aide dont vous avez besoin.
-            Un système de réputation transparent pour des échanges sereins.
+            Coiffure, barbier, manucure, institut de beaute, bien-etre.
+            <br className="hidden md:block" />
+            Trouvez et reservez en quelques secondes.
           </motion.p>
 
+          {/* Search bar */}
           <motion.form
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            transition={{ duration: 0.7, delay: 0.3 }}
             onSubmit={handleSearch}
-            className="max-w-2xl mx-auto mb-8"
+            className="max-w-xl mx-auto mb-12"
           >
-            <div className="relative group" ref={searchContainerRef}>
+            <div ref={searchContainerRef}>
               <div
-                className={`absolute -inset-1 bg-linear-to-r from-white/20 via-white/10 to-white/20 rounded-full blur-lg transition-all duration-500 ${
-                  isFocused ? 'opacity-100' : 'opacity-0'
+                className={`bg-white rounded-2xl shadow-2xl transition-all duration-300 ${
+                  isFocused ? 'shadow-white/10 ring-2 ring-white/20' : ''
                 }`}
-              />
-              <div className="relative flex items-center">
-                <Search className="absolute left-5 w-5 h-5 text-gray-400 z-10" />
-                <input
-                  type="text"
-                  placeholder={searchType === 'businesses' ? "Rechercher un professionnel..." : "Que recherchez-vous ?"}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-                  className={`w-full h-14 md:h-16 pl-14 pr-36 md:pr-44 text-lg rounded-full border-2 bg-white text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-300 ${
-                    isFocused
-                      ? 'border-white shadow-2xl shadow-white/25'
-                      : 'border-white/50 shadow-xl'
-                  }`}
-                />
-                <button
-                  type="submit"
-                  className="absolute right-2 h-10 md:h-12 px-6 md:px-8 bg-primary text-primary-foreground font-semibold rounded-full hover:bg-primary-hover transition-all duration-300 hover:shadow-lg flex items-center gap-2 z-10 cursor-pointer"
-                >
-                  Rechercher
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Search Type Toggle + Nearby Button */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">
-                <div className="inline-flex items-center gap-1 bg-white/10 backdrop-blur-sm rounded-full p-1">
+              >
+                <div className="flex items-center gap-3 px-5 py-3.5">
+                  <Search className="w-5 h-5 text-gray-400 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Coiffeur, Barbier, Manucure..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+                    className="flex-1 text-gray-900 placeholder:text-gray-400 outline-none text-base bg-transparent"
+                  />
                   <button
-                    type="button"
-                    onClick={() => setSearchType('services')}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                      searchType === 'services'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-white/80 hover:text-white'
-                    }`}
+                    type="submit"
+                    className="h-11 px-6 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary-hover transition-all cursor-pointer shrink-0"
                   >
-                    <User className="w-4 h-4" />
-                    Particuliers
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSearchType('businesses')}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                      searchType === 'businesses'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-white/80 hover:text-white'
-                    }`}
-                  >
-                    <Building2 className="w-4 h-4" />
-                    Professionnels
+                    Rechercher
                   </button>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={handleNearbySearch}
-                  disabled={geoLoading}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer ${
-                    hasPosition
-                      ? 'bg-green-500 text-white hover:bg-green-600'
-                      : 'bg-white/10 backdrop-blur-sm text-white/90 hover:bg-white/20'
-                  }`}
-                >
-                  {geoLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Navigation className="w-4 h-4" />
-                  )}
-                  {hasPosition ? 'Autour de moi' : 'Me localiser'}
-                </button>
               </div>
             </div>
           </motion.form>
-        </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-          >
-            <ChevronDown className="w-8 h-8 text-white/60" />
-          </motion.div>
+          {/* Quick category links */}
+          {dbCategories && dbCategories.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.4 }}
+              className="flex flex-wrap justify-center gap-2"
+            >
+              {dbCategories.filter(c => !c.parentId).map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/search?category=${category.slug}`}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 rounded-full text-sm text-white/80 hover:text-white transition-all"
+                >
+                  {category.name}
+                </Link>
+              ))}
+            </motion.div>
+          )}
         </motion.div>
+
+        {/* Bottom gradient fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-linear-to-t from-background to-transparent" />
       </section>
 
-      {/* Latest Services Section */}
-      <section className="py-16 md:py-24">
+      {/* ==================== STATS ==================== */}
+      <section className="relative z-10 -mt-12">
         <div className="container mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            variants={fadeInUp}
-          >
-            {latestOffers?.data && latestOffers.data.length > 0 ? (
-              <HorizontalSlider
-                title="Derniers services"
-                subtitle="Découvrez les dernières offres de la communauté"
-                icon={Briefcase}
-                iconColor="text-primary"
-                iconBg="bg-primary/10"
-                viewAllLink="/search?kind=OFFER"
-                viewAllLabel="Voir tout"
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {stats.map((stat, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                whileHover={{ scale: 1.04 }}
+                className="bg-surface border border-border rounded-2xl p-8 shadow-lg cursor-default transition-shadow hover:shadow-xl hover:border-primary/20"
               >
-                {latestOffers.data.map((service) => (
-                  <HomeServiceCard key={service.id} service={service} />
-                ))}
-              </HorizontalSlider>
-            ) : (
-              <div className="text-center py-16 bg-muted/30 rounded-3xl">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Briefcase className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">Aucun service disponible</h3>
-                <p className="text-muted-foreground">Soyez le premier à proposer vos services !</p>
-              </div>
-            )}
-          </motion.div>
+                <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">{stat.value}</div>
+                <div className="text-sm text-muted-foreground leading-relaxed">{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Latest Businesses Section */}
-      <section className="py-16 md:py-24 bg-muted/30">
+      {/* ==================== CATEGORIES ==================== */}
+      {dbCategories && dbCategories.filter(c => !c.parentId).length > 0 && (
+        <section className="py-20 md:py-28">
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Explorez nos categories
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+                Trouvez le professionnel adapte a vos besoins
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
+              {dbCategories.filter(c => !c.parentId).map((category, index) => {
+                const image = CATEGORY_IMAGES[category.slug];
+                return (
+                  <motion.div
+                    key={category.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.06 }}
+                  >
+                    <Link
+                      href={`/search?category=${category.slug}`}
+                      className="group block relative h-52 md:h-64 rounded-2xl overflow-hidden"
+                    >
+                      <img
+                        src={image}
+                        alt={category.name}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <span className="font-semibold text-white text-base">{category.name}</span>
+                        {category.children && category.children.length > 0 && (
+                          <p className="text-white/70 text-xs mt-0.5">
+                            {category.children.length} specialite{category.children.length > 1 ? 's' : ''}
+                          </p>
+                        )}
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ==================== BENEFITS ==================== */}
+      <section className="py-20 md:py-28 bg-muted/30">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Pourquoi Sidely ?
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+              Une experience de reservation simple, rapide et securisee
+            </p>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden">
+            {benefits.map((benefit, index) => (
+              <motion.div
+                key={benefit.title}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.08 }}
+                className="bg-surface p-8 md:p-10 group hover:bg-muted/30 transition-colors"
+              >
+                <span className="text-5xl md:text-6xl font-bold text-primary/10 block mb-4 leading-none">0{index + 1}</span>
+                <h3 className="font-semibold text-lg mb-2">{benefit.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{benefit.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== HOW IT WORKS ==================== */}
+      <section className="py-20 md:py-28">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Comment ca marche ?
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+              Prenez rendez-vous en 3 etapes
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6 md:gap-0">
+            {[
+              { step: '01', title: 'Trouvez', description: 'Recherchez un professionnel par categorie, nom ou localisation.' },
+              { step: '02', title: 'Reservez', description: 'Choisissez le service, l\'employe et le creneau qui vous conviennent.' },
+              { step: '03', title: 'Profitez', description: 'Rendez-vous confirme. Apres la prestation, laissez un avis.' },
+            ].map((item, index) => (
+              <motion.div
+                key={item.step}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.12 }}
+                className={`relative p-8 ${index < 2 ? 'md:border-r md:border-border' : ''}`}
+              >
+                <span className="text-5xl md:text-6xl font-bold text-primary/10 block mb-4 leading-none">{item.step}</span>
+                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== FEATURED BUSINESSES ==================== */}
+      <section className="py-20 md:py-28 bg-muted/30">
         <div className="container mx-auto px-4">
           <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            variants={fadeInUp}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
           >
             {latestBusinesses?.data && latestBusinesses.data.length > 0 ? (
               <HorizontalSlider
-                title="Professionnels près de vous"
-                subtitle="Des entreprises de confiance dans votre région"
-                icon={Building2}
-                iconColor="text-primary"
-                iconBg="bg-primary/10"
-                viewAllLink="/search?type=businesses"
+                title="Decouvrez nos professionnels"
+                subtitle="Des prestataires de confiance pres de chez vous"
+                viewAllLink="/search"
                 viewAllLabel="Voir tout"
               >
                 {latestBusinesses.data.map((business) => (
@@ -756,210 +568,125 @@ export default function HomePage() {
                 <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Building2 className="w-8 h-8 text-primary" />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Aucun professionnel disponible</h3>
-                <p className="text-muted-foreground">Les professionnels arrivent bientôt !</p>
+                <h3 className="font-semibold text-lg mb-2">Bientot disponible</h3>
+                <p className="text-muted-foreground">Les professionnels arrivent bientot !</p>
               </div>
             )}
           </motion.div>
         </div>
       </section>
 
-      {/* How It Works Section - Planity Style */}
+      {/* ==================== SOCIAL PROOF ==================== */}
       <section className="py-20 md:py-28">
         <div className="container mx-auto px-4">
           <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            variants={fadeInUp}
-            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            className="max-w-4xl mx-auto"
           >
-            <span className="inline-block px-4 py-1.5 bg-primary/10 text-primary text-sm font-medium rounded-full mb-4">
-              Simple et rapide
-            </span>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Comment ca marche ?
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              En 3 etapes simples, trouvez le service dont vous avez besoin
-            </p>
-          </motion.div>
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              {/* Left: content */}
+              <div>
+                <span className="inline-block px-4 py-1.5 bg-green-500/10 text-green-600 dark:text-green-400 text-sm font-medium rounded-full mb-4">
+                  Confiance & transparence
+                </span>
+                <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                  Des avis sur lesquels vous pouvez compter
+                </h2>
+                <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
+                  Chez Sidely, chaque avis est lie a une prestation reelle. Pas de faux avis, pas de notes gonflees. Juste des retours honnetes de vrais clients.
+                </p>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            {steps.map((step, index) => (
-              <motion.div
-                key={step.title}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.15 }}
-                className="relative text-center"
-              >
-                {/* Connector line */}
-                {index < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-12 left-1/2 w-full h-0.5 bg-gradient-to-r from-primary/30 to-transparent" />
-                )}
-
-                <div className="relative inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-primary/20 to-primary/5 rounded-3xl mb-6 mx-auto">
-                  <step.icon className="w-10 h-10 text-primary" />
-                  <span className="absolute -top-2 -right-2 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold shadow-lg">
-                    {step.number}
-                  </span>
+                <div className="space-y-4">
+                  {[
+                    { icon: CheckCircle, text: 'Avis lies a des prestations reelles' },
+                    { icon: Shield, text: 'Professionnels verifies par notre equipe' },
+                    { icon: Users, text: 'Communaute de confiance' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-green-50 dark:bg-green-500/10 rounded-lg flex items-center justify-center shrink-0">
+                        <item.icon className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <span className="text-sm font-medium">{item.text}</span>
+                    </div>
+                  ))}
                 </div>
-                <h3 className="text-xl font-bold mb-2">{step.title}</h3>
-                <p className="text-muted-foreground">{step.description}</p>
-              </motion.div>
-            ))}
-          </div>
+              </div>
+
+              {/* Right: visual card */}
+              <div className="relative">
+                <div className="bg-surface border border-border rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-bold text-primary">M</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">Marie L.</p>
+                      <p className="text-xs text-muted-foreground">Il y a 2 jours</p>
+                    </div>
+                    <div className="ml-auto flex gap-0.5">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    "Super experience ! L'interface est intuitive, j'ai pu reserver en 2 minutes. Le coiffeur etait ponctuel et professionnel. Je recommande !"
+                  </p>
+                  <div className="mt-4 pt-4 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                    Prestation verifiee
+                  </div>
+                </div>
+
+                {/* Decorative second card behind */}
+                <div className="absolute -bottom-4 -right-4 -z-10 w-full h-full bg-muted/50 rounded-2xl border border-border" />
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Categories Section - Planity Style */}
-      <section className="py-16 md:py-24 bg-muted/30">
+      {/* ==================== CTA ==================== */}
+      <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            variants={fadeInUp}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Explorez par categorie
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Trouvez rapidement ce que vous cherchez
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 max-w-5xl mx-auto"
-          >
-            {categories.map((category, index) => (
-              <motion.div
-                key={category.name}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Link
-                  href={`/search?q=${encodeURIComponent(category.name)}`}
-                  className="group flex flex-col items-center p-6 bg-surface rounded-2xl border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300"
-                >
-                  <div className={`w-14 h-14 ${category.color} rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                    <category.icon className="w-7 h-7" />
-                  </div>
-                  <span className="font-medium text-sm">{category.name}</span>
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
-
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mt-8"
-          >
-            <Link href="/search">
-              <Button variant="outline" className="rounded-full">
-                Voir toutes les categories
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Trust Section */}
-      <section className="py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            variants={fadeInUp}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            <span className="inline-block px-4 py-1.5 bg-green-500/10 text-green-600 dark:text-green-400 text-sm font-medium rounded-full mb-4">
-              100% securise
-            </span>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              La confiance au coeur
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Notre systeme de reputation garantit des echanges sereins
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto"
-          >
-            {trustFeatures.map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-surface rounded-2xl p-6 shadow-sm border border-border hover:border-primary/30 hover:shadow-lg transition-all group"
-              >
-                <div
-                  className={`w-14 h-14 ${feature.bg} rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
-                >
-                  <feature.icon className={`w-7 h-7 ${feature.color}`} />
-                </div>
-                <h3 className="font-bold text-lg mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 md:py-24 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeInUp}
             className="relative overflow-hidden rounded-3xl bg-primary text-primary-foreground p-10 md:p-16 text-center"
           >
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRoLTJ2LTRoMnY0em0wLTZoLTJ2LTRoMnY0em0tNiA2aC0ydi00aDJ2NHptMC02aC0ydi00aDJ2NHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30" />
+            {/* Pattern */}
+            <div className="absolute inset-0 opacity-[0.03]" style={{
+              backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+              backgroundSize: '24px 24px',
+            }} />
+
             <div className="relative z-10">
               <h2 className="text-2xl md:text-4xl font-bold mb-4">
-                Prêt à commencer ?
+                Pret a trouver votre professionnel ?
               </h2>
-              <p className="text-lg text-primary-foreground/80 mb-8 max-w-xl mx-auto">
-                Rejoignez des milliers d&apos;utilisateurs qui échangent déjà des services en toute confiance
+              <p className="text-lg text-primary-foreground/70 mb-8 max-w-xl mx-auto">
+                Inscription gratuite. Reservation en ligne 24h/24.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Button
                   size="lg"
                   variant="outline"
                   className="rounded-full px-8 bg-white text-primary hover:bg-white/90 border-white"
-                  onClick={() => router.push('/auth/register')}
+                  onClick={() => router.push('/search')}
                 >
-                  Créer un compte gratuit
+                  Explorer les professionnels
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
                 <Button
                   size="lg"
                   variant="ghost"
-                  className="rounded-full px-8 text-white hover:bg-white/10"
-                  onClick={() => router.push('/search')}
+                  className="rounded-full px-8 text-primary-foreground hover:bg-white/10"
+                  onClick={() => router.push('/auth/register')}
                 >
-                  Explorer les services
+                  Creer un compte
                 </Button>
               </div>
             </div>

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Building2,
   Users,
@@ -36,13 +37,19 @@ import { createPortal } from 'react-dom';
 import { Business, Employee, BusinessService, Booking, BookingStatus, BusinessHours, BusinessCategory, BusinessImage } from '@/types';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 
-export default function BusinessDashboardPage() {
+function BusinessDashboardContent() {
+  const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
-  const { onBookingStatus } = useWebSocket();
+  const { onBookingStatus, onNotification } = useWebSocket();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings'>('overview');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const validTabs = ['overview', 'services', 'employees', 'bookings'] as const;
+  const initialTab = validTabs.includes(tabParam as any) ? (tabParam as typeof validTabs[number]) : 'overview';
+
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings'>(initialTab);
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -92,13 +99,22 @@ export default function BusinessDashboardPage() {
 
   // Listen for real-time booking status updates
   useEffect(() => {
-    const unsubscribe = onBookingStatus(() => {
-      // Update bookings cache - invalidate to refetch with current filters
+    const unsubStatus = onBookingStatus(() => {
       queryClient.invalidateQueries({ queryKey: ['business-bookings'] });
     });
 
-    return unsubscribe;
-  }, [onBookingStatus, queryClient]);
+    // Also listen for new booking notifications (BOOKING_NEW)
+    const unsubNotification = onNotification((notification) => {
+      if (notification.type === 'BOOKING_NEW' || notification.type === 'BOOKING_CANCELED') {
+        queryClient.invalidateQueries({ queryKey: ['business-bookings'] });
+      }
+    });
+
+    return () => {
+      unsubStatus();
+      unsubNotification();
+    };
+  }, [onBookingStatus, onNotification, queryClient]);
 
   const { data: business, isLoading } = useQuery({
     queryKey: ['my-business'],
@@ -117,6 +133,9 @@ export default function BusinessDashboardPage() {
   // Filtrer uniquement les bookings business
   const businessBookings = bookings?.filter(b => b.businessServiceId) || [];
   const pendingBookings = businessBookings.filter(b => b.status === 'PENDING');
+  const completedRevenue = businessBookings
+    .filter(b => b.status === 'COMPLETED')
+    .reduce((sum, b) => sum + (b.agreedPriceCents || 0), 0);
 
   const statusLabels: Record<BookingStatus, string> = {
     PENDING: 'En attente',
@@ -194,24 +213,8 @@ export default function BusinessDashboardPage() {
   }
 
   if (!business) {
-    return (
-      <div className="container mx-auto px-4 py-16 pt-24 text-center">
-        <div className="max-w-md mx-auto">
-          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Building2 className="w-10 h-10 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold mb-3">Créez votre business</h1>
-          <p className="text-muted-foreground mb-6">
-            Configurez votre établissement pour commencer à recevoir des réservations.
-          </p>
-          <Link href="/business/setup">
-            <Button size="lg" className="rounded-full px-8">
-              Commencer
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
+    router.replace('/');
+    return null;
   }
 
   const tabs = [
@@ -332,8 +335,8 @@ export default function BusinessDashboardPage() {
                     <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold">0 €</div>
-                <div className="text-sm text-muted-foreground">CA ce mois</div>
+                <div className="text-2xl font-bold">{formatPrice(completedRevenue)}</div>
+                <div className="text-sm text-muted-foreground">CA ({viewMode === 'week' ? 'semaine' : 'mois'})</div>
               </div>
             </div>
 
@@ -428,60 +431,48 @@ export default function BusinessDashboardPage() {
                   <p className="text-muted-foreground">Aucune réservation pour cette période</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {businessBookings.map((booking) => (
                     <div
                       key={booking.id}
-                      className="flex items-center justify-between p-4 rounded-xl bg-background"
+                      className="p-4 rounded-xl bg-background flex flex-col justify-between"
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium truncate">
-                            {booking.businessService?.name || 'Prestation'}
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <span className="font-medium truncate">
+                          {booking.businessService?.name || 'Prestation'}
+                        </span>
+                        {booking.scheduledAt && (
+                          <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                            {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                            })}
+                            {' à '}
+                            {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
                           </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[booking.status]}`}>
-                            {statusLabels[booking.status]}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                          <span>{booking.requester?.profile?.displayName || 'Client'}</span>
-                          {booking.employee && (
-                            <>
-                              <span>•</span>
-                              <span>{booking.employee.firstName} {booking.employee.lastName}</span>
-                            </>
-                          )}
-                          {booking.scheduledAt && (
-                            <>
-                              <span>•</span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5" />
-                                {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
-                                  weekday: 'short',
-                                  day: 'numeric',
-                                  month: 'short',
-                                })}
-                                {' à '}
-                                {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                            </>
-                          )}
-                        </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-3 shrink-0 ml-4">
-                        {booking.agreedPriceCents && (
+                      <div className="text-sm text-muted-foreground mb-3">
+                        <span>{booking.requester?.name || 'Client'}</span>
+                        {booking.employee && (
+                          <span> · {booking.employee.firstName} {booking.employee.lastName}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        {booking.agreedPriceCents ? (
                           <span className="font-semibold text-primary">
                             {formatPrice(booking.agreedPriceCents)}
                           </span>
-                        )}
-                        {booking.status === 'PENDING' && (
+                        ) : <span />}
+                        {booking.status === 'PENDING' ? (
                           <div className="flex gap-2">
                             <Button
                               size="sm"
-                              className="rounded-full h-8 px-3"
+                              className="rounded-full h-7 px-3 text-xs"
                               onClick={() => acceptBookingMutation.mutate(booking.id)}
                               disabled={acceptBookingMutation.isPending}
                             >
@@ -490,13 +481,17 @@ export default function BusinessDashboardPage() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="rounded-full h-8 px-3"
+                              className="rounded-full h-7 px-3 text-xs"
                               onClick={() => cancelBookingMutation.mutate(booking.id)}
                               disabled={cancelBookingMutation.isPending}
                             >
                               Refuser
                             </Button>
                           </div>
+                        ) : (
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColors[booking.status]}`}>
+                            {statusLabels[booking.status]}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -703,61 +698,54 @@ export default function BusinessDashboardPage() {
                 <p className="text-muted-foreground">Aucune réservation pour cette période</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {businessBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="bg-surface border border-border rounded-2xl p-5"
+                    className="bg-surface border border-border rounded-2xl p-4 flex flex-col justify-between"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-medium">
-                            {booking.businessService?.name || 'Service'}
-                          </h3>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[booking.status]}`}>
-                            {statusLabels[booking.status]}
-                          </span>
-                        </div>
-                        <div className="text-sm text-muted-foreground space-y-1">
-                          <p>
-                            <span className="font-medium text-foreground">Client:</span>{' '}
-                            {booking.requester?.profile?.displayName || 'Anonyme'}
-                          </p>
-                          {booking.employee && (
-                            <p>
-                              <span className="font-medium text-foreground">Avec:</span>{' '}
-                              {booking.employee.firstName} {booking.employee.lastName}
-                            </p>
-                          )}
-                          {booking.scheduledAt && (
-                            <p className="flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5" />
-                              {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
-                                weekday: 'short',
-                                day: 'numeric',
-                                month: 'short',
-                              })}
-                              {' à '}
-                              {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </p>
-                          )}
-                          {booking.agreedPriceCents && (
-                            <p className="font-semibold text-primary">
-                              {formatPrice(booking.agreedPriceCents)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+                    {/* Top: service name + date */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="font-semibold truncate">
+                        {booking.businessService?.name || 'Service'}
+                      </h3>
+                      {booking.scheduledAt && (
+                        <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                          {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short',
+                          })}
+                          {' à '}
+                          {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      )}
+                    </div>
 
-                      {booking.status === 'PENDING' && (
+                    {/* Middle: client + employee */}
+                    <div className="text-sm text-muted-foreground mb-3">
+                      <span>{booking.requester?.name || 'Client'}</span>
+                      {booking.employee && (
+                        <span> · {booking.employee.firstName} {booking.employee.lastName}</span>
+                      )}
+                    </div>
+
+                    {/* Bottom: price + status/actions */}
+                    <div className="flex items-center justify-between">
+                      {booking.agreedPriceCents ? (
+                        <span className="font-semibold text-primary">
+                          {formatPrice(booking.agreedPriceCents)}
+                        </span>
+                      ) : <span />}
+
+                      {booking.status === 'PENDING' ? (
                         <div className="flex gap-2">
                           <Button
                             size="sm"
-                            className="rounded-full"
+                            className="rounded-full h-7 px-3 text-xs"
                             onClick={() => acceptBookingMutation.mutate(booking.id)}
                             disabled={acceptBookingMutation.isPending}
                           >
@@ -766,13 +754,17 @@ export default function BusinessDashboardPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="rounded-full"
+                            className="rounded-full h-7 px-3 text-xs"
                             onClick={() => cancelBookingMutation.mutate(booking.id)}
                             disabled={cancelBookingMutation.isPending}
                           >
                             Refuser
                           </Button>
                         </div>
+                      ) : (
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColors[booking.status]}`}>
+                          {statusLabels[booking.status]}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -1382,6 +1374,14 @@ function EmployeeCard({ employee, onDelete }: { employee: Employee; onDelete: ()
         </div>
       )}
     </div>
+  );
+}
+
+export default function BusinessDashboardPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-16 pt-24"><PageLoader text="Chargement..." /></div>}>
+      <BusinessDashboardContent />
+    </Suspense>
   );
 }
 

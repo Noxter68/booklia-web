@@ -43,7 +43,7 @@ export function ReviewReplyModal({ review, onClose, onSuccess }: ReviewReplyModa
 
   if (!review) return null;
 
-  const authorName = review.author?.profile?.displayName || 'Client';
+  const authorName = review.author?.name || 'Client';
   const stars = Math.round(review.score / 2);
 
   const handleSubmit = () => {

@@ -65,83 +65,7 @@ class ApiClient {
     return this.request<import('@/types').User>('/auth/me');
   }
 
-  // Services
-  async searchServices(filters: import('@/types').SearchFilters) {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== '') {
-        params.append(key, String(value));
-      }
-    });
-    return this.request<import('@/types').PaginatedResponse<import('@/types').Service>>(
-      `/services/search?${params}`
-    );
-  }
-
-  async suggestServices(query: string, limit = 5) {
-    return this.request<import('@/types').ServiceSuggestion[]>(
-      `/services/suggest?q=${encodeURIComponent(query)}&limit=${limit}`
-    );
-  }
-
-  async getService(id: string) {
-    return this.request<import('@/types').Service>(`/services/${id}`);
-  }
-
-  async createService(data: Partial<import('@/types').Service>) {
-    return this.request<import('@/types').Service>('/services', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateService(id: string, data: Partial<import('@/types').Service>) {
-    return this.request<import('@/types').Service>(`/services/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async publishService(id: string) {
-    return this.request<import('@/types').Service>(`/services/${id}/publish`, {
-      method: 'POST',
-    });
-  }
-
-  async pauseService(id: string) {
-    return this.request<import('@/types').Service>(`/services/${id}/pause`, {
-      method: 'POST',
-    });
-  }
-
-  async deleteService(id: string) {
-    return this.request<{ success: boolean }>(`/services/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  async getMyServices() {
-    return this.request<import('@/types').Service[]>('/services/me/services');
-  }
-
-  async getUserServices(userId: string) {
-    return this.request<import('@/types').Service[]>(`/services/user/${userId}`);
-  }
-
   // Bookings
-  async createBooking(data: {
-    serviceId: string;
-    agreedPriceCents?: number;
-    scheduledAt?: string;
-    notes?: string;
-    requesterPhone?: string;
-    requesterAddress?: string;
-  }) {
-    return this.request<import('@/types').Booking>('/bookings', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
 
   async acceptBooking(id: string) {
     return this.request<import('@/types').Booking>(`/bookings/${id}/accept`, {
@@ -222,35 +146,11 @@ class ApiClient {
     return this.request<import('@/types').Category[]>('/categories');
   }
 
-  // Tags
-  async suggestTags(query: string) {
-    return this.request<import('@/types').Tag[]>(`/tags/suggest?q=${encodeURIComponent(query)}`);
-  }
-
-  // Users
-  async getProfile(userId: string) {
-    return this.request<import('@/types').User>(`/users/${userId}`);
-  }
-
-  async updateMyProfile(data: Partial<import('@/types').Profile>) {
-    return this.request<import('@/types').Profile>('/users/me/profile', {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  }
-
   // Stripe
   async createSubscription(priceId: string) {
     return this.request<{ url: string }>('/stripe/subscribe', {
       method: 'POST',
       body: JSON.stringify({ priceId }),
-    });
-  }
-
-  async createBoost(serviceId: string) {
-    return this.request<{ url: string }>('/stripe/boost', {
-      method: 'POST',
-      body: JSON.stringify({ serviceId }),
     });
   }
 
@@ -523,56 +423,6 @@ class ApiClient {
     });
   }
 
-  // Profile Images
-  async getMyPeopleImages() {
-    return this.request<import('@/types').PeopleImage[]>('/users/me/images');
-  }
-
-  async getPeopleImages(userId: string) {
-    return this.request<import('@/types').PeopleImage[]>(`/users/${userId}/images`);
-  }
-
-  async addPeopleImage(url: string) {
-    return this.request<import('@/types').PeopleImage>('/users/me/images', {
-      method: 'POST',
-      body: JSON.stringify({ url }),
-    });
-  }
-
-  async deletePeopleImage(id: string) {
-    return this.request<{ success: boolean }>(`/users/me/images/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  async reorderPeopleImages(imageIds: string[]) {
-    return this.request<import('@/types').PeopleImage[]>('/users/me/images/reorder', {
-      method: 'PUT',
-      body: JSON.stringify({ imageIds }),
-    });
-  }
-
-  // Booking Comments
-  async getBookingComments(bookingId: string) {
-    return this.request<{
-      booking: import('@/types').Booking;
-      comments: import('@/types').BookingComment[];
-    }>(`/bookings/${bookingId}/comments`);
-  }
-
-  async addBookingComment(bookingId: string, content: string) {
-    return this.request<import('@/types').BookingComment>(`/bookings/${bookingId}/comments`, {
-      method: 'POST',
-      body: JSON.stringify({ content }),
-    });
-  }
-
-  async deleteBookingComment(bookingId: string, commentId: string) {
-    return this.request<{ success: boolean }>(`/bookings/${bookingId}/comments/${commentId}`, {
-      method: 'DELETE',
-    });
-  }
-
   // Notifications
   async getNotifications(limit = 20) {
     return this.request<{
@@ -687,16 +537,6 @@ class ApiClient {
       `/admin/business/${id}/verify`,
       { method: 'PATCH' }
     );
-  }
-
-  async adminListUsers(page = 1, limit = 20) {
-    return this.request<{
-      data: (import('@/types').User & {
-        profile?: import('@/types').Profile;
-        reputation?: import('@/types').UserReputation;
-      })[];
-      meta: { total: number; page: number; limit: number; totalPages: number };
-    }>(`/admin/users?page=${page}&limit=${limit}`);
   }
 
   async adminToggleEarlyAdopter(id: string) {

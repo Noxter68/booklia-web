@@ -6,7 +6,6 @@ import Link from 'next/link';
 import {
   Shield,
   Building2,
-  Users,
   LogOut,
   Menu,
   X,
@@ -74,7 +73,6 @@ export default function AdminLayout({
   const navItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/businesses', icon: Building2, label: 'Business' },
-    { href: '/admin/users', icon: Users, label: 'Particuliers' },
   ];
 
   const handleLogout = () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Building2, MapPin, Phone, Mail, Globe, ArrowRight, Check, Tag } from 'lucide-react';
@@ -13,7 +13,14 @@ import { useToast } from '@/components/ui/toast';
 
 export default function BusinessSetupPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+
+  // Only admins can access this page — customers should not create businesses
+  useEffect(() => {
+    if (!authLoading && (!user || !user.isAdmin)) {
+      router.replace('/');
+    }
+  }, [user, authLoading, router]);
   const { success, error: showError } = useToast();
 
   // Fetch categories for selection

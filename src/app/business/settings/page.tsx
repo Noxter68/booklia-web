@@ -27,7 +27,7 @@ import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { AddressAutocomplete, AddressResult } from '@/components/ui/address-autocomplete';
 import Link from 'next/link';
-import { BusinessImage, BusinessHours } from '@/types';
+import { BusinessImage, BusinessHours, Category } from '@/types';
 
 type Tab = 'profile' | 'images' | 'hours';
 
@@ -55,6 +55,7 @@ export default function BusinessSettingsPage() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [logoUrl, setLogoUrl] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
@@ -85,11 +86,18 @@ export default function BusinessSettingsPage() {
         setLongitude(data.longitude || null);
         setLogoUrl(data.logoUrl || '');
         setCoverUrl(data.coverUrl || '');
+        setSelectedCategoryId(data.categoryId || '');
         setIsProfileLoaded(true);
       }
       return data;
     },
     enabled: !!user,
+  });
+
+  // Fetch categories
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.getCategories(),
   });
 
   // Fetch business images
@@ -132,6 +140,7 @@ export default function BusinessSettingsPage() {
     mutationFn: (data: {
       name?: string;
       description?: string;
+      categoryId?: string;
       phone?: string;
       email?: string;
       website?: string;
@@ -197,6 +206,7 @@ export default function BusinessSettingsPage() {
     updateBusinessMutation.mutate({
       name: name || undefined,
       description: description || undefined,
+      categoryId: selectedCategoryId || undefined,
       phone: phone || undefined,
       email: email || undefined,
       website: website || undefined,
@@ -321,7 +331,7 @@ export default function BusinessSettingsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background pt-24">
         <div className="text-center max-w-md px-4">
-          <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <div className="w-20 h-20 bg-linear-to-br from-primary/20 to-primary/5 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Building2 className="w-10 h-10 text-primary" />
           </div>
           <h1 className="text-2xl font-bold mb-3">Connectez-vous</h1>
@@ -340,7 +350,7 @@ export default function BusinessSettingsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background pt-24">
         <div className="text-center max-w-md px-4">
-          <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <div className="w-20 h-20 bg-linear-to-br from-primary/20 to-primary/5 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Building2 className="w-10 h-10 text-primary" />
           </div>
           <h1 className="text-2xl font-bold mb-3">Aucun business</h1>
@@ -528,6 +538,26 @@ export default function BusinessSettingsPage() {
                   <p className="text-xs text-muted-foreground mt-1 text-right">
                     {description.length}/1000 caractères
                   </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Catégorie</label>
+                  <div className="flex flex-wrap gap-2">
+                    {categories?.map((category) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        onClick={() => setSelectedCategoryId(selectedCategoryId === category.id ? '' : category.id)}
+                        className={`px-4 py-2 rounded-xl border text-sm transition-colors cursor-pointer ${
+                          selectedCategoryId === category.id
+                            ? 'border-primary bg-primary/5 text-primary font-medium'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">

@@ -1,156 +1,54 @@
 // Enums
-export type ServiceKind = 'OFFER' | 'REQUEST';
-export type ServiceStatus = 'DRAFT' | 'PUBLISHED' | 'PAUSED';
-export type Urgency = 'URGENT' | 'SOON' | 'FLEXIBLE';
-export type Recurrence = 'ONE_TIME' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'CUSTOM';
 export type BookingStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED' | 'CANCELED';
-export type ReviewType = 'REVIEW_PROVIDER' | 'REVIEW_REQUESTER';
+export type ReviewType = 'REVIEW_PROVIDER';
 export type SubscriptionStatus = 'FREE' | 'PRO' | 'CANCELED';
-export type WeekDay = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
 export type BusinessTier = 'STARTER' | 'PRO' | 'PREMIUM';
 
-// User & Profile
+// User
 export interface User {
   id: string;
   email: string;
   name?: string;
   image?: string;
   isAdmin?: boolean;
-  isBusiness?: boolean;
-  subscriptionStatus: SubscriptionStatus;
-  createdAt: string;
-  profile?: Profile;
-  reputation?: UserReputation;
-}
-
-export interface Profile {
-  userId: string;
-  displayName?: string;
-  avatarUrl?: string;
-  coverUrl?: string;
-  bio?: string;
-  city?: string;
-  address?: string;
-  latitude?: number;
-  longitude?: number;
-  images?: PeopleImage[];
-}
-
-export interface PeopleImage {
-  id: string;
-  profileId: string;
-  url: string;
-  sortOrder: number;
   createdAt: string;
 }
 
-export interface UserReputation {
-  userId: string;
-  elo: number;
-  ratingAvg5: number;
-  ratingCount: number;
-  completedBookings: number;
-  lateCancellationCount: number;
-}
-
-// Category & Tag
+// Category
 export interface Category {
   id: string;
   name: string;
   slug: string;
   parentId?: string;
   children?: Category[];
-  _count?: { services: number };
-}
-
-export interface Tag {
-  id: string;
-  name: string;
-}
-
-// Service
-export type PricingType = 'HOURLY' | 'FIXED';
-
-export interface Service {
-  id: string;
-  kind: ServiceKind;
-  title: string;
-  description: string;
-  priceCents?: number;
-  pricingType?: PricingType;
-  currency: string;
-  // Duration
-  durationMinutes?: number;
-  // Availability
-  availableDays?: WeekDay[];
-  availableFromTime?: string;
-  availableToTime?: string;
-  availableFromDate?: string;
-  availableToDate?: string;
-  // Location
-  city?: string;
-  latitude?: number;
-  longitude?: number;
-  // Category & Tags
-  categoryId?: string;
-  category?: Category;
-  tags?: { tag: Tag }[];
-  createdByUserId: string;
-  createdBy?: {
-    id: string;
-    profile?: {
-      displayName?: string;
-      avatarUrl?: string;
-      coverUrl?: string;
-      city?: string;
-      images?: PeopleImage[];
-    };
-    reputation?: UserReputation;
-  };
-  status: ServiceStatus;
-  deadlineAt?: string;
-  expiresAt: string;
-  urgency: Urgency;
-  isRecurring: boolean;
-  recurrence: Recurrence;
-  sessionsCount?: number;
-  boostedUntil?: string;
-  createdAt: string;
-  updatedAt: string;
+  _count?: { businessServices: number };
 }
 
 // Booking
 export interface Booking {
   id: string;
-  // P2P booking
-  serviceId?: string;
-  service?: Service;
-  // Business booking
-  businessServiceId?: string;
+  businessServiceId: string;
   businessService?: BusinessService & {
     business?: Business;
   };
-  employeeId?: string;
+  employeeId: string;
   employee?: Employee;
-  // Common fields
   requesterId: string;
   requester?: {
     id: string;
-    profile?: { displayName?: string; avatarUrl?: string };
+    name?: string;
   };
   providerId: string;
   provider?: {
     id: string;
-    profile?: { displayName?: string; avatarUrl?: string };
+    name?: string;
   };
   status: BookingStatus;
   agreedPriceCents?: number;
   scheduledAt?: string;
+  scheduledEndAt?: string;
   completedAt?: string;
   notes?: string;
-  // P2P contact info
-  requesterPhone?: string;
-  requesterAddress?: string;
   rejectionMessage?: string;
   reviews?: Review[];
   createdAt: string;
@@ -164,7 +62,7 @@ export interface Review {
   authorId: string;
   author?: {
     id: string;
-    profile?: { displayName?: string; avatarUrl?: string };
+    name?: string;
   };
   targetUserId: string;
   type: ReviewType;
@@ -173,7 +71,6 @@ export interface Review {
   reply?: string;
   repliedAt?: string;
   booking?: {
-    service?: { title: string };
     businessService?: { name: string };
     employee?: { firstName: string; lastName: string };
   };
@@ -188,35 +85,6 @@ export interface PaginatedResponse<T> {
   offset: number;
 }
 
-export interface SearchFilters {
-  q?: string;
-  kind?: ServiceKind;
-  categoryId?: string;
-  subcategoryId?: string;
-  priceMin?: number;
-  priceMax?: number;
-  urgency?: Urgency;
-  isRecurring?: boolean;
-  city?: string;
-  // Geolocation
-  lat?: number;
-  lng?: number;
-  radius?: number;
-  limit?: number;
-  offset?: number;
-}
-
-// Service suggestion for autocomplete
-export interface ServiceSuggestion {
-  id: string;
-  title: string;
-  kind: ServiceKind;
-  category?: { name: string };
-  createdBy?: {
-    profile?: { displayName?: string; city?: string };
-  };
-}
-
 // Business
 export interface Business {
   id: string;
@@ -224,6 +92,8 @@ export interface Business {
   name: string;
   slug: string;
   description?: string;
+  categoryId?: string;
+  category?: Category;
   logoUrl?: string;
   coverUrl?: string;
   phone?: string;
@@ -248,7 +118,6 @@ export interface Business {
   owner?: {
     id: string;
     name?: string;
-    reputation?: UserReputation;
   };
   employees?: Employee[];
   services?: BusinessService[];
@@ -267,7 +136,7 @@ export interface BusinessService {
   businessId: string;
   name: string;
   description?: string;
-  detailedDescription?: string; // Rich text HTML content
+  detailedDescription?: string;
   priceCents: number;
   currency: string;
   durationMinutes: number;
@@ -336,20 +205,6 @@ export interface BusinessImage {
   createdAt: string;
 }
 
-// Booking Comments
-export interface BookingComment {
-  id: string;
-  bookingId: string;
-  authorId: string;
-  content: string;
-  author?: {
-    id: string;
-    profile?: { displayName?: string; avatarUrl?: string };
-  };
-  createdAt: string;
-  updatedAt: string;
-}
-
 // Notifications
 export type NotificationType =
   | 'BOOKING_NEW'
@@ -357,7 +212,6 @@ export type NotificationType =
   | 'BOOKING_REJECTED'
   | 'BOOKING_CANCELED'
   | 'BOOKING_COMPLETED'
-  | 'BOOKING_COMMENT'
   | 'REVIEW_RECEIVED';
 
 export interface Notification {
@@ -367,7 +221,6 @@ export interface Notification {
   title: string;
   message: string;
   bookingId?: string;
-  serviceId?: string;
   isRead: boolean;
   createdAt: string;
 }

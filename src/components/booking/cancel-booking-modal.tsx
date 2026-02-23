@@ -77,7 +77,7 @@ export function CancelBookingModal({
           <div className="p-5 space-y-4">
             {/* Service info */}
             <div className="bg-muted/30 rounded-xl p-4">
-              <p className="font-medium">{booking.service?.title || booking.businessService?.name || 'Réservation'}</p>
+              <p className="font-medium">{booking.businessService?.name || 'Réservation'}</p>
               {booking.businessService?.business?.name && (
                 <p className="text-sm text-muted-foreground mt-1">
                   chez {booking.businessService.business.name}

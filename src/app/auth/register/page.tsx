@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, Building2, User } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isBusiness, setIsBusiness] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -37,7 +36,7 @@ export default function RegisterPage() {
     }
 
     if (password.length < 8) {
-      const message = 'Le mot de passe doit contenir au moins 8 caractères';
+      const message = 'Le mot de passe doit contenir au moins 8 caracteres';
       setError(message);
       showError(message);
       return;
@@ -51,10 +50,9 @@ export default function RegisterPage() {
         lastName,
         email,
         password,
-        isBusiness,
       });
-      success('Inscription réussie ! Bienvenue sur Sidely');
-      router.push(isBusiness ? '/business/setup' : '/dashboard');
+      success('Inscription reussie ! Bienvenue sur Sidely');
+      router.push('/');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'inscription';
       setError(message);
@@ -70,7 +68,7 @@ export default function RegisterPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Inscription</CardTitle>
           <CardDescription>
-            Créez votre compte gratuitement
+            Creez votre compte gratuitement
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -83,7 +81,7 @@ export default function RegisterPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Prénom</label>
+                <label className="text-sm font-medium mb-2 block">Prenom</label>
                 <Input
                   type="text"
                   value={firstName}
@@ -137,7 +135,7 @@ export default function RegisterPage() {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Minimum 8 caractères
+                Minimum 8 caracteres
               </p>
             </div>
 
@@ -164,54 +162,13 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Account Type Selection */}
-            <div>
-              <label className="text-sm font-medium mb-3 block">Type de compte</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsBusiness(false)}
-                  className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                    !isBusiness
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:border-muted-foreground/50'
-                  }`}
-                >
-                  <User className={`w-6 h-6 mx-auto mb-2 ${!isBusiness ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <div className={`text-sm font-medium ${!isBusiness ? 'text-primary' : ''}`}>
-                    Particulier
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Offrir ou demander des services
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsBusiness(true)}
-                  className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                    isBusiness
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:border-muted-foreground/50'
-                  }`}
-                >
-                  <Building2 className={`w-6 h-6 mx-auto mb-2 ${isBusiness ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <div className={`text-sm font-medium ${isBusiness ? 'text-primary' : ''}`}>
-                    Professionnel
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Gérer mon activité
-                  </div>
-                </button>
-              </div>
-            </div>
-
             <Button type="submit" className="w-full" isLoading={loading}>
               S&apos;inscrire
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">Déjà un compte ? </span>
+            <span className="text-muted-foreground">Deja un compte ? </span>
             <Link href="/auth/login" className="font-medium hover:underline">
               Se connecter
             </Link>

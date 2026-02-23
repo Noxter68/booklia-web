@@ -473,7 +473,7 @@ function ServiceCard({
 
 // Review card component
 function ReviewCard({ review }: { review: Review }) {
-  const authorName = review.author?.profile?.displayName || 'Client';
+  const authorName = review.author?.name || 'Client';
   const serviceName = review.booking?.businessService?.name;
   const employeeName = review.booking?.employee
     ? `${review.booking.employee.firstName} ${review.booking.employee.lastName}`
@@ -483,15 +483,7 @@ function ReviewCard({ review }: { review: Review }) {
     <div className="border-b border-border/50 last:border-0 pb-4 last:pb-0 mb-4 last:mb-0">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-          {review.author?.profile?.avatarUrl ? (
-            <img
-              src={review.author.profile.avatarUrl}
-              alt=""
-              className="w-full h-full rounded-full object-cover"
-            />
-          ) : (
-            <User className="w-5 h-5 text-primary" />
-          )}
+          <User className="w-5 h-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
@@ -597,10 +589,8 @@ export default function BusinessPublicPage() {
     );
   }
 
-  const avgRating = business.owner?.reputation?.ratingAvg5
-    ? business.owner.reputation.ratingAvg5.toFixed(1)
-    : null;
-  const reviewCount = business.owner?.reputation?.ratingCount || 0;
+  const avgRating = null;
+  const reviewCount = 0;
 
   return (
     <div className="min-h-screen bg-background pb-24 lg:pb-12 pt-24">

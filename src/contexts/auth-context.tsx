@@ -15,7 +15,6 @@ interface AuthContextType {
     lastName: string;
     email: string;
     password: string;
-    isBusiness?: boolean;
   }) => Promise<{ user: AuthUser }>;
   logout: () => void;
   checkSession: () => Promise<void>;
@@ -81,7 +80,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastName: string;
     email: string;
     password: string;
-    isBusiness?: boolean;
   }) => {
     const result = await authClient.register(data);
     setUser(result.user);
