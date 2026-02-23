@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
+import { ConfirmBookingModal } from '@/components/booking/confirm-booking-modal';
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -33,6 +34,7 @@ export default function BookingPage() {
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [direction, setDirection] = useState(0);
 
   // Fetch business data
@@ -487,6 +489,30 @@ export default function BookingPage() {
         )}
       </div>
 
+      {/* Confirmation Modal */}
+      <ConfirmBookingModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={() => {
+          bookingMutation.mutate();
+          setShowConfirmModal(false);
+        }}
+        isLoading={bookingMutation.isPending}
+        businessName={business.name}
+        serviceName={selectedService.name}
+        employeeName={
+          selectedEmployeeData
+            ? `${selectedEmployeeData.firstName} ${selectedEmployeeData.lastName}`
+            : ''
+        }
+        address={business.address || ''}
+        city={business.city || ''}
+        date={selectedDate}
+        time={selectedTime}
+        durationMinutes={selectedService.durationMinutes}
+        priceCents={selectedService.priceCents}
+      />
+
       {/* Fixed Bottom Bar */}
       {selectedDate && selectedTime && (
         <motion.div
@@ -534,8 +560,7 @@ export default function BookingPage() {
                 <Button
                   className="w-full sm:w-auto rounded-full px-8"
                   size="lg"
-                  onClick={() => bookingMutation.mutate()}
-                  isLoading={bookingMutation.isPending}
+                  onClick={() => setShowConfirmModal(true)}
                 >
                   <Check className="w-4 h-4 mr-2" />
                   Confirmer la réservation

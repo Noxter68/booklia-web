@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { authClient, AuthUser } from '@/lib/auth';
 
@@ -27,20 +27,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  // Incremented on login/register to invalidate any in-flight checkSession
+  const authVersion = useRef(0);
 
   const checkSession = useCallback(async () => {
+    const version = authVersion.current;
     setIsLoading(true);
     try {
       const session = await authClient.getSession();
+      // Only apply result if no login/register happened while we were fetching
+      if (authVersion.current !== version) return;
       setUser(session);
-      // Get token from localStorage
       const storedToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       setToken(storedToken);
     } catch {
+      if (authVersion.current !== version) return;
       setUser(null);
       setToken(null);
     } finally {
-      setIsLoading(false);
+      if (authVersion.current === version) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -68,10 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const result = await authClient.login(email, password);
+    // Invalidate any in-flight checkSession so it won't overwrite this state
+    authVersion.current++;
     setUser(result.user);
-    // Get token from localStorage after login
     const storedToken = localStorage.getItem('accessToken');
     setToken(storedToken);
+    setIsLoading(false);
     return result;
   };
 

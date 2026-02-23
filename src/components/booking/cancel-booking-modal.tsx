@@ -105,8 +105,11 @@ export function CancelBookingModal({
             {/* Warning for late cancellation */}
             {isLateCancellation ? (
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/40 rounded-xl flex items-center justify-center mb-3 sm:hidden">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/40 rounded-xl flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/40 rounded-xl hidden sm:flex items-center justify-center shrink-0">
                     <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div>
@@ -128,8 +131,11 @@ export function CancelBookingModal({
               </div>
             ) : (
               <div className="bg-muted/50 rounded-xl p-4">
+                <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center mb-3 sm:hidden">
+                  <Clock className="w-5 h-5 text-muted-foreground" />
+                </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 bg-muted rounded-xl hidden sm:flex items-center justify-center shrink-0">
                     <Clock className="w-5 h-5 text-muted-foreground" />
                   </div>
                   <div>
@@ -163,14 +169,14 @@ export function CancelBookingModal({
           </div>
 
           {/* Actions */}
-          <div className="p-5 border-t border-border/50 flex gap-3">
+          <div className="p-5 border-t border-border/50 flex flex-col-reverse sm:flex-row gap-3">
             <Button
               variant="outline"
               className="flex-1 rounded-xl"
               onClick={onClose}
               disabled={isLoading}
             >
-              Garder la réservation
+              Garder
             </Button>
             <Button
               variant={isLateCancellation ? 'destructive' : 'default'}
@@ -186,7 +192,7 @@ export function CancelBookingModal({
               ) : (
                 <>
                   <Ban className="w-4 h-4 mr-2" />
-                  {isLateCancellation ? 'Annuler quand même' : 'Confirmer'}
+                  {isLateCancellation ? 'Je confirme' : 'Annuler'}
                 </>
               )}
             </Button>
