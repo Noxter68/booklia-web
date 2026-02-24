@@ -10,7 +10,7 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="text-xl font-bold">
-              Sidely
+              Booklia
             </Link>
             <p className="text-sm text-muted-foreground mt-3 max-w-xs">
               La plateforme de services entre particuliers, basée sur la confiance et la réputation.
@@ -77,7 +77,7 @@ export function Footer() {
         {/* Bottom */}
         <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © {currentYear} Sidely. Tous droits réservés.
+            © {currentYear} Booklia. Tous droits réservés.
           </p>
           <div className="flex items-center gap-6">
             <a

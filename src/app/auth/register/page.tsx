@@ -51,7 +51,7 @@ export default function RegisterPage() {
         email,
         password,
       });
-      success('Inscription reussie ! Bienvenue sur Sidely');
+      success('Inscription reussie ! Bienvenue sur Booklia');
       router.push('/');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'inscription';

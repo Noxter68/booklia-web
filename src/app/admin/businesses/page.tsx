@@ -51,6 +51,14 @@ export default function AdminBusinessesPage() {
   const [latitude, setLatitude] = useState<number | undefined>();
   const [longitude, setLongitude] = useState<number | undefined>();
   const [isEarlyAdopter, setIsEarlyAdopter] = useState(false);
+  const [selectedParentCategoryId, setSelectedParentCategoryId] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+
+  // Fetch categories
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.getCategories(),
+  });
 
   // Fetch businesses
   const { data: businessesData, isLoading } = useQuery({
@@ -81,6 +89,7 @@ export default function AdminBusinessesPage() {
       latitude?: number;
       longitude?: number;
       isEarlyAdopter?: boolean;
+      categoryId?: string;
     }) => api.adminCreateBusiness(data),
     onSuccess: (result) => {
       success('Business cree avec succes');
@@ -152,6 +161,8 @@ export default function AdminBusinessesPage() {
     setLatitude(undefined);
     setLongitude(undefined);
     setIsEarlyAdopter(false);
+    setSelectedParentCategoryId('');
+    setCategoryId('');
   };
 
   const handleCreateBusiness = (e: React.FormEvent) => {
@@ -172,6 +183,7 @@ export default function AdminBusinessesPage() {
       latitude,
       longitude,
       isEarlyAdopter: isEarlyAdopter || undefined,
+      categoryId: categoryId || undefined,
     });
   };
 
@@ -604,6 +616,57 @@ export default function AdminBusinessesPage() {
                     </p>
                   )}
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Catégorie
+                  </label>
+                  <select
+                    value={selectedParentCategoryId}
+                    onChange={(e) => {
+                      const parentId = e.target.value;
+                      setSelectedParentCategoryId(parentId);
+                      const parent = categories?.find((c) => c.id === parentId);
+                      if (!parent?.children?.length) {
+                        setCategoryId(parentId);
+                      } else {
+                        setCategoryId('');
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                  >
+                    <option value="">Sélectionner une catégorie</option>
+                    {categories?.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {(() => {
+                  const selectedParent = categories?.find((c) => c.id === selectedParentCategoryId);
+                  if (!selectedParent?.children?.length) return null;
+                  return (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Spécialité
+                      </label>
+                      <select
+                        value={categoryId}
+                        onChange={(e) => setCategoryId(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                      >
+                        <option value="">Sélectionner une spécialité</option>
+                        {selectedParent.children.map((sub) => (
+                          <option key={sub.id} value={sub.id}>
+                            {sub.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })()}
 
                 <div className="flex items-center gap-3 pt-2">
                   <input

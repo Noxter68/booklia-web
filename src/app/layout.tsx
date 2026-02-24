@@ -12,8 +12,8 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "Sidely - Services entre particuliers",
-  description: "Offrez ou demandez des services en toute confiance avec Sidely",
+  title: "Booklia - Services entre particuliers",
+  description: "Offrez ou demandez des services en toute confiance avec Booklia",
 };
 
 export default function RootLayout({

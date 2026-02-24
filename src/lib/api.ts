@@ -543,6 +543,7 @@ class ApiClient {
     latitude?: number;
     longitude?: number;
     isEarlyAdopter?: boolean;
+    categoryId?: string;
   }) {
     return this.request<{
       business: import('@/types').Business;

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Sidely Color Palette - Light Mode */
+  /* Booklia Color Palette - Light Mode */
   /* Dark Blue Theme */
   --background: #FAFAFA;
   --foreground: #0E1116;
@@ -46,7 +46,7 @@
 }
 
 .dark {
-  /* Sidely Color Palette - Dark Mode */
+  /* Booklia Color Palette - Dark Mode */
   /* Dark Blue Theme - Dark */
   --background: #0E1116;
   --foreground: #F9FAFB;

@@ -478,7 +478,7 @@ export default function HomePage() {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Pourquoi Sidely ?
+              Pourquoi Booklia ?
             </h2>
             <p className="text-muted-foreground text-lg max-w-xl mx-auto">
               Une experience de reservation simple, rapide et securisee
@@ -595,7 +595,7 @@ export default function HomePage() {
                   Des avis sur lesquels vous pouvez compter
                 </h2>
                 <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
-                  Chez Sidely, chaque avis est lie a une prestation reelle. Pas de faux avis, pas de notes gonflees. Juste des retours honnetes de vrais clients.
+                  Chez Booklia, chaque avis est lie a une prestation reelle. Pas de faux avis, pas de notes gonflees. Juste des retours honnetes de vrais clients.
                 </p>
 
                 <div className="space-y-4">
