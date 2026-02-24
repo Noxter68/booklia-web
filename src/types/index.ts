@@ -113,6 +113,7 @@ export interface Business {
   isActive: boolean;
   isEarlyAdopter: boolean;
   acceptsOnlineBooking: boolean;
+  autoAcceptBookings: boolean;
   isOnVacation: boolean;
   vacationMessage?: string;
   createdAt: string;

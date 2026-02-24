@@ -22,6 +22,7 @@ import {
   Gift,
   Pencil,
   Lock,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -33,7 +34,7 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import Link from 'next/link';
 import { BusinessImage, BusinessHours, Category, BusinessPromotion } from '@/types';
 
-type Tab = 'profile' | 'images' | 'hours' | 'promotions';
+type Tab = 'profile' | 'images' | 'hours' | 'promotions' | 'settings';
 
 const DAY_NAMES = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 
@@ -61,6 +62,7 @@ export default function BusinessSettingsPage() {
   const [logoUrl, setLogoUrl] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [autoAcceptBookings, setAutoAcceptBookings] = useState(false);
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
@@ -111,6 +113,7 @@ export default function BusinessSettingsPage() {
       setLogoUrl(business.logoUrl || '');
       setCoverUrl(business.coverUrl || '');
       setSelectedCategoryId(business.categoryId || '');
+      setAutoAcceptBookings(business.autoAcceptBookings ?? false);
       setIsProfileLoaded(true);
     }
   }, [business, isProfileLoaded]);
@@ -218,6 +221,7 @@ export default function BusinessSettingsPage() {
       longitude?: number;
       logoUrl?: string;
       coverUrl?: string;
+      autoAcceptBookings?: boolean;
     }) => api.updateBusiness(data),
     onSuccess: () => {
       success('Informations mises à jour');
@@ -296,6 +300,7 @@ export default function BusinessSettingsPage() {
       longitude: longitude ?? undefined,
       logoUrl,
       coverUrl,
+      autoAcceptBookings,
     });
   };
 
@@ -511,6 +516,17 @@ export default function BusinessSettingsPage() {
           >
             <Gift className="w-4 h-4" />
             Offres
+          </button>
+          <button
+            onClick={() => setTab('settings')}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
+              tab === 'settings'
+                ? 'bg-surface text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            Paramètres
           </button>
         </div>
 
@@ -739,74 +755,6 @@ export default function BusinessSettingsPage() {
                   <Save className="w-4 h-4 mr-2" />
                   {updateBusinessMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
                 </Button>
-              </div>
-
-              {/* Change Password */}
-              <div className="mt-6 pt-6 border-t border-border/50">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Lock className="w-5 h-5" />
-                  Changer le mot de passe
-                </h3>
-                <div className="grid grid-cols-1 gap-4 max-w-md">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Mot de passe actuel</label>
-                    <input
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Nouveau mot de passe</label>
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="6 caractères minimum"
-                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Confirmer le nouveau mot de passe</label>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                    />
-                  </div>
-                  {newPassword && confirmPassword && newPassword !== confirmPassword && (
-                    <p className="text-sm text-destructive">Les mots de passe ne correspondent pas</p>
-                  )}
-                  <div>
-                    <Button
-                      onClick={() => {
-                        if (!currentPassword || !newPassword) {
-                          showError('Veuillez remplir tous les champs');
-                          return;
-                        }
-                        if (newPassword.length < 6) {
-                          showError('Le nouveau mot de passe doit faire au moins 6 caractères');
-                          return;
-                        }
-                        if (newPassword !== confirmPassword) {
-                          showError('Les mots de passe ne correspondent pas');
-                          return;
-                        }
-                        changePasswordMutation.mutate();
-                      }}
-                      disabled={changePasswordMutation.isPending || !currentPassword || !newPassword || newPassword !== confirmPassword}
-                      variant="outline"
-                      className="rounded-xl"
-                    >
-                      <Lock className="w-4 h-4 mr-2" />
-                      {changePasswordMutation.isPending ? 'Modification...' : 'Modifier le mot de passe'}
-                    </Button>
-                  </div>
-                </div>
               </div>
             </motion.div>
           )}
@@ -1244,6 +1192,112 @@ export default function BusinessSettingsPage() {
                   </p>
                 </div>
               ) : null}
+            </motion.div>
+          )}
+
+          {/* Settings Tab */}
+          {tab === 'settings' && (
+            <motion.div
+              key="settings"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-surface rounded-2xl border border-border p-6 lg:p-8"
+            >
+              {/* Booking Settings */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Réservations</h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Acceptation automatique</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Les réservations seront automatiquement acceptées et le client recevra un email de confirmation
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAutoAcceptBookings(!autoAcceptBookings);
+                      updateBusinessMutation.mutate({ autoAcceptBookings: !autoAcceptBookings });
+                    }}
+                    className="shrink-0 cursor-pointer"
+                  >
+                    <div className={`w-11 h-6 rounded-full transition-colors flex items-center ${
+                      autoAcceptBookings ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'
+                    }`}>
+                      <div className="w-5 h-5 rounded-full bg-white shadow mx-0.5" />
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Change Password */}
+              <div className="mt-8 pt-8 border-t border-border/50">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Lock className="w-5 h-5" />
+                  Changer le mot de passe
+                </h3>
+                <div className="grid grid-cols-1 gap-4 max-w-md">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Mot de passe actuel</label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Nouveau mot de passe</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="6 caractères minimum"
+                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Confirmer le nouveau mot de passe</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                    />
+                  </div>
+                  {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                    <p className="text-sm text-destructive">Les mots de passe ne correspondent pas</p>
+                  )}
+                  <div>
+                    <Button
+                      onClick={() => {
+                        if (!currentPassword || !newPassword) {
+                          showError('Veuillez remplir tous les champs');
+                          return;
+                        }
+                        if (newPassword.length < 6) {
+                          showError('Le nouveau mot de passe doit faire au moins 6 caractères');
+                          return;
+                        }
+                        if (newPassword !== confirmPassword) {
+                          showError('Les mots de passe ne correspondent pas');
+                          return;
+                        }
+                        changePasswordMutation.mutate();
+                      }}
+                      disabled={changePasswordMutation.isPending || !currentPassword || !newPassword || newPassword !== confirmPassword}
+                      variant="outline"
+                      className="rounded-xl"
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      {changePasswordMutation.isPending ? 'Modification...' : 'Modifier le mot de passe'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
