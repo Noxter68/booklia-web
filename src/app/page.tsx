@@ -17,6 +17,7 @@ import {
   Clock,
   Shield,
   Users,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
@@ -209,9 +210,70 @@ function HomeBusinessCard({ business }: { business: Business }) {
 export default function HomePage() {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [suggestions, setSuggestions] = useState<Business[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
   const { latitude, longitude, hasPosition } = useGeolocation();
+
+  const searchBusinesses = useCallback(async (q: string) => {
+    if (q.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const result = await api.searchBusinesses({ q, limit: 5 });
+      setSuggestions(result.data);
+      setSelectedIndex(-1);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => searchBusinesses(value), 300);
+  };
+
+  const handleSelectBusiness = (business: Business) => {
+    setIsFocused(false);
+    setSuggestions([]);
+    router.push(`/business/${business.slug}`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!suggestions.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+      e.preventDefault();
+      handleSelectBusiness(suggestions[selectedIndex]);
+    } else if (e.key === 'Escape') {
+      setSuggestions([]);
+      setSelectedIndex(-1);
+    }
+  };
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setSuggestions([]);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Parallax for hero
   const { scrollY } = useScroll();
@@ -337,21 +399,25 @@ export default function HomePage() {
             onSubmit={handleSearch}
             className="max-w-xl mx-auto mb-12"
           >
-            <div ref={searchContainerRef}>
+            <div ref={searchContainerRef} className="relative">
               <div
                 className={`bg-white rounded-2xl shadow-2xl transition-all duration-300 ${
                   isFocused ? 'shadow-white/10 ring-2 ring-white/20' : ''
                 }`}
               >
                 <div className="flex items-center gap-3 px-5 py-3.5">
-                  <Search className="w-5 h-5 text-gray-400 shrink-0" />
+                  {isSearching ? (
+                    <Loader2 className="w-5 h-5 text-gray-400 shrink-0 animate-spin" />
+                  ) : (
+                    <Search className="w-5 h-5 text-gray-400 shrink-0" />
+                  )}
                   <input
                     type="text"
                     placeholder="Coiffeur, Barbier, Manucure..."
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => handleQueryChange(e.target.value)}
                     onFocus={() => setIsFocused(true)}
-                    onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+                    onKeyDown={handleKeyDown}
                     className="flex-1 text-gray-900 placeholder:text-gray-400 outline-none text-base bg-transparent"
                   />
                   <button
@@ -362,6 +428,54 @@ export default function HomePage() {
                   </button>
                 </div>
               </div>
+
+              {/* Autocomplete dropdown */}
+              {suggestions.length > 0 && isFocused && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50">
+                  {suggestions.map((business, index) => (
+                    <button
+                      key={business.id}
+                      type="button"
+                      onMouseDown={() => handleSelectBusiness(business)}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors cursor-pointer ${
+                        index === selectedIndex ? 'bg-gray-50' : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                        {business.logoUrl ? (
+                          <img src={business.logoUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <Building2 className="w-5 h-5 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium text-gray-900 truncate">{business.name}</span>
+                          {business.isVerified && (
+                            <BadgeCheck className="w-3.5 h-3.5 text-foreground shrink-0" />
+                          )}
+                        </div>
+                        {business.city && (
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {business.city}
+                          </span>
+                        )}
+                      </div>
+                      {business._count?.services ? (
+                        <span className="text-xs text-gray-400 shrink-0">{business._count.services} service{business._count.services > 1 ? 's' : ''}</span>
+                      ) : null}
+                    </button>
+                  ))}
+                  <button
+                    type="submit"
+                    className="w-full px-4 py-2.5 text-sm text-primary font-medium bg-gray-50 hover:bg-gray-100 transition-colors text-center cursor-pointer"
+                  >
+                    Voir tous les résultats pour &quot;{query}&quot;
+                  </button>
+                </div>
+              )}
             </div>
           </motion.form>
 
