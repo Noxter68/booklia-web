@@ -222,6 +222,39 @@ export interface BusinessPromotion {
   updatedAt: string;
 }
 
+// Client Management
+export type ClientTrustLevel = 'fiable' | 'peu_fiable' | 'attention';
+
+export interface BusinessClient {
+  id: string;
+  businessId: string;
+  userId: string;
+  isBlocked: boolean;
+  notes?: string;
+  phone?: string;
+  address?: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    name?: string;
+    email: string;
+    image?: string;
+  };
+  stats?: ClientStats;
+}
+
+export interface ClientStats {
+  totalBookings: number;
+  completedBookings: number;
+  canceledByClient: number;
+  totalRevenueCents: number;
+  servicesUsed: string[];
+  completionRate: number;
+  trustLevel: ClientTrustLevel;
+  lastBookingAt: string | null;
+}
+
 // Notifications
 export type NotificationType =
   | 'BOOKING_NEW'

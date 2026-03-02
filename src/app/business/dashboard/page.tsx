@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Building2,
   Users,
+  UserCheck,
   Scissors,
   Calendar,
   Plus,
@@ -35,6 +36,7 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { formatPrice } from '@/lib/utils';
 import { createPortal } from 'react-dom';
 import { Business, Employee, BusinessService, Booking, BookingStatus, BusinessHours, BusinessCategory, BusinessImage } from '@/types';
+import { ClientsTab } from './components/clients-tab';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 
 function BusinessDashboardContent() {
@@ -46,10 +48,10 @@ function BusinessDashboardContent() {
 
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const validTabs = ['overview', 'services', 'employees', 'bookings'] as const;
+  const validTabs = ['overview', 'services', 'employees', 'bookings', 'clients'] as const;
   const initialTab = validTabs.includes(tabParam as any) ? (tabParam as typeof validTabs[number]) : 'overview';
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings' | 'clients'>(initialTab);
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -222,6 +224,7 @@ function BusinessDashboardContent() {
     { id: 'services', label: 'Prestations', icon: Scissors },
     { id: 'employees', label: 'Équipe', icon: Users },
     { id: 'bookings', label: 'Réservations', icon: Calendar },
+    { id: 'clients', label: 'Clients', icon: UserCheck },
   ] as const;
 
   return (
@@ -264,7 +267,7 @@ function BusinessDashboardContent() {
       </div>
 
       {/* Tabs - Toggle Switcher */}
-      <div className="flex p-1 bg-muted/50 rounded-lg mb-6 w-fit overflow-x-auto">
+      <div className="flex p-1 bg-muted/50 rounded-lg mb-6 w-fit overflow-hidden">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -771,6 +774,17 @@ function BusinessDashboardContent() {
                 ))}
               </div>
             )}
+          </motion.div>
+        )}
+
+        {activeTab === 'clients' && (
+          <motion.div
+            key="clients"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <ClientsTab businessId={business.id} />
           </motion.div>
         )}
 

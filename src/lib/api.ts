@@ -530,6 +530,32 @@ class ApiClient {
     }>(`/geocoding/reverse?lat=${lat}&lng=${lng}`);
   }
 
+  // Business Clients
+  async getBusinessClients(search?: string) {
+    const params = search ? `?search=${encodeURIComponent(search)}` : '';
+    return this.request<import('@/types').BusinessClient[]>(`/business/clients${params}`);
+  }
+
+  async getBusinessClient(clientId: string) {
+    return this.request<import('@/types').BusinessClient>(`/business/clients/${clientId}`);
+  }
+
+  async updateBusinessClient(clientId: string, data: {
+    isBlocked?: boolean;
+    notes?: string;
+    phone?: string;
+    address?: string;
+  }) {
+    return this.request<import('@/types').BusinessClient>(`/business/clients/${clientId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getBusinessClientBookings(clientId: string) {
+    return this.request<import('@/types').Booking[]>(`/business/clients/${clientId}/bookings`);
+  }
+
   // Admin
   async adminCreateBusiness(data: {
     businessName: string;

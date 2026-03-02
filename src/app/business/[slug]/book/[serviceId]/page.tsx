@@ -247,7 +247,7 @@ export default function BookingPage() {
               <Button
                 className="w-full rounded-full"
                 size="lg"
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/mes-reservations')}
               >
                 Voir mes réservations
               </Button>
