@@ -38,7 +38,7 @@ function getDateRange(period: Period): { from: Date; to: Date } {
   return { from, to };
 }
 
-/** Fill missing days for revenue data */
+/** Fill missing days for revenue data (cumulative) */
 function fillRevenueDays(
   data: { date: string; revenue: number; count: number }[],
   from: Date,
@@ -50,22 +50,22 @@ function fillRevenueDays(
   if (period === '6months') {
     const weeks: { label: string; value: number; count: number }[] = [];
     const cursor = new Date(from);
+    let cumulative = 0;
     while (cursor <= to) {
-      let weekRevenue = 0;
       let weekCount = 0;
       const weekStart = new Date(cursor);
       for (let i = 0; i < 7 && cursor <= to; i++) {
         const key = cursor.toISOString().slice(0, 10);
         const entry = dataMap.get(key);
         if (entry) {
-          weekRevenue += entry.revenue;
+          cumulative += entry.revenue;
           weekCount += entry.count;
         }
         cursor.setDate(cursor.getDate() + 1);
       }
       weeks.push({
         label: weekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-        value: weekRevenue,
+        value: cumulative,
         count: weekCount,
       });
     }
@@ -74,15 +74,19 @@ function fillRevenueDays(
 
   const result: { label: string; value: number; count: number }[] = [];
   const cursor = new Date(from);
+  let cumulative = 0;
   while (cursor <= to) {
     const key = cursor.toISOString().slice(0, 10);
     const entry = dataMap.get(key);
+    if (entry) {
+      cumulative += entry.revenue;
+    }
     result.push({
       label:
         period === 'week'
           ? cursor.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' })
           : cursor.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-      value: entry?.revenue ?? 0,
+      value: cumulative,
       count: entry?.count ?? 0,
     });
     cursor.setDate(cursor.getDate() + 1);
@@ -206,13 +210,13 @@ export function RevenueChart() {
   const chartColor = metric === 'revenue' ? CHART_BLUE : CHART_GREEN;
   const gradientId = metric === 'revenue' ? 'revenueGradient' : 'clientsGradient';
 
-  const totalRevenue = revenueData.reduce((sum, d) => sum + d.value, 0);
+  const totalRevenue = revenueData.length > 0 ? revenueData[revenueData.length - 1].value : 0;
   const totalBookings = revenueData.reduce((sum, d) => sum + d.count, 0);
   const currentClients = clientsData.length > 0 ? clientsData[clientsData.length - 1].value : 0;
   const newClients = clientsData.reduce((sum, d) => sum + d.count, 0);
 
   const isEmpty = metric === 'revenue'
-    ? chartData.every((d) => d.value === 0)
+    ? totalRevenue === 0
     : currentClients === 0 && newClients === 0;
 
   return (
