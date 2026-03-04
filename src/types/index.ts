@@ -255,6 +255,96 @@ export interface ClientStats {
   lastBookingAt: string | null;
 }
 
+// Booking Notes
+export type NoteVisibility = 'PRIVATE_BUSINESS';
+
+export interface BookingNote {
+  id: string;
+  businessId: string;
+  clientId: string;
+  bookingId: string;
+  createdByUserId: string;
+  visibility: NoteVisibility;
+  content: string;
+  structured?: Record<string, unknown>;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  booking?: {
+    businessService?: { name: string };
+    employee?: { firstName: string; lastName: string };
+    scheduledAt?: string;
+  };
+  createdBy?: { id: string; name?: string };
+}
+
+// Billing & Invoicing
+export type VatMode = 'FRANCHISE_293B' | 'STANDARD';
+export type InvoiceStatus = 'DRAFT' | 'FINALIZED' | 'CANCELLED';
+export type InvoiceLineKind = 'SERVICE' | 'PRODUCT' | 'OTHER';
+
+export interface BusinessBillingSettings {
+  id: string;
+  businessId: string;
+  legalName: string;
+  addressLine1: string;
+  addressLine2?: string;
+  postalCode: string;
+  city: string;
+  country: string;
+  siret: string;
+  vatNumber?: string;
+  vatMode: VatMode;
+  invoicePrefix: string;
+  nextInvoiceSequence: number;
+  logoKey?: string;
+  paymentTerms?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InvoiceLine {
+  id: string;
+  invoiceId: string;
+  kind: InvoiceLineKind;
+  label: string;
+  quantity: number;
+  unitPriceHTCents: number;
+  vatRate: number;
+  totalHTCents: number;
+  totalVATCents: number;
+  totalTTCCents: number;
+  sortOrder: number;
+}
+
+export interface Invoice {
+  id: string;
+  businessId: string;
+  clientId?: string;
+  bookingId?: string;
+  status: InvoiceStatus;
+  invoiceNumber?: string;
+  issueDate?: string;
+  serviceDate?: string;
+  currency: string;
+  totalHTCents: number;
+  totalVATCents: number;
+  totalTTCCents: number;
+  vatMode: VatMode;
+  snapshot?: Record<string, unknown>;
+  pdfKey?: string;
+  createdByUserId: string;
+  createdAt: string;
+  updatedAt: string;
+  lines?: InvoiceLine[];
+  client?: { id: string; name?: string; email: string };
+  booking?: {
+    businessService?: { name: string };
+    employee?: { firstName: string; lastName: string };
+  };
+  createdBy?: { id: string; name?: string };
+}
+
 // Notifications
 export type NotificationType =
   | 'BOOKING_NEW'

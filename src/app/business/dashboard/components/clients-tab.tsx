@@ -12,8 +12,8 @@ import {
   Phone,
   MapPin,
   Calendar,
-  Euro,
   FileText,
+  Receipt,
   ShieldCheck,
   ShieldAlert,
   AlertTriangle,
@@ -25,7 +25,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import { formatPrice } from '@/lib/utils';
-import { BusinessClient, Booking, ClientTrustLevel } from '@/types';
+import { ClientTrustLevel } from '@/types';
+import { ClientLastNoteCard } from './client-last-note-card';
+import { BookingNoteEditor } from './booking-note-editor';
+import { InvoiceEditor } from './invoice-editor';
 
 function getTrustBadge(level: ClientTrustLevel) {
   switch (level) {
@@ -66,10 +69,13 @@ const statusColors: Record<string, string> = {
   CANCELED: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
 };
 
-export function ClientsTab({ businessId }: { businessId: string }) {
+export function ClientsTab({ businessId, initialClientId }: {
+  businessId: string;
+  initialClientId?: string | null;
+}) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(initialClientId ?? null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -87,6 +93,7 @@ export function ClientsTab({ businessId }: { businessId: string }) {
     return (
       <ClientDetail
         clientId={selectedClientId}
+        businessId={businessId}
         onBack={() => setSelectedClientId(null)}
       />
     );
@@ -224,13 +231,15 @@ export function ClientsTab({ businessId }: { businessId: string }) {
   );
 }
 
-function ClientDetail({ clientId, onBack }: { clientId: string; onBack: () => void }) {
+function ClientDetail({ clientId, businessId, onBack }: { clientId: string; businessId: string; onBack: () => void }) {
   const queryClient = useQueryClient();
   const { success, error: showError } = useToast();
   const [editingNotes, setEditingNotes] = useState(false);
   const [notes, setNotes] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [editingNoteBookingId, setEditingNoteBookingId] = useState<string | null>(null);
+  const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null);
 
   const { data: client, isLoading } = useQuery({
     queryKey: ['business-client', clientId],
@@ -253,6 +262,36 @@ function ClientDetail({ clientId, onBack }: { clientId: string; onBack: () => vo
     },
     onError: () => showError('Erreur lors de la mise à jour'),
   });
+
+  const createInvoiceMutation = useMutation({
+    mutationFn: (data: { bookingId: string; clientId: string; serviceDate?: string }) =>
+      api.createInvoice(data),
+    onSuccess: (data) => {
+      success('Facture créée avec la prestation');
+      setCreatedInvoiceId(data.id);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    },
+    onError: (err: Error) => showError(err.message || 'Erreur lors de la création de la facture'),
+  });
+
+  const handleQuickInvoice = (booking: any) => {
+    createInvoiceMutation.mutate({
+      bookingId: booking.id,
+      clientId: client!.userId,
+      serviceDate: booking.scheduledAt,
+    });
+  };
+
+  // If we created an invoice, show the editor
+  if (createdInvoiceId) {
+    return (
+      <InvoiceEditor
+        invoiceId={createdInvoiceId}
+        businessId={businessId}
+        onBack={() => setCreatedInvoiceId(null)}
+      />
+    );
+  }
 
   const handleToggleBlock = () => {
     if (!client) return;
@@ -389,6 +428,11 @@ function ClientDetail({ clientId, onBack }: { clientId: string; onBack: () => vo
             </div>
           )}
 
+          {/* Last Booking Note */}
+          {client.userId && (
+            <ClientLastNoteCard clientId={client.userId} />
+          )}
+
           {/* Info & Notes */}
           <div className="bg-surface border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
@@ -510,44 +554,80 @@ function ClientDetail({ clientId, onBack }: { clientId: string; onBack: () => vo
             ) : (
               <div className="space-y-2">
                 {bookings.map((booking) => (
-                  <div
-                    key={booking.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-background"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm truncate">
-                          {booking.businessService?.name || 'Service'}
-                        </span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[booking.status]}`}>
-                          {statusLabels[booking.status]}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        {booking.scheduledAt && (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
-                            {' à '}
-                            {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                  <div key={booking.id}>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-background">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-sm truncate">
+                            {booking.businessService?.name || 'Service'}
                           </span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[booking.status]}`}>
+                            {statusLabels[booking.status]}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          {booking.scheduledAt && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                              {' à '}
+                              {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          )}
+                          {booking.employee && (
+                            <span>{booking.employee.firstName} {booking.employee.lastName}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        {booking.status === 'COMPLETED' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleQuickInvoice(booking)}
+                              disabled={createInvoiceMutation.isPending}
+                              className="rounded-full text-xs"
+                            >
+                              <Receipt className="w-3.5 h-3.5 mr-1" />
+                              Facturer
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setEditingNoteBookingId(
+                                  editingNoteBookingId === booking.id ? null : booking.id,
+                                )
+                              }
+                              className="rounded-full text-xs"
+                            >
+                              <FileText className="w-3.5 h-3.5 mr-1" />
+                              Note
+                            </Button>
+                          </>
                         )}
-                        {booking.employee && (
-                          <span>{booking.employee.firstName} {booking.employee.lastName}</span>
+                        {booking.agreedPriceCents != null && (
+                          <span className="font-semibold text-sm">
+                            {formatPrice(booking.agreedPriceCents)}
+                          </span>
                         )}
                       </div>
                     </div>
-                    {booking.agreedPriceCents != null && (
-                      <span className="font-semibold text-sm shrink-0 ml-3">
-                        {formatPrice(booking.agreedPriceCents)}
-                      </span>
+                    {editingNoteBookingId === booking.id && (
+                      <div className="mt-2">
+                        <BookingNoteEditor
+                          bookingId={booking.id}
+                          onClose={() => setEditingNoteBookingId(null)}
+                        />
+                      </div>
                     )}
                   </div>
                 ))}
