@@ -13,7 +13,7 @@ import {
   Calendar,
   Plus,
   Settings,
-  TrendingUp,
+  Home,
   Clock,
   MapPin,
   Edit2,
@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -37,6 +38,8 @@ import { formatPrice } from '@/lib/utils';
 import { createPortal } from 'react-dom';
 import { Business, Employee, BusinessService, Booking, BookingStatus, BusinessHours, BusinessCategory, BusinessImage } from '@/types';
 import { ClientsTab } from './components/clients-tab';
+import { InvoicesTab } from './components/invoices-tab';
+import { RevenueChart } from './components/revenue-chart';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 
 function BusinessDashboardContent() {
@@ -48,12 +51,24 @@ function BusinessDashboardContent() {
 
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const validTabs = ['overview', 'services', 'employees', 'bookings', 'clients'] as const;
+  const validTabs = ['overview', 'services', 'employees', 'bookings', 'clients', 'invoices'] as const;
   const initialTab = validTabs.includes(tabParam as any) ? (tabParam as typeof validTabs[number]) : 'overview';
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings' | 'clients'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings' | 'clients' | 'invoices'>(initialTab);
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [navigateToClientId, setNavigateToClientId] = useState<string | null>(null);
+
+  const goToClientByUserId = async (userId: string) => {
+    try {
+      const clients = await api.getBusinessClients();
+      const found = clients.find((c) => c.userId === userId);
+      if (found) {
+        setNavigateToClientId(found.id);
+        setActiveTab('clients');
+      }
+    } catch { /* ignore */ }
+  };
 
   // Calculer les dates de début et fin de la période
   const { periodStart, periodEnd, periodLabel } = useMemo(() => {
@@ -220,11 +235,12 @@ function BusinessDashboardContent() {
   }
 
   const tabs = [
-    { id: 'overview', label: 'Vue d\'ensemble', icon: TrendingUp },
+    { id: 'overview', label: 'Vue d\'ensemble', icon: Home },
     { id: 'services', label: 'Prestations', icon: Scissors },
     { id: 'employees', label: 'Équipe', icon: Users },
     { id: 'bookings', label: 'Réservations', icon: Calendar },
     { id: 'clients', label: 'Clients', icon: UserCheck },
+    { id: 'invoices', label: 'Factures', icon: FileText },
   ] as const;
 
   return (
@@ -267,31 +283,33 @@ function BusinessDashboardContent() {
       </div>
 
       {/* Tabs - Toggle Switcher */}
-      <div className="flex p-1 bg-muted/50 rounded-lg mb-6 w-fit overflow-hidden">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`relative flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer ${
-              activeTab === tab.id
-                ? 'text-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {activeTab === tab.id && (
-              <motion.div
-                layoutId="activeTabBg"
-                className="absolute inset-0 bg-background rounded-md shadow-sm"
-                initial={false}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              />
-            )}
-            <span className="relative z-10 flex items-center gap-2">
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </span>
-          </button>
-        ))}
+      <div className="overflow-x-auto -mx-4 px-4 mb-6 scrollbar-none">
+        <div className="flex p-1 bg-muted/50 rounded-lg w-fit min-w-full sm:min-w-0">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer flex-1 sm:flex-none ${
+                activeTab === tab.id
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="activeTabBg"
+                  className="absolute inset-0 bg-background rounded-md shadow-sm"
+                  initial={false}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5 sm:gap-2">
+                <tab.icon className="w-4 h-4 shrink-0" />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Content */}
@@ -304,7 +322,7 @@ function BusinessDashboardContent() {
             exit={{ opacity: 0, y: -10 }}
           >
             {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div className="bg-surface border border-border rounded-2xl p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -335,7 +353,7 @@ function BusinessDashboardContent() {
               <div className="bg-surface border border-border rounded-2xl p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <Home className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   </div>
                 </div>
                 <div className="text-2xl font-bold">{formatPrice(completedRevenue)}</div>
@@ -343,10 +361,13 @@ function BusinessDashboardContent() {
               </div>
             </div>
 
+            {/* Graphique CA */}
+            <RevenueChart />
+
             {/* Réservations avec navigation temporelle */}
-            <div className="bg-surface border border-border rounded-2xl p-6">
+            <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5">
               {/* Header avec navigation */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <div className="flex items-center gap-3">
                   <h3 className="font-semibold flex items-center gap-2">
                     <Calendar className="w-5 h-5" />
@@ -434,68 +455,154 @@ function BusinessDashboardContent() {
                   <p className="text-muted-foreground">Aucune réservation pour cette période</p>
                 </div>
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {businessBookings.map((booking) => (
+                <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+                  {/* Table header - desktop */}
+                  <div className="hidden lg:grid lg:grid-cols-[140px_1fr_180px_1fr_100px_140px] gap-3 px-4 py-2.5 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <span>Client</span>
+                    <span>Prestation</span>
+                    <span>Date / Heure</span>
+                    <span>Employé</span>
+                    <span className="text-right">Prix</span>
+                    <span className="text-center">Statut</span>
+                  </div>
+
+                  {businessBookings.map((booking, idx) => (
                     <div
                       key={booking.id}
-                      className="p-4 rounded-xl bg-background flex flex-col justify-between"
+                      className={`hover:bg-muted/30 transition-colors ${
+                        idx < businessBookings.length - 1 ? 'border-b border-border' : ''
+                      }`}
                     >
-                      <div className="flex items-start justify-between gap-2 mb-1.5">
-                        <span className="font-medium truncate">
-                          {booking.businessService?.name || 'Prestation'}
-                        </span>
-                        {booking.scheduledAt && (
-                          <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                            {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
-                              weekday: 'short',
-                              day: 'numeric',
-                              month: 'short',
-                            })}
-                            {' à '}
-                            {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground mb-3">
-                        <span>{booking.requester?.name || 'Client'}</span>
-                        {booking.employee && (
-                          <span> · {booking.employee.firstName} {booking.employee.lastName}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        {booking.agreedPriceCents ? (
-                          <span className="font-semibold text-primary">
-                            {formatPrice(booking.agreedPriceCents)}
-                          </span>
-                        ) : <span />}
-                        {booking.status === 'PENDING' ? (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              className="rounded-full h-7 px-3 text-xs"
-                              onClick={() => acceptBookingMutation.mutate(booking.id)}
-                              disabled={acceptBookingMutation.isPending}
-                            >
-                              Confirmer
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="rounded-full h-7 px-3 text-xs"
-                              onClick={() => cancelBookingMutation.mutate(booking.id)}
-                              disabled={cancelBookingMutation.isPending}
-                            >
-                              Refuser
-                            </Button>
+                      {/* Mobile layout */}
+                      <div className="sm:hidden px-4 py-3 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <button
+                            onClick={() => booking.requesterId && goToClientByUserId(booking.requesterId)}
+                            className="text-sm font-medium hover:text-primary transition-colors cursor-pointer group"
+                          >
+                            <span className="flex items-center gap-1">
+                              {booking.requester?.name || 'Client'}
+                              <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary shrink-0" />
+                            </span>
+                          </button>
+                          {booking.status === 'PENDING' ? (
+                            <div className="flex gap-1.5">
+                              <Button size="sm" className="rounded-full h-6 px-2 text-xs" onClick={() => acceptBookingMutation.mutate(booking.id)} disabled={acceptBookingMutation.isPending}>OK</Button>
+                              <Button size="sm" variant="outline" className="rounded-full h-6 px-2 text-xs" onClick={() => cancelBookingMutation.mutate(booking.id)} disabled={cancelBookingMutation.isPending}>Non</Button>
+                            </div>
+                          ) : (
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[booking.status]}`}>
+                              {statusLabels[booking.status]}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span className="truncate mr-2">{booking.businessService?.name || 'Prestation'}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {booking.scheduledAt && (
+                              <>
+                                <span>{new Date(booking.scheduledAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                                <span className="px-1 py-0.5 bg-primary/10 text-primary text-xs font-semibold rounded">
+                                  {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </>
+                            )}
                           </div>
-                        ) : (
-                          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColors[booking.status]}`}>
-                            {statusLabels[booking.status]}
-                          </span>
-                        )}
+                        </div>
+                      </div>
+
+                      {/* Tablet layout */}
+                      <div className="hidden sm:flex lg:hidden items-center gap-3 px-4 py-3">
+                        <div className="w-30 shrink-0">
+                          <button
+                            onClick={() => booking.requesterId && goToClientByUserId(booking.requesterId)}
+                            className="text-sm font-medium truncate block hover:text-primary transition-colors text-left cursor-pointer group"
+                          >
+                            <span className="flex items-center gap-1">
+                              {booking.requester?.name || 'Client'}
+                              <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary shrink-0" />
+                            </span>
+                          </button>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{booking.businessService?.name || 'Prestation'}</p>
+                        </div>
+                        <div className="shrink-0">
+                          {booking.scheduledAt ? (
+                            <div className="flex items-center gap-1.5 text-sm whitespace-nowrap">
+                              <span className="text-muted-foreground">
+                                {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                              </span>
+                              <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-xs font-semibold rounded">
+                                {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          ) : <span className="text-sm text-muted-foreground">—</span>}
+                        </div>
+                        <div className="shrink-0">
+                          {booking.status === 'PENDING' ? (
+                            <div className="flex gap-1.5">
+                              <Button size="sm" className="rounded-full h-7 px-2.5 text-xs" onClick={() => acceptBookingMutation.mutate(booking.id)} disabled={acceptBookingMutation.isPending}>Confirmer</Button>
+                              <Button size="sm" variant="outline" className="rounded-full h-7 px-2.5 text-xs" onClick={() => cancelBookingMutation.mutate(booking.id)} disabled={cancelBookingMutation.isPending}>Refuser</Button>
+                            </div>
+                          ) : (
+                            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColors[booking.status]}`}>
+                              {statusLabels[booking.status]}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Desktop layout */}
+                      <div className="hidden lg:flex items-center gap-3 px-4 py-3">
+                        <div className="w-35 shrink-0">
+                          <button
+                            onClick={() => booking.requesterId && goToClientByUserId(booking.requesterId)}
+                            className="text-sm font-medium truncate block hover:text-primary transition-colors text-left cursor-pointer group"
+                          >
+                            <span className="flex items-center gap-1">
+                              {booking.requester?.name || 'Client'}
+                              <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary shrink-0" />
+                            </span>
+                          </button>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{booking.businessService?.name || 'Prestation'}</p>
+                        </div>
+                        <div className="w-45 shrink-0">
+                          {booking.scheduledAt ? (
+                            <div className="flex items-center gap-1.5 text-sm whitespace-nowrap">
+                              <span className="text-muted-foreground">
+                                {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                              </span>
+                              <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-xs font-semibold rounded">
+                                {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          ) : <p className="text-sm text-muted-foreground">—</p>}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-muted-foreground truncate">
+                            {booking.employee ? `${booking.employee.firstName} ${booking.employee.lastName}` : '—'}
+                          </p>
+                        </div>
+                        <div className="w-25 text-right shrink-0">
+                          {booking.agreedPriceCents ? (
+                            <span className="text-sm font-semibold text-primary">{formatPrice(booking.agreedPriceCents)}</span>
+                          ) : null}
+                        </div>
+                        <div className="w-35 shrink-0 flex justify-center">
+                          {booking.status === 'PENDING' ? (
+                            <div className="flex gap-1.5">
+                              <Button size="sm" className="rounded-full h-7 px-2.5 text-xs" onClick={() => acceptBookingMutation.mutate(booking.id)} disabled={acceptBookingMutation.isPending}>Confirmer</Button>
+                              <Button size="sm" variant="outline" className="rounded-full h-7 px-2.5 text-xs" onClick={() => cancelBookingMutation.mutate(booking.id)} disabled={cancelBookingMutation.isPending}>Refuser</Button>
+                            </div>
+                          ) : (
+                            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColors[booking.status]}`}>
+                              {statusLabels[booking.status]}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -701,74 +808,155 @@ function BusinessDashboardContent() {
                 <p className="text-muted-foreground">Aucune réservation pour cette période</p>
               </div>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {businessBookings.map((booking) => (
+              <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+                {/* Table header */}
+                {/* Table header - desktop */}
+                  <div className="hidden lg:grid lg:grid-cols-[140px_1fr_180px_1fr_100px_140px] gap-3 px-4 py-2.5 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <span>Client</span>
+                    <span>Prestation</span>
+                    <span>Date / Heure</span>
+                    <span>Employé</span>
+                    <span className="text-right">Prix</span>
+                    <span className="text-center">Statut</span>
+                  </div>
+
+                {businessBookings.map((booking, idx) => (
                   <div
                     key={booking.id}
-                    className="bg-surface border border-border rounded-2xl p-4 flex flex-col justify-between"
+                    className={`hover:bg-muted/30 transition-colors ${
+                      idx < businessBookings.length - 1 ? 'border-b border-border' : ''
+                    }`}
                   >
-                    {/* Top: service name + date */}
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <h3 className="font-semibold truncate">
-                        {booking.businessService?.name || 'Service'}
-                      </h3>
-                      {booking.scheduledAt && (
-                        <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                          {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
-                            weekday: 'short',
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                          {' à '}
-                          {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Middle: client + employee */}
-                    <div className="text-sm text-muted-foreground mb-3">
-                      <span>{booking.requester?.name || 'Client'}</span>
-                      {booking.employee && (
-                        <span> · {booking.employee.firstName} {booking.employee.lastName}</span>
-                      )}
-                    </div>
-
-                    {/* Bottom: price + status/actions */}
-                    <div className="flex items-center justify-between">
-                      {booking.agreedPriceCents ? (
-                        <span className="font-semibold text-primary">
-                          {formatPrice(booking.agreedPriceCents)}
-                        </span>
-                      ) : <span />}
-
-                      {booking.status === 'PENDING' ? (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            className="rounded-full h-7 px-3 text-xs"
-                            onClick={() => acceptBookingMutation.mutate(booking.id)}
-                            disabled={acceptBookingMutation.isPending}
-                          >
-                            Confirmer
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="rounded-full h-7 px-3 text-xs"
-                            onClick={() => cancelBookingMutation.mutate(booking.id)}
-                            disabled={cancelBookingMutation.isPending}
-                          >
-                            Refuser
-                          </Button>
+                    {/* Mobile layout */}
+                    <div className="sm:hidden px-4 py-3 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => booking.requesterId && goToClientByUserId(booking.requesterId)}
+                          className="text-sm font-medium hover:text-primary transition-colors cursor-pointer group"
+                        >
+                          <span className="flex items-center gap-1">
+                            {booking.requester?.name || 'Client'}
+                            <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary shrink-0" />
+                          </span>
+                        </button>
+                        {booking.status === 'PENDING' ? (
+                          <div className="flex gap-1.5">
+                            <Button size="sm" className="rounded-full h-6 px-2 text-xs" onClick={() => acceptBookingMutation.mutate(booking.id)} disabled={acceptBookingMutation.isPending}>OK</Button>
+                            <Button size="sm" variant="outline" className="rounded-full h-6 px-2 text-xs" onClick={() => cancelBookingMutation.mutate(booking.id)} disabled={cancelBookingMutation.isPending}>Non</Button>
+                          </div>
+                        ) : (
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[booking.status]}`}>
+                            {statusLabels[booking.status]}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="truncate mr-2">{booking.businessService?.name || 'Prestation'}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {booking.scheduledAt && (
+                            <>
+                              <span>{new Date(booking.scheduledAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                              <span className="px-1 py-0.5 bg-primary/10 text-primary text-xs font-semibold rounded">
+                                {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </>
+                          )}
                         </div>
-                      ) : (
-                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColors[booking.status]}`}>
-                          {statusLabels[booking.status]}
-                        </span>
-                      )}
+                      </div>
+                    </div>
+
+                    {/* Tablet layout */}
+                    <div className="hidden sm:flex lg:hidden items-center gap-3 px-4 py-3">
+                      <div className="w-30 shrink-0">
+                        <button
+                          onClick={() => booking.requesterId && goToClientByUserId(booking.requesterId)}
+                          className="text-sm font-medium truncate block hover:text-primary transition-colors text-left cursor-pointer group"
+                        >
+                          <span className="flex items-center gap-1">
+                            {booking.requester?.name || 'Client'}
+                            <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary shrink-0" />
+                          </span>
+                        </button>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{booking.businessService?.name || 'Prestation'}</p>
+                      </div>
+                      <div className="shrink-0">
+                        {booking.scheduledAt ? (
+                          <div className="flex items-center gap-1.5 text-sm whitespace-nowrap">
+                            <span className="text-muted-foreground">
+                              {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                            </span>
+                            <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-xs font-semibold rounded">
+                              {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        ) : <span className="text-sm text-muted-foreground">—</span>}
+                      </div>
+                      <div className="shrink-0">
+                        {booking.status === 'PENDING' ? (
+                          <div className="flex gap-1.5">
+                            <Button size="sm" className="rounded-full h-7 px-2.5 text-xs" onClick={() => acceptBookingMutation.mutate(booking.id)} disabled={acceptBookingMutation.isPending}>Confirmer</Button>
+                            <Button size="sm" variant="outline" className="rounded-full h-7 px-2.5 text-xs" onClick={() => cancelBookingMutation.mutate(booking.id)} disabled={cancelBookingMutation.isPending}>Refuser</Button>
+                          </div>
+                        ) : (
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColors[booking.status]}`}>
+                            {statusLabels[booking.status]}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Desktop layout */}
+                    <div className="hidden lg:flex items-center gap-3 px-4 py-3">
+                      <div className="w-35 shrink-0">
+                        <button
+                          onClick={() => booking.requesterId && goToClientByUserId(booking.requesterId)}
+                          className="text-sm font-medium truncate block hover:text-primary transition-colors text-left cursor-pointer group"
+                        >
+                          <span className="flex items-center gap-1">
+                            {booking.requester?.name || 'Client'}
+                            <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary shrink-0" />
+                          </span>
+                        </button>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{booking.businessService?.name || 'Prestation'}</p>
+                      </div>
+                      <div className="w-45 shrink-0">
+                        {booking.scheduledAt ? (
+                          <div className="flex items-center gap-1.5 text-sm whitespace-nowrap">
+                            <span className="text-muted-foreground">
+                              {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                            </span>
+                            <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-xs font-semibold rounded">
+                              {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        ) : <p className="text-sm text-muted-foreground">—</p>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-muted-foreground truncate">
+                          {booking.employee ? `${booking.employee.firstName} ${booking.employee.lastName}` : '—'}
+                        </p>
+                      </div>
+                      <div className="w-25 text-right shrink-0">
+                        {booking.agreedPriceCents ? (
+                          <span className="text-sm font-semibold text-primary">{formatPrice(booking.agreedPriceCents)}</span>
+                        ) : null}
+                      </div>
+                      <div className="w-35 shrink-0 flex justify-center">
+                        {booking.status === 'PENDING' ? (
+                          <div className="flex gap-1.5">
+                            <Button size="sm" className="rounded-full h-7 px-2.5 text-xs" onClick={() => acceptBookingMutation.mutate(booking.id)} disabled={acceptBookingMutation.isPending}>Confirmer</Button>
+                            <Button size="sm" variant="outline" className="rounded-full h-7 px-2.5 text-xs" onClick={() => cancelBookingMutation.mutate(booking.id)} disabled={cancelBookingMutation.isPending}>Refuser</Button>
+                          </div>
+                        ) : (
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColors[booking.status]}`}>
+                            {statusLabels[booking.status]}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -784,7 +972,18 @@ function BusinessDashboardContent() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <ClientsTab businessId={business.id} />
+            <ClientsTab key={navigateToClientId || 'default'} businessId={business.id} initialClientId={navigateToClientId} />
+          </motion.div>
+        )}
+
+        {activeTab === 'invoices' && (
+          <motion.div
+            key="invoices"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <InvoicesTab businessId={business.id} />
           </motion.div>
         )}
 

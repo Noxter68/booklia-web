@@ -27,6 +27,8 @@ class AuthClient {
       if (token) {
         api.setToken(token);
       }
+      // Register refresh callback so API client can auto-refresh on 401
+      api.setRefreshTokenFn(() => this.refreshTokens());
     }
   }
 

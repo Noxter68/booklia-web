@@ -481,8 +481,13 @@ function StepIdentity({
           <Input
             type="tel"
             value={formData.phone}
-            onChange={(e) => onChange({ phone: e.target.value })}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+              const formatted = digits.replace(/(\d{2})(?=\d)/g, '$1 ').trim();
+              onChange({ phone: formatted });
+            }}
             placeholder="06 12 34 56 78"
+            maxLength={14}
           />
         </div>
       </div>

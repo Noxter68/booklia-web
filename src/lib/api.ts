@@ -4,14 +4,46 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 class ApiClient {
   private token: string | null = null;
+  private refreshTokenFn: (() => Promise<boolean>) | null = null;
+  private isRefreshing = false;
+  private refreshQueue: Array<{ resolve: (value: boolean) => void }> = [];
 
   setToken(token: string | null) {
     this.token = token;
   }
 
+  /** Register a callback to refresh the token (called by AuthClient) */
+  setRefreshTokenFn(fn: (() => Promise<boolean>) | null) {
+    this.refreshTokenFn = fn;
+  }
+
+  /** Wait for an in-flight refresh, or trigger one */
+  private async handleTokenRefresh(): Promise<boolean> {
+    if (!this.refreshTokenFn) return false;
+
+    // If a refresh is already in progress, queue this request
+    if (this.isRefreshing) {
+      return new Promise<boolean>((resolve) => {
+        this.refreshQueue.push({ resolve });
+      });
+    }
+
+    this.isRefreshing = true;
+    try {
+      const success = await this.refreshTokenFn();
+      // Resolve all queued requests
+      this.refreshQueue.forEach(({ resolve }) => resolve(success));
+      this.refreshQueue = [];
+      return success;
+    } finally {
+      this.isRefreshing = false;
+    }
+  }
+
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    isRetry = false
   ): Promise<T> {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -26,6 +58,14 @@ class ApiClient {
       ...options,
       headers,
     });
+
+    // On 401, try to refresh token and retry once
+    if (response.status === 401 && !isRetry) {
+      const refreshed = await this.handleTokenRefresh();
+      if (refreshed) {
+        return this.request<T>(endpoint, options, true);
+      }
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
@@ -52,6 +92,14 @@ class ApiClient {
       body: formData,
     });
 
+    // On 401, try to refresh token and retry once
+    if (response.status === 401) {
+      const refreshed = await this.handleTokenRefresh();
+      if (refreshed) {
+        return this.uploadFile(file, type);
+      }
+    }
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(error.message || 'Upload failed');
@@ -77,6 +125,12 @@ class ApiClient {
   }
 
   // Bookings
+
+  async getRevenueStats(from: string, to: string) {
+    return this.request<{ date: string; revenue: number; count: number }[]>(
+      `/bookings/revenue-stats?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+    );
+  }
 
   async acceptBooking(id: string) {
     return this.request<import('@/types').Booking>(`/bookings/${id}/accept`, {
@@ -536,6 +590,12 @@ class ApiClient {
     return this.request<import('@/types').BusinessClient[]>(`/business/clients${params}`);
   }
 
+  async getClientGrowthStats(from: string, to: string) {
+    return this.request<{ baseCount: number; daily: { date: string; count: number }[] }>(
+      `/business/clients/growth-stats?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+    );
+  }
+
   async getBusinessClient(clientId: string) {
     return this.request<import('@/types').BusinessClient>(`/business/clients/${clientId}`);
   }
@@ -628,6 +688,155 @@ class ApiClient {
       `/admin/business/${id}/resend-verification`,
       { method: 'POST' }
     );
+  }
+
+  // ============================================
+  // Booking Notes
+  // ============================================
+
+  async getBookingNote(bookingId: string) {
+    return this.request<import('@/types').BookingNote>(`/booking-notes/${bookingId}`);
+  }
+
+  async getClientNotes(clientId: string, limit = 20, offset = 0) {
+    return this.request<import('@/types').PaginatedResponse<import('@/types').BookingNote>>(
+      `/booking-notes/client/${clientId}?limit=${limit}&offset=${offset}`
+    );
+  }
+
+  async getClientLastNote(clientId: string) {
+    return this.request<import('@/types').BookingNote | null>(
+      `/booking-notes/client/${clientId}/last`
+    );
+  }
+
+  async upsertBookingNote(data: {
+    bookingId: string;
+    content: string;
+    structured?: Record<string, unknown>;
+    tags?: string[];
+  }) {
+    return this.request<import('@/types').BookingNote>('/booking-notes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteBookingNote(bookingId: string) {
+    return this.request<{ success: boolean }>(`/booking-notes/${bookingId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ============================================
+  // Billing Settings
+  // ============================================
+
+  async getBillingSettings() {
+    return this.request<import('@/types').BusinessBillingSettings | null>('/billing/settings');
+  }
+
+  async upsertBillingSettings(data: {
+    legalName: string;
+    addressLine1: string;
+    addressLine2?: string;
+    postalCode: string;
+    city: string;
+    country?: string;
+    siret: string;
+    vatNumber?: string;
+    vatMode: import('@/types').VatMode;
+    invoicePrefix: string;
+    logoKey?: string;
+    paymentTerms?: string;
+  }) {
+    return this.request<import('@/types').BusinessBillingSettings>('/billing/settings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ============================================
+  // Invoices
+  // ============================================
+
+  async createInvoice(data: {
+    clientId?: string;
+    bookingId?: string;
+    serviceDate?: string;
+  }) {
+    return this.request<import('@/types').Invoice>('/invoices', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getInvoices(status?: string, limit = 20, offset = 0) {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    params.append('limit', String(limit));
+    params.append('offset', String(offset));
+    return this.request<import('@/types').PaginatedResponse<import('@/types').Invoice>>(
+      `/invoices?${params}`
+    );
+  }
+
+  async getInvoice(id: string) {
+    return this.request<import('@/types').Invoice>(`/invoices/${id}`);
+  }
+
+  async addInvoiceLine(invoiceId: string, data: {
+    kind?: import('@/types').InvoiceLineKind;
+    label: string;
+    quantity: number;
+    unitPriceHTCents: number;
+    vatRate: number;
+  }) {
+    return this.request<import('@/types').Invoice>(`/invoices/${invoiceId}/lines`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateInvoiceLine(invoiceId: string, lineId: string, data: {
+    kind?: import('@/types').InvoiceLineKind;
+    label?: string;
+    quantity?: number;
+    unitPriceHTCents?: number;
+    vatRate?: number;
+  }) {
+    return this.request<import('@/types').Invoice>(`/invoices/${invoiceId}/lines/${lineId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async removeInvoiceLine(invoiceId: string, lineId: string) {
+    return this.request<import('@/types').Invoice>(`/invoices/${invoiceId}/lines/${lineId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async finalizeInvoice(invoiceId: string) {
+    return this.request<import('@/types').Invoice>(`/invoices/${invoiceId}/finalize`, {
+      method: 'POST',
+    });
+  }
+
+  async cancelInvoice(invoiceId: string) {
+    return this.request<import('@/types').Invoice>(`/invoices/${invoiceId}/cancel`, {
+      method: 'POST',
+    });
+  }
+
+  async deleteInvoice(invoiceId: string) {
+    return this.request<{ success: boolean }>(`/invoices/${invoiceId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getInvoicePdfUrl(invoiceId: string) {
+    return this.request<{ url: string }>(`/invoices/${invoiceId}/pdf`);
   }
 }
 
