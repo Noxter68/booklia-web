@@ -1,5 +1,7 @@
 // Enums
-export type BookingStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED' | 'CANCELED';
+export type BookingStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED' | 'CANCELED' | 'NO_SHOW';
+export type CalendarEntryKind = 'APPOINTMENT' | 'BLOCK';
+export type BlockReason = 'BREAK' | 'UNAVAILABLE' | 'PERSONAL' | 'CLOSED';
 export type ReviewType = 'REVIEW_PROVIDER';
 export type SubscriptionStatus = 'FREE' | 'PRO' | 'CANCELED';
 export type BusinessTier = 'STARTER' | 'PRO' | 'PREMIUM';
@@ -28,7 +30,7 @@ export interface Category {
 // Booking
 export interface Booking {
   id: string;
-  businessServiceId: string;
+  businessServiceId?: string;
   businessService?: BusinessService & {
     business?: Business;
   };
@@ -52,8 +54,24 @@ export interface Booking {
   notes?: string;
   rejectionMessage?: string;
   reviews?: Review[];
+  kind?: CalendarEntryKind;
+  blockReason?: BlockReason | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// Calendar entry (booking with guaranteed time fields)
+export interface CalendarEntry extends Omit<Booking, 'employee' | 'scheduledAt' | 'scheduledEndAt' | 'kind'> {
+  scheduledAt: string;
+  scheduledEndAt: string;
+  employeeId: string;
+  employee: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string;
+  };
+  kind: CalendarEntryKind;
 }
 
 // Review

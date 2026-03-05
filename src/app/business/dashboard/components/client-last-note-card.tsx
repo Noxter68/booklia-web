@@ -18,6 +18,7 @@ export function ClientLastNoteCard({ clientId }: ClientLastNoteCardProps) {
   const { data: lastNote, isLoading } = useQuery({
     queryKey: ['client-last-note', clientId],
     queryFn: () => api.getClientLastNote(clientId),
+    retry: false,
   });
 
   if (showTimeline) {

@@ -25,6 +25,7 @@ import {
   ChevronRight,
   AlertCircle,
   FileText,
+  CalendarDays,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -41,6 +42,7 @@ import { ClientsTab } from './components/clients-tab';
 import { InvoicesTab } from './components/invoices-tab';
 import { RevenueChart } from './components/revenue-chart';
 import { useWebSocket } from '@/contexts/WebSocketContext';
+import { AgendaTab } from './components/calendar/agenda-tab';
 
 function BusinessDashboardContent() {
   const router = useRouter();
@@ -51,10 +53,10 @@ function BusinessDashboardContent() {
 
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const validTabs = ['overview', 'services', 'employees', 'bookings', 'clients', 'invoices'] as const;
+  const validTabs = ['overview', 'services', 'employees', 'bookings', 'clients', 'invoices', 'agenda'] as const;
   const initialTab = validTabs.includes(tabParam as any) ? (tabParam as typeof validTabs[number]) : 'overview';
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings' | 'clients' | 'invoices'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings' | 'clients' | 'invoices' | 'agenda'>(initialTab);
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [navigateToClientId, setNavigateToClientId] = useState<string | null>(null);
@@ -160,6 +162,7 @@ function BusinessDashboardContent() {
     REJECTED: 'Refusé',
     COMPLETED: 'Terminé',
     CANCELED: 'Annulé',
+    NO_SHOW: 'Absent',
   };
 
   const statusColors: Record<BookingStatus, string> = {
@@ -168,6 +171,7 @@ function BusinessDashboardContent() {
     REJECTED: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
     COMPLETED: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
     CANCELED: 'bg-stone-100 text-stone-600 dark:bg-stone-800/50 dark:text-stone-400',
+    NO_SHOW: 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400',
   };
 
   const acceptBookingMutation = useMutation({
@@ -236,9 +240,10 @@ function BusinessDashboardContent() {
 
   const tabs = [
     { id: 'overview', label: 'Vue d\'ensemble', icon: Home },
+    { id: 'agenda', label: 'Agenda', icon: CalendarDays },
+    { id: 'bookings', label: 'Réservations', icon: Calendar },
     { id: 'services', label: 'Prestations', icon: Scissors },
     { id: 'employees', label: 'Équipe', icon: Users },
-    { id: 'bookings', label: 'Réservations', icon: Calendar },
     { id: 'clients', label: 'Clients', icon: UserCheck },
     { id: 'invoices', label: 'Factures', icon: FileText },
   ] as const;
@@ -984,6 +989,21 @@ function BusinessDashboardContent() {
             exit={{ opacity: 0 }}
           >
             <InvoicesTab businessId={business.id} />
+          </motion.div>
+        )}
+
+        {activeTab === 'agenda' && (
+          <motion.div
+            key="agenda"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <AgendaTab
+              business={business}
+              employees={business.employees ?? []}
+              services={business.services ?? []}
+            />
           </motion.div>
         )}
 
