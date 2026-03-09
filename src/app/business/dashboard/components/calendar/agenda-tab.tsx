@@ -61,7 +61,7 @@ export function AgendaTab({
 
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
-  const { onBookingStatus } = useWebSocket();
+  const { onBookingStatus, onCalendarUpdate } = useWebSocket();
 
   // Compute query range
   const { start, end } = useMemo(() => {
@@ -96,13 +96,17 @@ export function AgendaTab({
 
   // WebSocket real-time updates
   useEffect(() => {
-    const unsub = onBookingStatus(() => {
-      queryClient.invalidateQueries({
-        queryKey: ['calendar-entries'],
-      });
+    const unsubStatus = onBookingStatus(() => {
+      queryClient.invalidateQueries({ queryKey: ['calendar-entries'] });
     });
-    return unsub;
-  }, [onBookingStatus, queryClient]);
+    const unsubCalendar = onCalendarUpdate(() => {
+      queryClient.invalidateQueries({ queryKey: ['calendar-entries'] });
+    });
+    return () => {
+      unsubStatus();
+      unsubCalendar();
+    };
+  }, [onBookingStatus, onCalendarUpdate, queryClient]);
 
   // Modal states
   const [selectedEntry, setSelectedEntry] =

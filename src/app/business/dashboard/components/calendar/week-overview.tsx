@@ -10,8 +10,10 @@ import {
   CALENDAR_END_HOUR,
   BLOCK_REASON_LABELS,
   SNAP_MINUTES,
+  groupOverlappingEntries,
 } from '@/lib/calendar-utils';
 import { useDragEntry } from '@/hooks/useDragEntry';
+import { OverlapPopover } from './overlap-popover';
 import type { DragConfirmData } from './day-scheduler';
 
 const DAY_NAMES = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
@@ -108,6 +110,7 @@ export function WeekOverview({
     employees: visibleEmployees,
     columnWidth,
     dayColumns: days,
+    pxPerMinute: PX_PER_MIN_WEEK,
     onOptimisticUpdate: handleOptimisticUpdate,
     onRollback: handleRollback,
     onDragEnd: handleDragEnd,
@@ -120,7 +123,7 @@ export function WeekOverview({
   const entriesByDay = new Map<string, CalendarEntry[]>();
   for (const entry of entries) {
     if (staffFilter && entry.employeeId !== staffFilter) continue;
-    const day = entry.scheduledAt.slice(0, 10);
+    const day = toLocalDateString(new Date(entry.scheduledAt));
     const list = entriesByDay.get(day) || [];
     list.push(entry);
     entriesByDay.set(day, list);
@@ -182,7 +185,7 @@ export function WeekOverview({
             const dayEntries = [
               ...rawDayEntries.filter((e) => !optimisticIds.has(e.id)),
               ...optimisticEntries.filter(
-                (e) => e.scheduledAt.startsWith(dateStr),
+                (e) => toLocalDateString(new Date(e.scheduledAt)) === dateStr,
               ),
             ];
 
@@ -230,8 +233,9 @@ export function WeekOverview({
                     />
                   ))}
 
-                  {/* Entries */}
-                  {dayEntries.map((entry) => {
+                  {/* Entries (grouped by overlap) */}
+                  {groupOverlappingEntries(dayEntries).map((group) => {
+                    const entry = group.primary;
                     const startDate = new Date(entry.scheduledAt);
                     const endDate = new Date(entry.scheduledEndAt);
                     const startMin =
@@ -254,7 +258,7 @@ export function WeekOverview({
                     const label = isBlock
                       ? (BLOCK_REASON_LABELS[entry.blockReason as BlockReason] ?? 'Block')
                       : (entry.businessService?.name ?? 'RDV');
-                    const time = entry.scheduledAt.slice(11, 16);
+                    const time = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`;
                     const empName = entry.employee
                       ? `${entry.employee.firstName ?? ''} ${entry.employee.lastName ?? ''}`.trim()
                       : '';
@@ -262,8 +266,8 @@ export function WeekOverview({
                     return (
                       <div
                         key={entry.id}
-                        className={`absolute left-0.5 right-0.5 rounded-md border-l-4 border px-1.5 py-0.5 overflow-hidden cursor-grab select-none hover:brightness-95 transition-all ${styleClass} ${isOpt ? 'opacity-70 ring-2 ring-primary/40' : ''}`}
-                        style={{ top, height, zIndex: 5 }}
+                        className={`absolute left-0.5 right-0.5 rounded-md border-l-4 border px-1.5 py-0.5 overflow-visible cursor-grab select-none hover:brightness-95 transition-all ${styleClass} ${isOpt ? 'opacity-70 ring-2 ring-primary/40' : ''}`}
+                        style={{ top, height, zIndex: 5 + group.overlapCount }}
                         onClick={(e) => {
                           e.stopPropagation();
                           onEntryClick?.(entry);
@@ -280,6 +284,13 @@ export function WeekOverview({
                           <div className="text-[10px] truncate font-semibold opacity-75">
                             — {empName}
                           </div>
+                        )}
+
+                        {group.overlapCount > 0 && onEntryClick && (
+                          <OverlapPopover
+                            entries={group.entries}
+                            onEntryClick={onEntryClick}
+                          />
                         )}
                       </div>
                     );

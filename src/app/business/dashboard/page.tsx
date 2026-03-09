@@ -371,8 +371,8 @@ function BusinessDashboardContent() {
 
             {/* Réservations avec navigation temporelle */}
             <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5">
-              {/* Header avec navigation */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              {/* Header: titre · navigation période · switcher */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
                 <div className="flex items-center gap-3">
                   <h3 className="font-semibold flex items-center gap-2">
                     <Calendar className="w-5 h-5" />
@@ -385,64 +385,54 @@ function BusinessDashboardContent() {
                   )}
                 </div>
 
-                {/* Switcher Semaine/Mois */}
-                <div className="flex items-center gap-2">
-                  <div className="flex bg-muted rounded-full p-1">
-                    <button
-                      onClick={() => setViewMode('week')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors cursor-pointer ${
-                        viewMode === 'week'
-                          ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Semaine
-                    </button>
-                    <button
-                      onClick={() => setViewMode('month')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors cursor-pointer ${
-                        viewMode === 'month'
-                          ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Mois
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Navigation de période */}
-              <div className="flex items-center justify-between bg-background rounded-xl p-3 mb-6">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigatePeriod('prev')}
-                  className="rounded-full h-8 w-8 p-0"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-
-                <div className="flex items-center gap-3">
-                  <span className="font-medium capitalize">{periodLabel}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={goToToday}
-                    className="rounded-full text-xs h-7"
+                {/* Navigation de période (inline) */}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => navigatePeriod('prev')}
+                    className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                   >
-                    Aujourd'hui
-                  </Button>
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-sm font-medium capitalize px-1">{periodLabel}</span>
+                  <button
+                    onClick={() => navigatePeriod('next')}
+                    className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={goToToday}
+                    className="ml-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer"
+                  >
+                    Aujourd&apos;hui
+                  </button>
                 </div>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigatePeriod('next')}
-                  className="rounded-full h-8 w-8 p-0"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                <div className="flex-1" />
+
+                {/* Switcher Semaine/Mois */}
+                <div className="flex bg-muted/50 rounded-lg p-0.5">
+                  <button
+                    onClick={() => setViewMode('week')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+                      viewMode === 'week'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Semaine
+                  </button>
+                  <button
+                    onClick={() => setViewMode('month')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+                      viewMode === 'month'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Mois
+                  </button>
+                </div>
               </div>
 
               {/* Liste des réservations */}

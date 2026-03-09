@@ -173,10 +173,12 @@ export function findNextAvailableSlot(
       entry.status === 'REJECTED'
     )
       continue;
-    const day = entry.scheduledAt.slice(0, 10);
+    const startDate = new Date(entry.scheduledAt);
+    const endDate = new Date(entry.scheduledEndAt);
+    const day = toLocalDateString(startDate);
     const key = `${entry.employeeId}:${day}`;
-    const startMin = timeToMinutes(entry.scheduledAt.slice(11, 16));
-    const endMin = timeToMinutes(entry.scheduledEndAt.slice(11, 16));
+    const startMin = startDate.getHours() * 60 + startDate.getMinutes();
+    const endMin = endDate.getHours() * 60 + endDate.getMinutes();
     const existing = busyMap.get(key) || [];
     existing.push({ start: startMin, end: endMin });
     busyMap.set(key, existing);
@@ -221,4 +223,62 @@ export function findNextAvailableSlot(
     cursor.setDate(cursor.getDate() + 1);
   }
   return null;
+}
+
+// --- Overlap grouping for week view ---
+
+export interface EntryGroup {
+  primary: CalendarEntry;
+  entries: CalendarEntry[];
+  overlapCount: number;
+}
+
+/** Group overlapping calendar entries within a single day */
+export function groupOverlappingEntries(
+  dayEntries: CalendarEntry[],
+): EntryGroup[] {
+  if (dayEntries.length === 0) return [];
+
+  const sorted = [...dayEntries].sort((a, b) => {
+    const diff =
+      new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime();
+    if (diff !== 0) return diff;
+    if (a.kind !== b.kind) return a.kind === 'BLOCK' ? 1 : -1;
+    return (a.employee?.lastName ?? '').localeCompare(
+      b.employee?.lastName ?? '',
+    );
+  });
+
+  const groups: EntryGroup[] = [];
+  let current: CalendarEntry[] = [sorted[0]];
+  let clusterEnd = new Date(sorted[0].scheduledEndAt).getTime();
+
+  for (let i = 1; i < sorted.length; i++) {
+    const entry = sorted[i];
+    const entryStart = new Date(entry.scheduledAt).getTime();
+
+    if (entryStart < clusterEnd) {
+      current.push(entry);
+      clusterEnd = Math.max(
+        clusterEnd,
+        new Date(entry.scheduledEndAt).getTime(),
+      );
+    } else {
+      groups.push({
+        primary: current[0],
+        entries: current,
+        overlapCount: current.length - 1,
+      });
+      current = [entry];
+      clusterEnd = new Date(entry.scheduledEndAt).getTime();
+    }
+  }
+
+  groups.push({
+    primary: current[0],
+    entries: current,
+    overlapCount: current.length - 1,
+  });
+
+  return groups;
 }

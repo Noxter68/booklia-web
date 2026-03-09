@@ -38,7 +38,8 @@ export function CalendarEntryBlock({
     ? BLOCK_STYLE
     : (STATUS_STYLES[entry.status] ?? STATUS_STYLES.PENDING);
 
-  const startTime = entry.scheduledAt.slice(11, 16);
+  const sd = new Date(entry.scheduledAt);
+  const startTime = `${String(sd.getHours()).padStart(2, '0')}:${String(sd.getMinutes()).padStart(2, '0')}`;
   const title = isBlock
     ? (BLOCK_REASON_LABELS[entry.blockReason!] ?? 'Indisponible')
     : (entry.businessService?.name ?? 'Rendez-vous');

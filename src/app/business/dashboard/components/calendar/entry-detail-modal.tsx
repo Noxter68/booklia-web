@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, Check, Ban, AlertTriangle, CheckCircle, StickyNote } from 'lucide-react';
+import { X, Check, Ban, AlertTriangle, CheckCircle, StickyNote, Loader2 } from 'lucide-react';
 import type { CalendarEntry, BookingStatus, BookingNote } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -68,24 +68,31 @@ export function EntryDetailModal({
   isUpdating,
 }: EntryDetailModalProps) {
   const [lastNote, setLastNote] = useState<BookingNote | null>(null);
+  const [noteLoaded, setNoteLoaded] = useState(false);
 
   useEffect(() => {
     if (!entry || entry.kind === 'BLOCK') {
       setLastNote(null);
+      setNoteLoaded(true);
       return;
     }
     const clientId = entry.requesterId;
-    if (!clientId) return;
+    if (!clientId) {
+      setNoteLoaded(true);
+      return;
+    }
+    setNoteLoaded(false);
     let cancelled = false;
     api.getClientLastNote(clientId)
-      .then((note) => { if (!cancelled) setLastNote(note); })
-      .catch(() => { if (!cancelled) setLastNote(null); });
+      .then((note) => { if (!cancelled) { setLastNote(note); setNoteLoaded(true); } })
+      .catch(() => { if (!cancelled) { setLastNote(null); setNoteLoaded(true); } });
     return () => { cancelled = true; };
   }, [entry]);
 
   if (!entry) return null;
 
   const isBlock = entry.kind === 'BLOCK';
+  const showLoader = !isBlock && entry.requesterId && !noteLoaded;
   const startTime = new Date(entry.scheduledAt).toLocaleTimeString(
     'fr-FR',
     { hour: '2-digit', minute: '2-digit' },
@@ -137,121 +144,129 @@ export function EntryDetailModal({
             </button>
           </div>
 
-          {/* Content */}
-          <div className="p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                Date
-              </span>
-              <span className="text-sm font-medium capitalize">
-                {dateStr}
-              </span>
+          {showLoader ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                Horaire
-              </span>
-              <span className="text-sm font-medium">
-                {startTime} — {endTime}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                Employé
-              </span>
-              <span className="text-sm font-medium">
-                {entry.employee.firstName} {entry.employee.lastName}
-              </span>
-            </div>
-
-            {!isBlock && (
-              <>
-                {entry.requester?.name && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Client
-                    </span>
-                    <span className="text-sm font-medium">
-                      {entry.requester.name}
-                    </span>
-                  </div>
-                )}
+          ) : (
+            <>
+              {/* Content */}
+              <div className="p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    Statut
+                    Date
                   </span>
-                  <Badge variant="outline">
-                    {STATUS_LABELS[entry.status]}
-                  </Badge>
-                </div>
-              </>
-            )}
-
-            {entry.notes && (
-              <div className="pt-2 border-t border-border/50">
-                <span className="text-xs text-muted-foreground">
-                  Notes
-                </span>
-                <p className="text-sm mt-1">{entry.notes}</p>
-              </div>
-            )}
-
-            {lastNote && (
-              <div className="pt-2 border-t border-border/50">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <StickyNote className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">
-                    Dernière note client
+                  <span className="text-sm font-medium capitalize">
+                    {dateStr}
                   </span>
                 </div>
-                <p className="text-sm bg-muted/50 rounded-lg p-2.5 whitespace-pre-wrap">
-                  {lastNote.content}
-                </p>
-                {lastNote.booking?.businessService?.name && (
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    {lastNote.booking.businessService.name}
-                    {lastNote.booking.scheduledAt &&
-                      ` — ${new Date(lastNote.booking.scheduledAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`}
-                  </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Horaire
+                  </span>
+                  <span className="text-sm font-medium">
+                    {startTime} — {endTime}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Employé
+                  </span>
+                  <span className="text-sm font-medium">
+                    {entry.employee.firstName} {entry.employee.lastName}
+                  </span>
+                </div>
+
+                {!isBlock && (
+                  <>
+                    {entry.requester?.name && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          Client
+                        </span>
+                        <span className="text-sm font-medium">
+                          {entry.requester.name}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Statut
+                      </span>
+                      <Badge variant="outline">
+                        {STATUS_LABELS[entry.status]}
+                      </Badge>
+                    </div>
+                  </>
+                )}
+
+                {entry.notes && (
+                  <div className="pt-2 border-t border-border/50">
+                    <span className="text-xs text-muted-foreground">
+                      Notes
+                    </span>
+                    <p className="text-sm mt-1">{entry.notes}</p>
+                  </div>
+                )}
+
+                {lastNote && (
+                  <div className="pt-2 border-t border-border/50">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <StickyNote className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">
+                        Dernière note client
+                      </span>
+                    </div>
+                    <p className="text-sm bg-muted/50 rounded-lg p-2.5 whitespace-pre-wrap">
+                      {lastNote.content}
+                    </p>
+                    {lastNote.booking?.businessService?.name && (
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {lastNote.booking.businessService.name}
+                        {lastNote.booking.scheduledAt &&
+                          ` — ${new Date(lastNote.booking.scheduledAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
 
-          {/* Actions */}
-          {(availableActions.length > 0 || isBlock) && (
-            <div className="p-5 border-t border-border/50 space-y-2">
-              {availableActions.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {availableActions.map((action) => (
+              {/* Actions */}
+              {(availableActions.length > 0 || isBlock) && (
+                <div className="p-5 border-t border-border/50 space-y-2">
+                  {availableActions.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {availableActions.map((action) => (
+                        <Button
+                          key={action.status}
+                          variant={action.variant}
+                          size="sm"
+                          className="rounded-xl"
+                          disabled={isUpdating}
+                          onClick={() =>
+                            onStatusChange(entry.id, action.status)
+                          }
+                        >
+                          <action.icon className="w-4 h-4 mr-1.5" />
+                          {action.label}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  {isBlock && (
                     <Button
-                      key={action.status}
-                      variant={action.variant}
+                      variant="destructive"
                       size="sm"
-                      className="rounded-xl"
+                      className="rounded-xl w-full"
                       disabled={isUpdating}
-                      onClick={() =>
-                        onStatusChange(entry.id, action.status)
-                      }
+                      onClick={() => onDelete(entry.id)}
                     >
-                      <action.icon className="w-4 h-4 mr-1.5" />
-                      {action.label}
+                      Supprimer ce bloc
                     </Button>
-                  ))}
+                  )}
                 </div>
               )}
-              {isBlock && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="rounded-xl w-full"
-                  disabled={isUpdating}
-                  onClick={() => onDelete(entry.id)}
-                >
-                  Supprimer ce bloc
-                </Button>
-              )}
-            </div>
+            </>
           )}
         </motion.div>
       </motion.div>

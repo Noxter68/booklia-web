@@ -2,7 +2,7 @@
 
 import { useRef, useCallback, useState, useEffect } from 'react';
 import type { CalendarEntry } from '@/types';
-import { pxOffsetToDateTime, toLocalDateString, SNAP_MINUTES } from '@/lib/calendar-utils';
+import { toLocalDateString, SNAP_MINUTES, PX_PER_MINUTE, CALENDAR_START_HOUR } from '@/lib/calendar-utils';
 
 interface DragState {
   entryId: string;
@@ -31,6 +31,8 @@ interface UseDragEntryOptions {
   columnWidth: number;
   /** When set, horizontal drag changes the day instead of the employee (week view) */
   dayColumns?: Date[];
+  /** Pixels per minute ratio (default: PX_PER_MINUTE from calendar-utils) */
+  pxPerMinute?: number;
   onOptimisticUpdate: (entry: CalendarEntry) => void;
   onRollback: () => void;
   onDragEnd: (data: DragEndData) => void;
@@ -134,8 +136,13 @@ export function useDragEntry(options: UseDragEntryOptions) {
 
           state.pendingEmployeeId = newEmployeeId;
 
+          const ppm = optionsRef.current.pxPerMinute ?? PX_PER_MINUTE;
           const newTopPx = state.entryTopPx + deltaY;
-          const newStart = pxOffsetToDateTime(newTopPx, baseDate, SNAP_MINUTES);
+          const rawMin = newTopPx / ppm;
+          const snappedMin = Math.round(rawMin / SNAP_MINUTES) * SNAP_MINUTES;
+          const totalMin = CALENDAR_START_HOUR * 60 + snappedMin;
+          const newStart = new Date(baseDate);
+          newStart.setHours(Math.floor(totalMin / 60), totalMin % 60, 0, 0);
 
           const durationMs =
             new Date(state.originalEntry.scheduledEndAt).getTime() -
@@ -199,8 +206,13 @@ export function useDragEntry(options: UseDragEntryOptions) {
               employees[newColIndex]?.id ?? state.originalEntry.employeeId;
           }
 
+          const ppm = optionsRef.current.pxPerMinute ?? PX_PER_MINUTE;
           const newTopPx = state.entryTopPx + deltaY;
-          const newStart = pxOffsetToDateTime(newTopPx, baseDate, SNAP_MINUTES);
+          const rawMin = newTopPx / ppm;
+          const snappedMin = Math.round(rawMin / SNAP_MINUTES) * SNAP_MINUTES;
+          const totalMin = CALENDAR_START_HOUR * 60 + snappedMin;
+          const newStart = new Date(baseDate);
+          newStart.setHours(Math.floor(totalMin / 60), totalMin % 60, 0, 0);
           const durationMs =
             new Date(state.originalEntry.scheduledEndAt).getTime() -
             new Date(state.originalEntry.scheduledAt).getTime();

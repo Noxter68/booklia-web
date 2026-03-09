@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   FileText,
@@ -9,6 +9,10 @@ import {
   Download,
   Settings,
   Trash2,
+  Search,
+  X,
+  Filter,
+  ChevronDown,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -33,12 +37,40 @@ const statusColors: Record<InvoiceStatus, string> = {
 
 type InvoicesView = 'list' | 'editor' | 'settings';
 
+function useDebounce(value: string, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export function InvoicesTab({ businessId }: { businessId: string }) {
   const queryClient = useQueryClient();
   const { success, error: showError } = useToast();
   const [view, setView] = useState<InvoicesView>('list');
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [searchInput, setSearchInput] = useState('');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  // Close filter dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const deleteMutation = useMutation({
     mutationFn: (invoiceId: string) => api.deleteInvoice(invoiceId),
@@ -50,11 +82,22 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['invoices', statusFilter],
-    queryFn: () => api.getInvoices(statusFilter || undefined, 50, 0),
+    queryKey: ['invoices', statusFilter, debouncedSearch],
+    queryFn: () =>
+      api.getInvoices(
+        statusFilter || undefined,
+        debouncedSearch || undefined,
+        50,
+        0,
+      ),
   });
 
   const invoices = data?.data ?? [];
+
+  const filterLabel =
+    statusFilter === ''
+      ? 'Toutes'
+      : statusLabels[statusFilter as InvoiceStatus];
 
   if (view === 'settings') {
     return (
@@ -62,9 +105,8 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
         <div className="mb-4">
           <Button
             variant="ghost"
-            size="sm"
             onClick={() => setView('list')}
-            className="rounded-full text-xs"
+            className="rounded-full"
           >
             ← Retour aux factures
           </Button>
@@ -89,48 +131,94 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
 
   return (
     <div>
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h2 className="text-xl font-bold">Factures</h2>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            size="sm"
             onClick={() => setView('settings')}
-            className="rounded-full text-xs"
+            className="rounded-full"
           >
-            <Settings className="w-3.5 h-3.5 mr-1" />
+            <Settings className="w-4 h-4 mr-2" />
             Paramètres
           </Button>
           <Button
-            size="sm"
             onClick={() => {
               setSelectedInvoiceId(null);
               setView('editor');
             }}
-            className="rounded-full text-xs"
+            className="rounded-full"
           >
-            <Plus className="w-3.5 h-3.5 mr-1" />
+            <Plus className="w-4 h-4 mr-2" />
             Nouvelle facture
           </Button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="overflow-x-auto -mx-4 px-4 mb-6 scrollbar-none">
-        <div className="flex p-1 bg-muted/50 rounded-lg w-fit">
-          {['', 'DRAFT', 'FINALIZED', 'CANCELLED'].map((s) => (
+      {/* Search + Filter row */}
+      <div className="flex items-center gap-3 mb-6">
+        {/* Search */}
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Rechercher par client ou n° facture…"
+            className="w-full pl-9 pr-9 py-2 rounded-lg border border-border bg-surface text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          {searchInput && (
             <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 sm:px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer ${
-                statusFilter === s
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+              onClick={() => setSearchInput('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
             >
-              {s === '' ? 'Toutes' : statusLabels[s as InvoiceStatus]}
+              <X className="w-4 h-4" />
             </button>
-          ))}
+          )}
+        </div>
+
+        {/* Filter dropdown */}
+        <div className="relative" ref={filterRef}>
+          <button
+            onClick={() => setFilterOpen(!filterOpen)}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors cursor-pointer ${
+              statusFilter
+                ? 'border-primary/30 bg-primary/5 text-foreground'
+                : 'border-border bg-surface text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            {filterLabel}
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${filterOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {filterOpen && (
+            <div className="absolute right-0 mt-1 w-44 bg-surface border border-border rounded-lg shadow-lg z-20 py-1">
+              {[
+                { value: '', label: 'Toutes' },
+                { value: 'DRAFT', label: 'Brouillon' },
+                { value: 'FINALIZED', label: 'Finalisée' },
+                { value: 'CANCELLED', label: 'Annulée' },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    setStatusFilter(opt.value);
+                    setFilterOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer ${
+                    statusFilter === opt.value
+                      ? 'bg-primary/10 text-foreground font-medium'
+                      : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -144,19 +232,24 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
             <FileText className="w-8 h-8 text-muted-foreground" />
           </div>
           <p className="text-muted-foreground">
-            {statusFilter ? 'Aucune facture avec ce statut' : 'Aucune facture pour le moment'}
+            {debouncedSearch
+              ? 'Aucune facture trouvée pour cette recherche'
+              : statusFilter
+                ? 'Aucune facture avec ce statut'
+                : 'Aucune facture pour le moment'}
           </p>
-          <Button
-            size="sm"
-            onClick={() => {
-              setSelectedInvoiceId(null);
-              setView('editor');
-            }}
-            className="rounded-full mt-4"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Créer une facture
-          </Button>
+          {!debouncedSearch && !statusFilter && (
+            <Button
+              onClick={() => {
+                setSelectedInvoiceId(null);
+                setView('editor');
+              }}
+              className="rounded-full mt-4"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Créer une facture
+            </Button>
+          )}
         </div>
       ) : (
         <div className="bg-surface border border-border rounded-2xl overflow-hidden">

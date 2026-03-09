@@ -771,9 +771,10 @@ class ApiClient {
     });
   }
 
-  async getInvoices(status?: string, limit = 20, offset = 0) {
+  async getInvoices(status?: string, search?: string, limit = 20, offset = 0) {
     const params = new URLSearchParams();
     if (status) params.append('status', status);
+    if (search) params.append('search', search);
     params.append('limit', String(limit));
     params.append('offset', String(offset));
     return this.request<import('@/types').PaginatedResponse<import('@/types').Invoice>>(
