@@ -271,7 +271,7 @@ export default function BookingPage() {
   return (
     <div className="min-h-screen bg-background pt-28 pb-32 md:pb-12">
       <div className="container mx-auto px-4">
-        {/* Header */}
+        {/* Header + Employee Selection (single row) */}
         <div className="mb-6">
           <Link
             href={`/business/${slug}`}
@@ -281,8 +281,9 @@ export default function BookingPage() {
             Retour à {business.name}
           </Link>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+            {/* Service info */}
+            <div className="shrink-0">
               <h1 className="text-2xl font-bold">{selectedService.name}</h1>
               <div className="flex items-center gap-4 text-muted-foreground mt-1">
                 <span className="flex items-center gap-1.5">
@@ -294,74 +295,70 @@ export default function BookingPage() {
                 </span>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Employee Selection */}
-        <div className="mb-8">
-          <h2 className="text-sm font-medium text-muted-foreground mb-3">
-            Choisissez un intervenant
-          </h2>
-          <div className="flex flex-wrap gap-3">
-            {/* "Pas de préférence" option */}
-            {employeesForService.length > 1 && (
-              <button
-                onClick={() => {
-                  // Select the first available employee as default
-                  setSelectedEmployee(employeesForService[0]?.id || null);
-                  setSelectedDate('');
-                  setSelectedTime('');
-                }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all cursor-pointer ${
-                  !selectedEmployee
-                    ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <span className="font-medium text-sm">Pas de préférence</span>
-              </button>
-            )}
+            {/* Separator */}
+            <div className="hidden lg:block w-px h-10 bg-border" />
 
-            {employeesForService.map((employee) => (
-              <button
-                key={employee.id}
-                onClick={() => {
-                  setSelectedEmployee(employee.id);
-                  setSelectedDate('');
-                  setSelectedTime('');
-                }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all cursor-pointer ${
-                  selectedEmployee === employee.id
-                    ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden">
-                  {employee.avatarUrl ? (
-                    <img
-                      src={employee.avatarUrl}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-sm font-medium text-primary">
-                      {employee.firstName[0]}{employee.lastName[0]}
-                    </span>
-                  )}
-                </div>
-                <div className="text-left">
-                  <p className="font-medium text-sm">
-                    {employee.firstName} {employee.lastName}
-                  </p>
-                  {employee.role && (
-                    <p className="text-xs text-muted-foreground">{employee.role}</p>
-                  )}
-                </div>
-              </button>
-            ))}
+            {/* Employee Selection (horizontal) */}
+            <div className="flex items-center gap-2 overflow-x-auto">
+              {employeesForService.length > 1 && (
+                <button
+                  onClick={() => {
+                    setSelectedEmployee(employeesForService[0]?.id || null);
+                    setSelectedDate('');
+                    setSelectedTime('');
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 ${
+                    !selectedEmployee
+                      ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <span className="font-medium text-sm">Pas de préférence</span>
+                </button>
+              )}
+
+              {employeesForService.map((employee) => (
+                <button
+                  key={employee.id}
+                  onClick={() => {
+                    setSelectedEmployee(employee.id);
+                    setSelectedDate('');
+                    setSelectedTime('');
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 ${
+                    selectedEmployee === employee.id
+                      ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden">
+                    {employee.avatarUrl ? (
+                      <img
+                        src={employee.avatarUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs font-medium text-primary">
+                        {employee.firstName[0]}{employee.lastName[0]}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-sm whitespace-nowrap">
+                      {employee.firstName} {employee.lastName}
+                    </p>
+                    {employee.role && (
+                      <p className="text-xs text-muted-foreground whitespace-nowrap">{employee.role}</p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

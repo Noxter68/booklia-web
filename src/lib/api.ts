@@ -771,9 +771,10 @@ class ApiClient {
     });
   }
 
-  async getInvoices(status?: string, limit = 20, offset = 0) {
+  async getInvoices(status?: string, search?: string, limit = 20, offset = 0) {
     const params = new URLSearchParams();
     if (status) params.append('status', status);
+    if (search) params.append('search', search);
     params.append('limit', String(limit));
     params.append('offset', String(offset));
     return this.request<import('@/types').PaginatedResponse<import('@/types').Invoice>>(
@@ -837,6 +838,66 @@ class ApiClient {
 
   async getInvoicePdfUrl(invoiceId: string) {
     return this.request<{ url: string }>(`/invoices/${invoiceId}/pdf`);
+  }
+
+  // ============================================
+  // Calendar
+  // ============================================
+
+  async getCalendarEntries(start: string, end: string, staffId?: string) {
+    const params = new URLSearchParams({ start, end });
+    if (staffId) params.append('staffId', staffId);
+    return this.request<import('@/types').CalendarEntry[]>(
+      `/calendar/entries?${params}`,
+    );
+  }
+
+  async createCalendarAppointment(data: {
+    employeeId: string;
+    businessServiceId: string;
+    scheduledAt: string;
+    clientUserId?: string;
+    notes?: string;
+  }) {
+    return this.request<import('@/types').CalendarEntry>(
+      '/calendar/appointments',
+      { method: 'POST', body: JSON.stringify(data) },
+    );
+  }
+
+  async createCalendarBlock(data: {
+    employeeId: string;
+    startAt: string;
+    endAt: string;
+    blockReason?: import('@/types').BlockReason;
+    notes?: string;
+  }) {
+    return this.request<import('@/types').CalendarEntry>(
+      '/calendar/blocks',
+      { method: 'POST', body: JSON.stringify(data) },
+    );
+  }
+
+  async updateCalendarEntry(
+    id: string,
+    data: {
+      employeeId?: string;
+      startAt?: string;
+      endAt?: string;
+      status?: import('@/types').BookingStatus;
+      updatedAt?: string;
+    },
+  ) {
+    return this.request<import('@/types').CalendarEntry>(
+      `/calendar/entries/${id}`,
+      { method: 'PATCH', body: JSON.stringify(data) },
+    );
+  }
+
+  async deleteCalendarBlock(id: string) {
+    return this.request<{ success: boolean }>(`/calendar/blocks/${id}`, {
+      method: 'DELETE',
+    });
   }
 }
 

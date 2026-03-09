@@ -25,6 +25,7 @@ import {
   ChevronRight,
   AlertCircle,
   FileText,
+  CalendarDays,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -41,6 +42,7 @@ import { ClientsTab } from './components/clients-tab';
 import { InvoicesTab } from './components/invoices-tab';
 import { RevenueChart } from './components/revenue-chart';
 import { useWebSocket } from '@/contexts/WebSocketContext';
+import { AgendaTab } from './components/calendar/agenda-tab';
 
 function BusinessDashboardContent() {
   const router = useRouter();
@@ -51,10 +53,10 @@ function BusinessDashboardContent() {
 
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const validTabs = ['overview', 'services', 'employees', 'bookings', 'clients', 'invoices'] as const;
+  const validTabs = ['overview', 'services', 'employees', 'bookings', 'clients', 'invoices', 'agenda'] as const;
   const initialTab = validTabs.includes(tabParam as any) ? (tabParam as typeof validTabs[number]) : 'overview';
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings' | 'clients' | 'invoices'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings' | 'clients' | 'invoices' | 'agenda'>(initialTab);
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [navigateToClientId, setNavigateToClientId] = useState<string | null>(null);
@@ -160,6 +162,7 @@ function BusinessDashboardContent() {
     REJECTED: 'Refusé',
     COMPLETED: 'Terminé',
     CANCELED: 'Annulé',
+    NO_SHOW: 'Absent',
   };
 
   const statusColors: Record<BookingStatus, string> = {
@@ -168,6 +171,7 @@ function BusinessDashboardContent() {
     REJECTED: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
     COMPLETED: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
     CANCELED: 'bg-stone-100 text-stone-600 dark:bg-stone-800/50 dark:text-stone-400',
+    NO_SHOW: 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400',
   };
 
   const acceptBookingMutation = useMutation({
@@ -236,9 +240,10 @@ function BusinessDashboardContent() {
 
   const tabs = [
     { id: 'overview', label: 'Vue d\'ensemble', icon: Home },
+    { id: 'agenda', label: 'Agenda', icon: CalendarDays },
+    { id: 'bookings', label: 'Réservations', icon: Calendar },
     { id: 'services', label: 'Prestations', icon: Scissors },
     { id: 'employees', label: 'Équipe', icon: Users },
-    { id: 'bookings', label: 'Réservations', icon: Calendar },
     { id: 'clients', label: 'Clients', icon: UserCheck },
     { id: 'invoices', label: 'Factures', icon: FileText },
   ] as const;
@@ -366,8 +371,8 @@ function BusinessDashboardContent() {
 
             {/* Réservations avec navigation temporelle */}
             <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5">
-              {/* Header avec navigation */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              {/* Header: titre · navigation période · switcher */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
                 <div className="flex items-center gap-3">
                   <h3 className="font-semibold flex items-center gap-2">
                     <Calendar className="w-5 h-5" />
@@ -380,64 +385,54 @@ function BusinessDashboardContent() {
                   )}
                 </div>
 
-                {/* Switcher Semaine/Mois */}
-                <div className="flex items-center gap-2">
-                  <div className="flex bg-muted rounded-full p-1">
-                    <button
-                      onClick={() => setViewMode('week')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors cursor-pointer ${
-                        viewMode === 'week'
-                          ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Semaine
-                    </button>
-                    <button
-                      onClick={() => setViewMode('month')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors cursor-pointer ${
-                        viewMode === 'month'
-                          ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Mois
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Navigation de période */}
-              <div className="flex items-center justify-between bg-background rounded-xl p-3 mb-6">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigatePeriod('prev')}
-                  className="rounded-full h-8 w-8 p-0"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-
-                <div className="flex items-center gap-3">
-                  <span className="font-medium capitalize">{periodLabel}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={goToToday}
-                    className="rounded-full text-xs h-7"
+                {/* Navigation de période (inline) */}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => navigatePeriod('prev')}
+                    className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                   >
-                    Aujourd'hui
-                  </Button>
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-sm font-medium capitalize px-1">{periodLabel}</span>
+                  <button
+                    onClick={() => navigatePeriod('next')}
+                    className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={goToToday}
+                    className="ml-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer"
+                  >
+                    Aujourd&apos;hui
+                  </button>
                 </div>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigatePeriod('next')}
-                  className="rounded-full h-8 w-8 p-0"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                <div className="flex-1" />
+
+                {/* Switcher Semaine/Mois */}
+                <div className="flex bg-muted/50 rounded-lg p-0.5">
+                  <button
+                    onClick={() => setViewMode('week')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+                      viewMode === 'week'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Semaine
+                  </button>
+                  <button
+                    onClick={() => setViewMode('month')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+                      viewMode === 'month'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Mois
+                  </button>
+                </div>
               </div>
 
               {/* Liste des réservations */}
@@ -984,6 +979,21 @@ function BusinessDashboardContent() {
             exit={{ opacity: 0 }}
           >
             <InvoicesTab businessId={business.id} />
+          </motion.div>
+        )}
+
+        {activeTab === 'agenda' && (
+          <motion.div
+            key="agenda"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <AgendaTab
+              business={business}
+              employees={business.employees ?? []}
+              services={business.services ?? []}
+            />
           </motion.div>
         )}
 

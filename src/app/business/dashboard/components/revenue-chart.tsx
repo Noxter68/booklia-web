@@ -186,6 +186,7 @@ export function RevenueChart() {
     queryKey: ['revenue-stats', period],
     queryFn: () => api.getRevenueStats(from.toISOString(), to.toISOString()),
     enabled: metric === 'revenue',
+    retry: false,
   });
 
   // Client growth data
@@ -193,6 +194,7 @@ export function RevenueChart() {
     queryKey: ['client-growth-stats', period],
     queryFn: () => api.getClientGrowthStats(from.toISOString(), to.toISOString()),
     enabled: metric === 'clients',
+    retry: false,
   });
 
   const revenueData = useMemo(

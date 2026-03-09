@@ -38,6 +38,12 @@ interface WebSocketContextValue {
    * @returns Unsubscribe function
    */
   onBookingStatus: (handler: (booking: Booking) => void) => () => void;
+
+  /**
+   * Subscribe to calendar update events (entry created/updated/deleted)
+   * @returns Unsubscribe function
+   */
+  onCalendarUpdate: (handler: () => void) => () => void;
 }
 
 // ============================================================================
@@ -66,6 +72,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const notificationHandlers = useRef<Set<(n: Notification) => void>>(new Set());
   const countHandlers = useRef<Set<(c: number) => void>>(new Set());
   const bookingStatusHandlers = useRef<Set<(b: Booking) => void>>(new Set());
+  const calendarUpdateHandlers = useRef<Set<() => void>>(new Set());
 
   // ============================================================================
   // Socket Connection Management
@@ -135,6 +142,12 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       bookingStatusHandlers.current.forEach((handler) => handler(booking));
     });
 
+    // Calendar update events
+    socket.on('calendar:update', () => {
+      console.log('[WebSocket] Calendar update received');
+      calendarUpdateHandlers.current.forEach((handler) => handler());
+    });
+
     // Cleanup on unmount
     return () => {
       socket.disconnect();
@@ -174,6 +187,13 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     []
   );
 
+  const onCalendarUpdate = useCallback((handler: () => void) => {
+    calendarUpdateHandlers.current.add(handler);
+    return () => {
+      calendarUpdateHandlers.current.delete(handler);
+    };
+  }, []);
+
   // ============================================================================
   // Context Value
   // ============================================================================
@@ -183,6 +203,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     onNotification,
     onNotificationCount,
     onBookingStatus,
+    onCalendarUpdate,
   };
 
   return (
