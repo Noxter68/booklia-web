@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -56,10 +56,23 @@ function BusinessDashboardContent() {
   const validTabs = ['overview', 'services', 'employees', 'bookings', 'clients', 'invoices', 'agenda'] as const;
   const initialTab = validTabs.includes(tabParam as any) ? (tabParam as typeof validTabs[number]) : 'overview';
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'employees' | 'bookings' | 'clients' | 'invoices' | 'agenda'>(initialTab);
+  type TabId = typeof validTabs[number];
+  const [activeTab, setActiveTabState] = useState<TabId>(initialTab);
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [navigateToClientId, setNavigateToClientId] = useState<string | null>(null);
+
+  const setActiveTab = useCallback((tab: TabId) => {
+    setActiveTabState(tab);
+    const params = new URLSearchParams(window.location.search);
+    if (tab === 'overview') {
+      params.delete('tab');
+    } else {
+      params.set('tab', tab);
+    }
+    const query = params.toString();
+    router.replace(`/business/dashboard${query ? `?${query}` : ''}`, { scroll: false });
+  }, [router]);
 
   const goToClientByUserId = async (userId: string) => {
     try {

@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/hooks/useAuth';
-import { Notification, Booking } from '@/types';
+import { Notification, Booking, BatchProgress } from '@/types';
 
 // ============================================================================
 // Types
@@ -44,6 +44,12 @@ interface WebSocketContextValue {
    * @returns Unsubscribe function
    */
   onCalendarUpdate: (handler: () => void) => () => void;
+
+  /**
+   * Subscribe to invoice batch progress events
+   * @returns Unsubscribe function
+   */
+  onBatchProgress: (handler: (progress: BatchProgress) => void) => () => void;
 }
 
 // ============================================================================
@@ -73,6 +79,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const countHandlers = useRef<Set<(c: number) => void>>(new Set());
   const bookingStatusHandlers = useRef<Set<(b: Booking) => void>>(new Set());
   const calendarUpdateHandlers = useRef<Set<() => void>>(new Set());
+  const batchProgressHandlers = useRef<Set<(p: BatchProgress) => void>>(new Set());
 
   // ============================================================================
   // Socket Connection Management
@@ -148,6 +155,11 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       calendarUpdateHandlers.current.forEach((handler) => handler());
     });
 
+    // Invoice batch progress events
+    socket.on('invoice:batch-progress', (progress: BatchProgress) => {
+      batchProgressHandlers.current.forEach((handler) => handler(progress));
+    });
+
     // Cleanup on unmount
     return () => {
       socket.disconnect();
@@ -194,6 +206,16 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     };
   }, []);
 
+  const onBatchProgress = useCallback(
+    (handler: (progress: BatchProgress) => void) => {
+      batchProgressHandlers.current.add(handler);
+      return () => {
+        batchProgressHandlers.current.delete(handler);
+      };
+    },
+    []
+  );
+
   // ============================================================================
   // Context Value
   // ============================================================================
@@ -204,6 +226,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     onNotificationCount,
     onBookingStatus,
     onCalendarUpdate,
+    onBatchProgress,
   };
 
   return (

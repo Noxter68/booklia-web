@@ -363,6 +363,55 @@ export interface Invoice {
   createdBy?: { id: string; name?: string };
 }
 
+// Invoice Batch
+export interface BatchPreviewBooking {
+  id: string;
+  clientName: string;
+  serviceName: string;
+  scheduledAt: string;
+  priceCents: number;
+}
+
+export interface BatchPreviewResult {
+  count: number;
+  bookings: BatchPreviewBooking[];
+}
+
+export interface BatchProgress {
+  current: number;
+  total: number;
+  currentClient: string;
+  phase: 'creating' | 'done' | 'error';
+}
+
+export interface BatchResult {
+  generatedCount: number;
+  totalHTCents: number;
+  totalVATCents: number;
+  totalTTCCents: number;
+  invoiceIds: string[];
+  errors: string[];
+  batchId?: string;
+}
+
+export type BatchGenerationStatus = 'COMPLETED' | 'FAILED';
+
+export interface BatchGeneration {
+  id: string;
+  businessId: string;
+  status: BatchGenerationStatus;
+  startDate: string;
+  endDate: string;
+  invoiceCount: number;
+  totalHTCents: number;
+  totalVATCents: number;
+  totalTTCCents: number;
+  invoiceIds: string[];
+  errors: string[];
+  createdAt: string;
+  createdBy?: { id: string; name?: string };
+}
+
 // Notifications
 export type NotificationType =
   | 'BOOKING_NEW'

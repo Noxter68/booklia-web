@@ -108,6 +108,29 @@ class ApiClient {
     return response.json();
   }
 
+  // Download binary file (ZIP, PDF, etc.) with proper auth
+  async downloadBlob(url: string): Promise<ArrayBuffer> {
+    const headers: HeadersInit = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(url, { headers });
+
+    if (response.status === 401) {
+      const refreshed = await this.handleTokenRefresh();
+      if (refreshed) {
+        return this.downloadBlob(url);
+      }
+    }
+
+    if (!response.ok) {
+      throw new Error('Erreur lors du téléchargement');
+    }
+
+    return response.arrayBuffer();
+  }
+
   // Auth
   async getMe() {
     return this.request<import('@/types').User>('/auth/me');
@@ -838,6 +861,41 @@ class ApiClient {
 
   async getInvoicePdfUrl(invoiceId: string) {
     return this.request<{ url: string }>(`/invoices/${invoiceId}/pdf`);
+  }
+
+  // ============================================
+  // Invoice Batch
+  // ============================================
+
+  async batchPreview(startDate: string, endDate: string) {
+    return this.request<import('@/types').BatchPreviewResult>('/invoices/batch/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startDate, endDate }),
+    });
+  }
+
+  async batchGenerate(startDate: string, endDate: string) {
+    return this.request<import('@/types').BatchResult>('/invoices/batch/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startDate, endDate }),
+    });
+  }
+
+  getBatchDownloadUrl(startDate: string, endDate: string) {
+    const params = new URLSearchParams({ startDate, endDate });
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    return `${baseUrl}/invoices/batch/download?${params}`;
+  }
+
+  async getBatchHistory() {
+    return this.request<import('@/types').BatchGeneration[]>('/invoices/batch/history');
+  }
+
+  getBatchDownloadByIdUrl(batchId: string) {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    return `${baseUrl}/invoices/batch/${batchId}/download`;
   }
 
   // ============================================
