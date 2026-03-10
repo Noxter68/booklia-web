@@ -608,6 +608,19 @@ class ApiClient {
   }
 
   // Business Clients
+  async createBusinessClient(data: {
+    name: string;
+    email: string;
+    phone?: string;
+    address?: string;
+    notes?: string;
+  }) {
+    return this.request<import('@/types').BusinessClient>('/business/clients', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async getBusinessClients(search?: string) {
     const params = search ? `?search=${encodeURIComponent(search)}` : '';
     return this.request<import('@/types').BusinessClient[]>(`/business/clients${params}`);

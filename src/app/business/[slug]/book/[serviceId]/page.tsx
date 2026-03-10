@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +13,7 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,6 +37,19 @@ export default function BookingPage() {
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [direction, setDirection] = useState(0);
+  const [expandedDayOverride, setExpandedDayOverride] = useState<string | null | undefined>(undefined);
+  const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
+  const employeeDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(e.target as Node)) {
+        setEmployeeDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Fetch business data
   const { data: business, isLoading: businessLoading } = useQuery({
@@ -80,6 +94,16 @@ export default function BookingPage() {
       ),
     enabled: !!selectedEmployee && !!serviceId,
   });
+
+  // Auto-expand first available day on mobile, allow user override
+  const autoExpandDay = useMemo(() => {
+    if (!weekSlotsData) return null;
+    const first = weekSlotsData.find(d => d.slots?.some(s => s.available));
+    return first?.date ?? null;
+  }, [weekSlotsData]);
+
+  const expandedDay = expandedDayOverride !== undefined ? expandedDayOverride : autoExpandDay;
+  const setExpandedDay = (day: string | null) => setExpandedDayOverride(day);
 
   // Booking mutation
   const bookingMutation = useMutation({
@@ -140,12 +164,14 @@ export default function BookingPage() {
     if (calendarWeekOffset > 0) {
       setDirection(-1);
       setCalendarWeekOffset(prev => prev - 1);
+      setExpandedDayOverride(undefined);
     }
   };
 
   const goToNextWeek = () => {
     setDirection(1);
     setCalendarWeekOffset(prev => prev + 1);
+    setExpandedDayOverride(undefined);
   };
 
   // Get header text
@@ -299,8 +325,102 @@ export default function BookingPage() {
             {/* Separator */}
             <div className="hidden lg:block w-px h-10 bg-border" />
 
-            {/* Employee Selection (horizontal) */}
-            <div className="flex items-center gap-2 overflow-x-auto">
+            {/* Mobile: Employee select dropdown */}
+            <div className="md:hidden relative" ref={employeeDropdownRef}>
+              <button
+                onClick={() => setEmployeeDropdownOpen(!employeeDropdownOpen)}
+                className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-border bg-surface shadow-sm cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  {selectedEmployeeData ? (
+                    <>
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden shrink-0">
+                        {selectedEmployeeData.avatarUrl ? (
+                          <img src={selectedEmployeeData.avatarUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-xs font-medium text-primary">
+                            {selectedEmployeeData.firstName[0]}{selectedEmployeeData.lastName[0]}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-medium">{selectedEmployeeData.firstName} {selectedEmployeeData.lastName}</p>
+                        {selectedEmployeeData.role && (
+                          <p className="text-xs text-muted-foreground">{selectedEmployeeData.role}</p>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center shrink-0">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm font-medium text-muted-foreground">Choisir un professionnel</span>
+                    </>
+                  )}
+                </div>
+                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${employeeDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {employeeDropdownOpen && (
+                <div className="absolute left-0 right-0 mt-1 bg-surface border border-border rounded-xl shadow-lg z-30 overflow-hidden">
+                  {employeesForService.length > 1 && (
+                    <button
+                      onClick={() => {
+                        setSelectedEmployee(employeesForService[0]?.id || null);
+                        setSelectedDate('');
+                        setSelectedTime('');
+                        setEmployeeDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 transition-colors cursor-pointer ${
+                        !selectedEmployee ? 'bg-primary/5' : 'hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center shrink-0">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm font-medium">Pas de préférence</span>
+                    </button>
+                  )}
+                  {employeesForService.map((employee) => (
+                    <button
+                      key={employee.id}
+                      onClick={() => {
+                        setSelectedEmployee(employee.id);
+                        setSelectedDate('');
+                        setSelectedTime('');
+                        setEmployeeDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 transition-colors cursor-pointer ${
+                        selectedEmployee === employee.id ? 'bg-primary/5' : 'hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden shrink-0">
+                        {employee.avatarUrl ? (
+                          <img src={employee.avatarUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-xs font-medium text-primary">
+                            {employee.firstName[0]}{employee.lastName[0]}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-medium">{employee.firstName} {employee.lastName}</p>
+                        {employee.role && (
+                          <p className="text-xs text-muted-foreground">{employee.role}</p>
+                        )}
+                      </div>
+                      {selectedEmployee === employee.id && (
+                        <Check className="w-4 h-4 text-primary ml-auto" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop: Employee cards (horizontal) */}
+            <div className="hidden md:flex items-center gap-2 overflow-x-auto pb-2 pt-1 px-0.5 -mx-0.5">
               {employeesForService.length > 1 && (
                 <button
                   onClick={() => {
@@ -308,16 +428,16 @@ export default function BookingPage() {
                     setSelectedDate('');
                     setSelectedTime('');
                   }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border bg-surface transition-all cursor-pointer shrink-0 ${
                     !selectedEmployee
-                      ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                      : 'border-border hover:border-primary/50'
+                      ? 'border-primary ring-1 ring-primary/20 shadow-sm'
+                      : 'border-border hover:border-primary/50 shadow-sm'
                   }`}
                 >
-                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center shrink-0">
                     <User className="w-4 h-4 text-muted-foreground" />
                   </div>
-                  <span className="font-medium text-sm">Pas de préférence</span>
+                  <span className="font-medium text-xs">Pas de préférence</span>
                 </button>
               )}
 
@@ -329,13 +449,13 @@ export default function BookingPage() {
                     setSelectedDate('');
                     setSelectedTime('');
                   }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer shrink-0 ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border bg-surface transition-all cursor-pointer shrink-0 ${
                     selectedEmployee === employee.id
-                      ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                      : 'border-border hover:border-primary/50'
+                      ? 'border-primary ring-1 ring-primary/20 shadow-sm'
+                      : 'border-border hover:border-primary/50 shadow-sm'
                   }`}
                 >
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden shrink-0">
                     {employee.avatarUrl ? (
                       <img
                         src={employee.avatarUrl}
@@ -349,11 +469,11 @@ export default function BookingPage() {
                     )}
                   </div>
                   <div className="text-left">
-                    <p className="font-medium text-sm whitespace-nowrap">
+                    <p className="font-medium text-xs whitespace-nowrap">
                       {employee.firstName} {employee.lastName}
                     </p>
                     {employee.role && (
-                      <p className="text-xs text-muted-foreground whitespace-nowrap">{employee.role}</p>
+                      <p className="text-[11px] text-muted-foreground whitespace-nowrap">{employee.role}</p>
                     )}
                   </div>
                 </button>
@@ -412,7 +532,9 @@ export default function BookingPage() {
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
                     </div>
                   ) : (
-                    <div className="grid grid-cols-7 divide-x divide-border">
+                    <>
+                    {/* Desktop: 7-column grid */}
+                    <div className="hidden md:grid md:grid-cols-7 divide-x divide-border">
                       {calendarDates.map((date) => {
                         const { weekday, dayNum, month, isToday } = formatDayHeader(date);
                         const slots = getSlotsForDate(date);
@@ -478,6 +600,103 @@ export default function BookingPage() {
                         );
                       })}
                     </div>
+
+                    {/* Mobile: Accordion day list */}
+                    <div className="md:hidden divide-y divide-border">
+                      {calendarDates.map((date) => {
+                        const { weekday, dayNum, month, isToday } = formatDayHeader(date);
+                        const slots = getSlotsForDate(date);
+                        const availableSlots = slots.filter(s => s.available);
+                        const isExpanded = expandedDay === date;
+                        const hasSelection = selectedDate === date;
+
+                        return (
+                          <div key={date}>
+                            {/* Day row */}
+                            <button
+                              onClick={() => setExpandedDay(isExpanded ? null : date)}
+                              className={`w-full flex items-center justify-between px-4 py-3.5 transition-colors cursor-pointer ${
+                                isToday ? 'bg-primary/5' : ''
+                              } ${isExpanded ? 'bg-muted/30' : ''}`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
+                                  isToday
+                                    ? 'bg-primary text-primary-foreground'
+                                    : hasSelection
+                                    ? 'bg-primary/15 text-primary'
+                                    : availableSlots.length > 0
+                                    ? 'bg-muted text-foreground'
+                                    : 'bg-muted/50 text-muted-foreground/40'
+                                }`}>
+                                  {dayNum}
+                                </div>
+                                <div className="text-left">
+                                  <p className={`text-sm font-semibold ${
+                                    availableSlots.length === 0 ? 'text-muted-foreground/40' : 'text-foreground'
+                                  }`}>
+                                    {weekday} {month}
+                                  </p>
+                                  <p className={`text-xs ${
+                                    availableSlots.length === 0 ? 'text-muted-foreground/30' : 'text-muted-foreground'
+                                  }`}>
+                                    {availableSlots.length === 0
+                                      ? 'Indisponible'
+                                      : `${availableSlots.length} créneau${availableSlots.length > 1 ? 'x' : ''} disponible${availableSlots.length > 1 ? 's' : ''}`}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {hasSelection && (
+                                  <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                    {selectedTime}
+                                  </span>
+                                )}
+                                <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${
+                                  isExpanded ? 'rotate-180' : ''
+                                } ${availableSlots.length === 0 ? 'opacity-30' : ''}`} />
+                              </div>
+                            </button>
+
+                            {/* Expanded slots */}
+                            <AnimatePresence>
+                              {isExpanded && availableSlots.length > 0 && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="px-4 pb-4 pt-1 grid grid-cols-4 gap-2">
+                                    {availableSlots.map((slot) => {
+                                      const isSelected = selectedDate === date && selectedTime === slot.time;
+                                      return (
+                                        <button
+                                          key={`${date}-${slot.time}`}
+                                          onClick={() => {
+                                            setSelectedDate(date);
+                                            setSelectedTime(slot.time);
+                                          }}
+                                          className={`text-sm py-2.5 rounded-xl transition-all font-medium cursor-pointer ${
+                                            isSelected
+                                              ? 'bg-primary text-primary-foreground shadow-md'
+                                              : 'bg-primary/10 hover:bg-primary/20 text-primary'
+                                          }`}
+                                        >
+                                          {slot.time}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    </>
                   )}
                 </motion.div>
               </AnimatePresence>

@@ -197,7 +197,6 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
           </Button>
           {subTab === 'invoices' && (
             <Button
-              variant="outline"
               onClick={() => {
                 setSelectedInvoiceId(null);
                 setView('editor');

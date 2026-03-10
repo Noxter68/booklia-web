@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   X,
-  Zap,
+  FileStack,
   Download,
   CheckCircle,
   AlertCircle,
@@ -179,7 +179,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-primary" />
+              <FileStack className="w-5 h-5 text-primary" />
             </div>
             <div>
               <h2 className="text-lg font-bold">Génération batch</h2>
@@ -281,7 +281,7 @@ export function BatchInvoiceModal({ isOpen, onClose }: BatchInvoiceModalProps) {
                     onClick={handleGenerate}
                     className="w-full rounded-xl"
                   >
-                    <Zap className="w-4 h-4 mr-2" />
+                    <FileStack className="w-4 h-4 mr-2" />
                     Générer {preview.count} facture{preview.count > 1 ? 's' : ''}
                   </Button>
                 </>

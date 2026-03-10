@@ -6,6 +6,7 @@ import {
   Search,
   Loader2,
   UserCheck,
+  UserPlus,
   Ban,
   ChevronRight,
   ArrowLeft,
@@ -19,6 +20,8 @@ import {
   AlertTriangle,
   Save,
   X,
+  Mail,
+  StickyNote,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -69,13 +72,174 @@ const statusColors: Record<string, string> = {
   CANCELED: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
 };
 
+function NewClientModal({ isOpen, onClose, onCreated }: {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreated: (clientId: string) => void;
+}) {
+  const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', notes: '' });
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: () => api.createBusinessClient({
+      name: form.name,
+      email: form.email,
+      phone: form.phone || undefined,
+      address: form.address || undefined,
+      notes: form.notes || undefined,
+    }),
+    onSuccess: (data) => {
+      setForm({ name: '', email: '', phone: '', address: '', notes: '' });
+      setError(null);
+      onCreated(data.id);
+    },
+    onError: (err: any) => {
+      setError(err.message || 'Erreur lors de la création');
+    },
+  });
+
+  useEffect(() => {
+    if (!isOpen) {
+      setForm({ name: '', email: '', phone: '', address: '', notes: '' });
+      setError(null);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const canSubmit = form.name.trim().length >= 2 && form.email.includes('@');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-surface border border-border rounded-2xl shadow-xl w-full max-w-md mx-4 max-h-[85vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <UserPlus className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold">Nouveau client</h2>
+              <p className="text-sm text-muted-foreground">Créer une fiche client</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1 cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="p-6 space-y-4">
+          {error && (
+            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400">
+              {error}
+            </div>
+          )}
+
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">
+              Nom complet <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="Prénom Nom"
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
+                placeholder="client@email.com"
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Téléphone</label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))}
+                placeholder="06 12 34 56 78"
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+
+          {/* Address */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Adresse</label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={form.address}
+                onChange={(e) => setForm(f => ({ ...f, address: e.target.value }))}
+                placeholder="Adresse du client"
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Notes</label>
+            <div className="relative">
+              <StickyNote className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+              <textarea
+                value={form.notes}
+                onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Notes internes sur le client..."
+                rows={3}
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+              />
+            </div>
+          </div>
+
+          <Button
+            onClick={() => mutation.mutate()}
+            isLoading={mutation.isPending}
+            disabled={!canSubmit || mutation.isPending}
+            className="w-full rounded-xl"
+          >
+            Créer le client
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ClientsTab({ businessId, initialClientId }: {
   businessId: string;
   initialClientId?: string | null;
 }) {
+  const queryClient = useQueryClient();
+  const { success, error: showError } = useToast();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(initialClientId ?? null);
+  const [showNewClient, setShowNewClient] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -103,17 +267,48 @@ export function ClientsTab({ businessId, initialClientId }: {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h2 className="text-xl font-bold">Clients</h2>
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowNewClient(true)}
+            className="rounded-full whitespace-nowrap"
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Nouveau client
+          </Button>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <input
             type="text"
             placeholder="Rechercher un client..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full pl-9 pr-9 py-2 rounded-lg border border-border bg-surface text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
+
+      <NewClientModal
+        isOpen={showNewClient}
+        onClose={() => setShowNewClient(false)}
+        onCreated={(clientId) => {
+          setShowNewClient(false);
+          queryClient.invalidateQueries({ queryKey: ['business-clients'] });
+          setSelectedClientId(clientId);
+        }}
+      />
 
       {isLoading || isSearching ? (
         <div className="flex items-center justify-center py-16">
