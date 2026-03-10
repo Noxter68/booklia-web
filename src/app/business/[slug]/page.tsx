@@ -574,7 +574,17 @@ export default function BusinessPublicPage() {
   // Check if user is the business owner (can't review own business)
   const isOwnBusiness = user?.id === business?.ownerId;
 
+  // Check if user owns any business (business accounts cannot book)
+  const { data: myBusiness } = useQuery({
+    queryKey: ['myBusiness'],
+    queryFn: () => api.getMyBusiness(),
+    enabled: !!user,
+    retry: false,
+  });
+  const isBusinessAccount = !!myBusiness;
+
   const handleServiceSelect = (service: BusinessService) => {
+    if (isBusinessAccount) return;
     router.push(`/business/${slug}/book/${service.id}`);
   };
 
@@ -883,7 +893,7 @@ export default function BusinessPublicPage() {
                                   <ServiceRow
                                     service={service}
                                     onSelect={handleServiceSelect}
-                                    disabled={business.isOnVacation}
+                                    disabled={business.isOnVacation || isBusinessAccount}
                                   />
                                 </div>
                               ))}
@@ -906,7 +916,7 @@ export default function BusinessPublicPage() {
                                   <ServiceRow
                                     service={service}
                                     onSelect={handleServiceSelect}
-                                    disabled={business.isOnVacation}
+                                    disabled={business.isOnVacation || isBusinessAccount}
                                   />
                                 </div>
                               ))}

@@ -58,6 +58,16 @@ export default function BookingPage() {
     enabled: !!slug,
   });
 
+  // Check if current user owns a business (business accounts cannot book)
+  const { data: myBusiness, isLoading: myBusinessLoading } = useQuery({
+    queryKey: ['myBusiness'],
+    queryFn: () => api.getMyBusiness(),
+    enabled: !!user,
+    retry: false,
+  });
+
+  const isBusinessOwner = !!myBusiness;
+
   // Get the selected service
   const selectedService = business?.services?.find(s => s.id === serviceId);
 
@@ -204,7 +214,7 @@ export default function BookingPage() {
     }),
   };
 
-  if (businessLoading) {
+  if (businessLoading || myBusinessLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <PageLoader text="Chargement..." />
@@ -220,6 +230,26 @@ export default function BookingPage() {
           <p className="text-muted-foreground mb-4">Ce service n'existe pas.</p>
           <Link href={`/business/${slug}`}>
             <Button>Retour</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Business owners cannot book
+  if (isBusinessOwner) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md px-4">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <User className="w-8 h-8 text-amber-600" />
+          </div>
+          <h1 className="text-xl font-bold mb-2">Réservation impossible</h1>
+          <p className="text-muted-foreground mb-6">
+            Les comptes professionnels ne peuvent pas effectuer de réservations. Pour prendre rendez-vous, veuillez utiliser un compte client.
+          </p>
+          <Link href={`/business/${slug}`}>
+            <Button variant="outline">Retour au profil</Button>
           </Link>
         </div>
       </div>
