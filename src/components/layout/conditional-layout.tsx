@@ -9,9 +9,19 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
 
   // Don't show header/footer on admin pages
   const isAdminPage = pathname?.startsWith('/admin');
+  const isMapPage = pathname?.startsWith('/search');
 
   if (isAdminPage) {
     return <>{children}</>;
+  }
+
+  if (isMapPage) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-hidden">{children}</main>
+      </div>
+    );
   }
 
   return (

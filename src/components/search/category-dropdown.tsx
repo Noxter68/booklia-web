@@ -105,7 +105,7 @@ export function CategoryDropdown({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute top-full left-0 mt-2 w-[600px] z-50"
+            className="absolute top-full left-0 mt-2 w-[600px] z-[100]"
           >
             <div className="bg-surface border border-border rounded-2xl shadow-xl shadow-black/10 p-4">
               <div className="grid grid-cols-2 gap-4">

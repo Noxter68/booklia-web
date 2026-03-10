@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sun, Moon, LogOut, ChevronDown, Menu, X, Search, Building2, Calendar, ChevronRight, BadgeCheck } from 'lucide-react';
+import { Sun, Moon, LogOut, ChevronDown, Menu, X, Building2, Calendar, BadgeCheck, MapPin } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
@@ -111,6 +111,14 @@ export function Header() {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-1">
+            <Link
+              href="/search"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors rounded-xl hover:bg-primary/5"
+            >
+              <MapPin className="w-4 h-4" />
+              Explorer
+            </Link>
+            <div className="w-px h-5 bg-border mx-1" />
             {categories?.map((category) => {
               const hasChildren = category.children && category.children.length > 0;
               if (hasChildren) {
@@ -356,18 +364,18 @@ export function Header() {
                       ))}
                     </div>
 
-                    {/* Rechercher */}
+                    {/* Explorer */}
                     <Link
                       href="/search"
                       onClick={closeMobileMenu}
                       className="flex items-center gap-4 p-4 rounded-2xl hover:bg-muted/50 transition-colors"
                     >
                       <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Search className="w-5 h-5 text-primary" />
+                        <MapPin className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <span className="font-medium">Rechercher</span>
-                        <p className="text-xs text-muted-foreground">Tous les professionnels</p>
+                        <span className="font-medium">Explorer</span>
+                        <p className="text-xs text-muted-foreground">Carte et recherche de pros</p>
                       </div>
                     </Link>
 
