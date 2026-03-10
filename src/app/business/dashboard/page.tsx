@@ -43,6 +43,7 @@ import { InvoicesTab } from './components/invoices-tab';
 import { RevenueChart } from './components/revenue-chart';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { AgendaTab } from './components/calendar/agenda-tab';
+import { LatestReviews } from './components/latest-reviews';
 
 function BusinessDashboardContent() {
   const router = useRouter();
@@ -139,6 +140,9 @@ function BusinessDashboardContent() {
     const unsubNotification = onNotification((notification) => {
       if (notification.type === 'BOOKING_NEW' || notification.type === 'BOOKING_CANCELED') {
         queryClient.invalidateQueries({ queryKey: ['business-bookings'] });
+      }
+      if (notification.type === 'REVIEW_RECEIVED') {
+        queryClient.invalidateQueries({ queryKey: ['business-reviews'] });
       }
     });
 
@@ -617,6 +621,9 @@ function BusinessDashboardContent() {
                 </div>
               )}
             </div>
+
+            {/* Derniers avis */}
+            <LatestReviews businessId={business.id} />
           </motion.div>
         )}
 
