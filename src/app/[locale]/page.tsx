@@ -1,0 +1,629 @@
+'use client';
+
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import { useTranslations, useLocale } from 'next-intl';
+import {
+  Star,
+  BadgeCheck,
+  ArrowRight,
+  Search,
+  MapPin,
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Shield,
+  Users,
+  Loader2,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api';
+import { Business, Category } from '@/types';
+import { useGeolocation } from '@/hooks/useGeolocation';
+import { Link } from '@/i18n/routing';
+
+// Category images (Unsplash)
+const CATEGORY_IMAGES: Record<string, string> = {
+  coiffeur: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=800&auto=format&fit=crop',
+  barbier: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=800&auto=format&fit=crop',
+  manucure: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=800&auto=format&fit=crop',
+  'institut-de-beaute': 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=800&auto=format&fit=crop',
+  'bien-etre': 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=800&auto=format&fit=crop',
+};
+
+// Horizontal Slider component with navigation arrows
+function HorizontalSlider({
+  children,
+  title,
+  subtitle,
+  viewAllLink,
+  viewAllLabel,
+}: {
+  children: React.ReactNode;
+  title: string;
+  subtitle: string;
+  viewAllLink: string;
+  viewAllLabel: string;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScrollability = useCallback(() => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkScrollability();
+    const ref = scrollRef.current;
+    if (ref) {
+      ref.addEventListener('scroll', checkScrollability);
+      window.addEventListener('resize', checkScrollability);
+      return () => {
+        ref.removeEventListener('scroll', checkScrollability);
+        window.removeEventListener('resize', checkScrollability);
+      };
+    }
+  }, [checkScrollability]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = scrollRef.current.clientWidth * 0.8;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-end justify-between mb-8">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold mb-2">{title}</h2>
+          <p className="text-muted-foreground">{subtitle}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
+            <button
+              onClick={() => scroll('left')}
+              disabled={!canScrollLeft}
+              className={`w-10 h-10 rounded-full border border-border flex items-center justify-center transition-all ${
+                canScrollLeft
+                  ? 'hover:bg-muted hover:border-primary/30 cursor-pointer'
+                  : 'opacity-30 cursor-not-allowed'
+              }`}
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => scroll('right')}
+              disabled={!canScrollRight}
+              className={`w-10 h-10 rounded-full border border-border flex items-center justify-center transition-all ${
+                canScrollRight
+                  ? 'hover:bg-muted hover:border-primary/30 cursor-pointer'
+                  : 'opacity-30 cursor-not-allowed'
+              }`}
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+          <Link href={viewAllLink} className="hidden md:block">
+            <Button variant="outline" className="rounded-full">
+              {viewAllLabel}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      <div
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {children}
+      </div>
+
+      <div className="md:hidden mt-6 text-center">
+        <Link href={viewAllLink}>
+          <Button variant="outline" className="rounded-full">
+            {viewAllLabel}
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// Business Card
+function HomeBusinessCard({ business, t }: { business: Business; t: (key: string) => string }) {
+  const serviceCount = business._count?.services || business.services?.length || 0;
+
+  return (
+    <Link href={`/business/${business.slug}`} className="block snap-start">
+      <motion.div
+        whileHover={{ y: -4 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+        className="w-72 sm:w-80 bg-surface border border-border rounded-2xl overflow-hidden hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+      >
+        <div className="h-36 relative">
+          {business.coverUrl ? (
+            <img src={business.coverUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-linear-to-br from-primary/20 via-primary/10 to-primary/5" />
+          )}
+          <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
+
+          {business.isVerified && (
+            <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+              <BadgeCheck className="w-4 h-4 text-foreground" />
+              <span className="text-xs font-semibold text-foreground">{t('verified')}</span>
+            </div>
+          )}
+
+          <div className="absolute -bottom-5 left-4">
+            <div className="w-14 h-14 bg-surface border-[3px] border-surface rounded-xl shadow-md flex items-center justify-center overflow-hidden">
+              {business.logoUrl ? (
+                <img src={business.logoUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-primary" />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 pt-7">
+          <h3 className="font-semibold text-base mb-1 truncate">{business.name}</h3>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
+            {business.city && (
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5" />
+                {business.city}
+              </span>
+            )}
+            {serviceCount > 0 && (
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                {serviceCount} {serviceCount > 1 ? t('prestations') : t('prestation')}
+              </span>
+            )}
+          </div>
+          {business.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">{business.description}</p>
+          )}
+        </div>
+      </motion.div>
+    </Link>
+  );
+}
+
+export default function HomePage() {
+  const [query, setQuery] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [suggestions, setSuggestions] = useState<Business[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const router = useRouter();
+  const { latitude, longitude, hasPosition } = useGeolocation();
+  const t = useTranslations('home');
+  const tc = useTranslations('common');
+  const locale = useLocale();
+
+  const searchBusinesses = useCallback(async (q: string) => {
+    if (q.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const result = await api.searchBusinesses({ q, limit: 5 });
+      setSuggestions(result.data);
+      setSelectedIndex(-1);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => searchBusinesses(value), 300);
+  };
+
+  const handleSelectBusiness = (business: Business) => {
+    setIsFocused(false);
+    setSuggestions([]);
+    router.push(`/business/${business.slug}`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!suggestions.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+      e.preventDefault();
+      handleSelectBusiness(suggestions[selectedIndex]);
+    } else if (e.key === 'Escape') {
+      setSuggestions([]);
+      setSelectedIndex(-1);
+    }
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setSuggestions([]);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const { scrollY } = useScroll();
+  const heroY = useTransform(scrollY, [0, 600], [0, 200]);
+  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
+
+  const { data: latestBusinesses } = useQuery({
+    queryKey: ['latestBusinesses'],
+    queryFn: () => api.searchBusinesses({ limit: 10, sortBy: 'recent' }),
+  });
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsFocused(false);
+    const params = new URLSearchParams();
+    if (query.trim()) params.set('q', query);
+    if (hasPosition) {
+      params.set('lat', String(latitude));
+      params.set('lng', String(longitude));
+    }
+    router.push(`/search?${params.toString()}`);
+  };
+
+  const { data: dbCategories } = useQuery({
+    queryKey: ['categories', locale],
+    queryFn: () => api.getCategories(),
+  });
+
+  const benefits = [
+    { title: t('benefits.instantBooking'), description: t('benefits.instantBookingDesc') },
+    { title: t('benefits.verifiedPros'), description: t('benefits.verifiedProsDesc') },
+    { title: t('benefits.authenticReviews'), description: t('benefits.authenticReviewsDesc') },
+    { title: t('benefits.instantConfirmation'), description: t('benefits.instantConfirmationDesc') },
+  ];
+
+  const stats = [
+    { value: t('stats.onlineBooking'), label: t('stats.onlineBookingLabel') },
+    { value: t('stats.reminders'), label: t('stats.remindersLabel') },
+    { value: t('stats.offHours'), label: t('stats.offHoursLabel') },
+  ];
+
+  return (
+    <div className="flex flex-col">
+      {/* ==================== HERO ==================== */}
+      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden -mt-20">
+        <motion.div style={{ y: heroY }} className="absolute inset-0">
+          <div
+            className={`absolute inset-0 bg-cover bg-center bg-no-repeat scale-110 transition-all duration-700 ${isFocused ? 'blur-sm' : ''}`}
+            style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?q=80&w=2574&auto=format&fit=crop)' }}
+          />
+        </motion.div>
+        <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/30 to-black/60" />
+
+        <motion.div style={{ opacity: heroOpacity }} className="relative z-10 container mx-auto px-4 text-center text-white pt-20">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-6">
+            <span className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-sm font-medium">
+              {t('badge')}
+            </span>
+          </motion.div>
+
+          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }} className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+            {t('title')}
+            <br />
+            <span className="bg-linear-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent">
+              {t('titleHighlight')}
+            </span>
+          </motion.h1>
+
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="text-lg md:text-xl text-white/70 mb-10 max-w-2xl mx-auto leading-relaxed">
+            {t('subtitle')}
+            <br className="hidden md:block" />
+            {t('subtitleCta')}
+          </motion.p>
+
+          {/* Search bar */}
+          <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }} onSubmit={handleSearch} className="max-w-xl mx-auto mb-12">
+            <div ref={searchContainerRef} className="relative">
+              <div className={`bg-white rounded-2xl shadow-2xl transition-all duration-300 ${isFocused ? 'shadow-white/10 ring-2 ring-white/20' : ''}`}>
+                <div className="flex items-center gap-3 px-5 py-3.5">
+                  {isSearching ? (
+                    <Loader2 className="w-5 h-5 text-gray-400 shrink-0 animate-spin" />
+                  ) : (
+                    <Search className="w-5 h-5 text-gray-400 shrink-0" />
+                  )}
+                  <input
+                    type="text"
+                    placeholder={t('searchPlaceholder')}
+                    value={query}
+                    onChange={(e) => handleQueryChange(e.target.value)}
+                    onFocus={() => setIsFocused(true)}
+                    onKeyDown={handleKeyDown}
+                    className="flex-1 text-gray-900 placeholder:text-gray-400 outline-none text-base bg-transparent"
+                  />
+                  <button type="submit" className="h-11 px-6 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary-hover transition-all cursor-pointer shrink-0">
+                    {t('searchButton')}
+                  </button>
+                </div>
+              </div>
+
+              {suggestions.length > 0 && isFocused && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50">
+                  {suggestions.map((business, index) => (
+                    <button
+                      key={business.id}
+                      type="button"
+                      onMouseDown={() => handleSelectBusiness(business)}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors cursor-pointer ${index === selectedIndex ? 'bg-gray-50' : 'hover:bg-gray-50'}`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                        {business.logoUrl ? (
+                          <img src={business.logoUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <Building2 className="w-5 h-5 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium text-gray-900 truncate">{business.name}</span>
+                          {business.isVerified && <BadgeCheck className="w-3.5 h-3.5 text-foreground shrink-0" />}
+                        </div>
+                        {business.city && (
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {business.city}
+                          </span>
+                        )}
+                      </div>
+                      {business._count?.services ? (
+                        <span className="text-xs text-gray-400 shrink-0">{business._count.services} {business._count.services > 1 ? tc('services') : tc('service')}</span>
+                      ) : null}
+                    </button>
+                  ))}
+                  <button type="submit" className="w-full px-4 py-2.5 text-sm text-primary font-medium bg-gray-50 hover:bg-gray-100 transition-colors text-center cursor-pointer">
+                    {t('seeAllResults', { query })}
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.form>
+
+          {dbCategories && dbCategories.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.4 }} className="flex flex-wrap justify-center gap-2">
+              {dbCategories.filter(c => !c.parentId).map((category) => (
+                <Link key={category.id} href={`/search?category=${category.slug}`} className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 rounded-full text-sm text-white/80 hover:text-white transition-all">
+                  {category.name}
+                </Link>
+              ))}
+            </motion.div>
+          )}
+        </motion.div>
+
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-linear-to-t from-background to-transparent" />
+      </section>
+
+      {/* ==================== STATS ==================== */}
+      <section className="relative z-10 -mt-12">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {stats.map((stat, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} whileHover={{ scale: 1.04 }} className="bg-surface border border-border rounded-2xl p-8 shadow-lg cursor-default transition-shadow hover:shadow-xl hover:border-primary/20">
+                <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">{stat.value}</div>
+                <div className="text-sm text-muted-foreground leading-relaxed">{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== CATEGORIES ==================== */}
+      {dbCategories && dbCategories.filter(c => !c.parentId).length > 0 && (
+        <section className="py-20 md:py-28">
+          <div className="container mx-auto px-4">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('categories.title')}</h2>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto">{t('categories.subtitle')}</p>
+            </motion.div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
+              {dbCategories.filter(c => !c.parentId).map((category, index) => {
+                const image = CATEGORY_IMAGES[category.slug];
+                return (
+                  <motion.div key={category.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.06 }}>
+                    <Link href={`/search?category=${category.slug}`} className="group block relative h-52 md:h-64 rounded-2xl overflow-hidden">
+                      <img src={image} alt={category.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <span className="font-semibold text-white text-base">{category.name}</span>
+                        {category.children && category.children.length > 0 && (
+                          <p className="text-white/70 text-xs mt-0.5">
+                            {category.children.length} {category.children.length > 1 ? tc('specialities') : tc('speciality')}
+                          </p>
+                        )}
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ==================== BENEFITS ==================== */}
+      <section className="py-20 md:py-28 bg-muted/30">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('benefits.title')}</h2>
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto">{t('benefits.subtitle')}</p>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden">
+            {benefits.map((benefit, index) => (
+              <motion.div key={benefit.title} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }} className="bg-surface p-8 md:p-10 group hover:bg-muted/30 transition-colors">
+                <span className="text-5xl md:text-6xl font-bold text-primary/10 block mb-4 leading-none">0{index + 1}</span>
+                <h3 className="font-semibold text-lg mb-2">{benefit.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{benefit.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== HOW IT WORKS ==================== */}
+      <section className="py-20 md:py-28">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('howItWorks.title')}</h2>
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto">{t('howItWorks.subtitle')}</p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6 md:gap-0">
+            {[
+              { step: '01', title: t('howItWorks.step1Title'), description: t('howItWorks.step1Desc') },
+              { step: '02', title: t('howItWorks.step2Title'), description: t('howItWorks.step2Desc') },
+              { step: '03', title: t('howItWorks.step3Title'), description: t('howItWorks.step3Desc') },
+            ].map((item, index) => (
+              <motion.div key={item.step} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.12 }} className={`relative p-8 ${index < 2 ? 'md:border-r md:border-border' : ''}`}>
+                <span className="text-5xl md:text-6xl font-bold text-primary/10 block mb-4 leading-none">{item.step}</span>
+                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== FEATURED BUSINESSES ==================== */}
+      <section className="py-20 md:py-28 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }}>
+            {latestBusinesses?.data && latestBusinesses.data.length > 0 ? (
+              <HorizontalSlider title={t('featured.title')} subtitle={t('featured.subtitle')} viewAllLink="/search" viewAllLabel={tc('seeAll')}>
+                {latestBusinesses.data.map((business) => (
+                  <HomeBusinessCard key={business.id} business={business} t={tc} />
+                ))}
+              </HorizontalSlider>
+            ) : (
+              <div className="text-center py-16 bg-surface rounded-3xl border border-border">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Building2 className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="font-semibold text-lg mb-2">{t('featured.comingSoon')}</h3>
+                <p className="text-muted-foreground">{t('featured.comingSoonDesc')}</p>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ==================== SOCIAL PROOF ==================== */}
+      <section className="py-20 md:py-28">
+        <div className="container mx-auto px-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} className="max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div>
+                <span className="inline-block px-4 py-1.5 bg-green-500/10 text-green-600 dark:text-green-400 text-sm font-medium rounded-full mb-4">
+                  {t('socialProof.badge')}
+                </span>
+                <h2 className="text-3xl md:text-4xl font-bold mb-6">{t('socialProof.title')}</h2>
+                <p className="text-muted-foreground text-lg mb-8 leading-relaxed">{t('socialProof.description')}</p>
+
+                <div className="space-y-4">
+                  {[
+                    { icon: BadgeCheck, text: t('socialProof.realReviews') },
+                    { icon: Shield, text: t('socialProof.verifiedPros') },
+                    { icon: Users, text: t('socialProof.trustedCommunity') },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-green-50 dark:bg-green-500/10 rounded-lg flex items-center justify-center shrink-0">
+                        <item.icon className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <span className="text-sm font-medium">{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative">
+                <div className="bg-surface border border-border rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-bold text-primary">M</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">{t('socialProof.reviewerName')}</p>
+                      <p className="text-xs text-muted-foreground">{t('socialProof.reviewDate')}</p>
+                    </div>
+                    <div className="ml-auto flex gap-0.5">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{t('socialProof.reviewText')}</p>
+                  <div className="mt-4 pt-4 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
+                    <BadgeCheck className="w-3.5 h-3.5 text-green-500" />
+                    {tc('verifiedService')}
+                  </div>
+                </div>
+                <div className="absolute -bottom-4 -right-4 -z-10 w-full h-full bg-muted/50 rounded-2xl border border-border" />
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ==================== CTA ==================== */}
+      <section className="py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="relative overflow-hidden rounded-3xl bg-primary text-primary-foreground p-10 md:p-16 text-center">
+            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+            <div className="relative z-10">
+              <h2 className="text-2xl md:text-4xl font-bold mb-4">{t('cta.title')}</h2>
+              <p className="text-lg text-primary-foreground/70 mb-8 max-w-xl mx-auto">{t('cta.subtitle')}</p>
+              <div className="flex flex-wrap justify-center gap-4">
+                <Button size="lg" variant="outline" className="rounded-full px-8 bg-white text-primary hover:bg-white/90 border-white" onClick={() => router.push('/search')}>
+                  {t('cta.explorePros')}
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+                <Button size="lg" variant="ghost" className="rounded-full px-8 text-primary-foreground hover:bg-white/10" onClick={() => router.push('/auth/register')}>
+                  {t('cta.createAccount')}
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+    </div>
+  );
+}

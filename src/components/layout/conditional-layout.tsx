@@ -4,12 +4,23 @@ import { usePathname } from 'next/navigation';
 import { Header } from './header';
 import { Footer } from './footer';
 
+// Strip locale prefix from pathname for route matching
+function stripLocale(pathname: string): string {
+  // Matches /en/..., /pt/..., /fr/... at the start
+  const match = pathname.match(/^\/(fr|en|pt)(\/|$)/);
+  if (match) {
+    return pathname.slice(match[1].length + 1) || '/';
+  }
+  return pathname;
+}
+
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const cleanPath = stripLocale(pathname || '');
 
   // Don't show header/footer on admin pages
-  const isAdminPage = pathname?.startsWith('/admin');
-  const isMapPage = pathname?.startsWith('/search');
+  const isAdminPage = cleanPath.startsWith('/admin');
+  const isMapPage = cleanPath.startsWith('/search');
 
   if (isAdminPage) {
     return <>{children}</>;

@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations, useLocale } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sun, Moon, LogOut, ChevronDown, Menu, X, Building2, Calendar, BadgeCheck, MapPin } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,12 +15,16 @@ import { Spinner } from '@/components/ui/spinner';
 import { api } from '@/lib/api';
 import { Category } from '@/types';
 import { NotificationBell } from '@/components/notifications/notification-bell';
+import { LanguageSwitcher } from '@/components/layout/language-switcher';
+import { Link } from '@/i18n/routing';
 
 export function Header() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { user, isLoading, logout } = useAuth();
   const { success } = useToast();
+  const t = useTranslations('header');
+  const locale = useLocale();
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -36,7 +40,7 @@ export function Header() {
 
   // Fetch categories for nav links
   const { data: categories } = useQuery({
-    queryKey: ['categories'],
+    queryKey: ['categories', locale],
     queryFn: () => api.getCategories(),
   });
 
@@ -51,7 +55,7 @@ export function Header() {
 
   const handleLogout = () => {
     logout();
-    success('Deconnexion reussie');
+    success(t('logoutSuccess'));
     setUserMenuOpen(false);
     setMobileMenuOpen(false);
   };
@@ -116,7 +120,7 @@ export function Header() {
               className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors rounded-xl hover:bg-primary/5"
             >
               <MapPin className="w-4 h-4" />
-              Explorer
+              {t('explore')}
             </Link>
             <div className="w-px h-5 bg-border mx-1" />
             {categories?.map((category) => {
@@ -168,11 +172,14 @@ export function Header() {
               </div>
             )}
 
+            {/* Language switcher */}
+            <LanguageSwitcher />
+
             {/* Theme toggle */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-2 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
-              aria-label="Toggle theme"
+              aria-label={t('toggleTheme')}
             >
               <Sun className="w-5 h-5 hidden dark:block" />
               <Moon className="w-5 h-5 block dark:hidden" />
@@ -217,7 +224,7 @@ export function Header() {
                         {/* User info */}
                         <div className="px-4 py-2 border-b border-border">
                           <div className="flex items-center gap-1.5">
-                            <p className="font-medium text-sm">{user.name || 'Utilisateur'}</p>
+                            <p className="font-medium text-sm">{user.name || t('user')}</p>
                             {user.emailVerified && (
                               <BadgeCheck className="w-4 h-4 text-foreground shrink-0" />
                             )}
@@ -234,7 +241,7 @@ export function Header() {
                               className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors cursor-pointer"
                             >
                               <Building2 className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-sm">Mon entreprise</span>
+                              <span className="text-sm">{t('myBusiness')}</span>
                             </Link>
                           ) : (
                             <Link
@@ -243,7 +250,7 @@ export function Header() {
                               className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors cursor-pointer"
                             >
                               <Calendar className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-sm">Mes reservations</span>
+                              <span className="text-sm">{t('myBookings')}</span>
                             </Link>
                           )}
                         </div>
@@ -255,7 +262,7 @@ export function Header() {
                             className="flex items-center gap-3 px-4 py-2 w-full hover:bg-muted/50 transition-colors cursor-pointer text-destructive"
                           >
                             <LogOut className="w-4 h-4" />
-                            <span className="text-sm">Deconnexion</span>
+                            <span className="text-sm">{t('logout')}</span>
                           </button>
                         </div>
                       </motion.div>
@@ -265,10 +272,10 @@ export function Header() {
               ) : (
                 <div className="flex gap-2">
                   <Link href="/auth/login">
-                    <Button variant="ghost" size="sm" className="rounded-xl">Connexion</Button>
+                    <Button variant="ghost" size="sm" className="rounded-xl">{t('login')}</Button>
                   </Link>
                   <Link href="/auth/register">
-                    <Button size="sm" className="rounded-xl">Inscription</Button>
+                    <Button size="sm" className="rounded-xl">{t('register')}</Button>
                   </Link>
                 </div>
               )}
@@ -278,7 +285,7 @@ export function Header() {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
-              aria-label="Menu"
+              aria-label={t('menu')}
             >
               {mobileMenuOpen ? (
                 <X className="w-6 h-6" />
@@ -317,7 +324,7 @@ export function Header() {
                 <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden pointer-events-auto flex flex-col">
                   {/* Header */}
                   <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
-                    <span className="font-bold text-lg">Menu</span>
+                    <span className="font-bold text-lg">{t('menu')}</span>
                     <button
                       onClick={closeMobileMenu}
                       className="p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer"
@@ -339,7 +346,7 @@ export function Header() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <p className="font-semibold truncate">{user.name || 'Utilisateur'}</p>
+                              <p className="font-semibold truncate">{user.name || t('user')}</p>
                               {user.emailVerified && (
                                 <BadgeCheck className="w-4 h-4 text-foreground shrink-0" />
                               )}
@@ -374,8 +381,8 @@ export function Header() {
                         <MapPin className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <span className="font-medium">Explorer</span>
-                        <p className="text-xs text-muted-foreground">Carte et recherche de pros</p>
+                        <span className="font-medium">{t('explore')}</span>
+                        <p className="text-xs text-muted-foreground">{t('exploreDescription')}</p>
                       </div>
                     </Link>
 
@@ -392,7 +399,7 @@ export function Header() {
                             className="flex items-center gap-4 p-4 rounded-2xl hover:bg-muted/50 transition-colors"
                           >
                             <Building2 className="w-5 h-5 text-muted-foreground" />
-                            <span className="text-sm font-medium">Mon entreprise</span>
+                            <span className="text-sm font-medium">{t('myBusiness')}</span>
                           </Link>
                         ) : (
                           <Link
@@ -401,7 +408,7 @@ export function Header() {
                             className="flex items-center gap-4 p-4 rounded-2xl hover:bg-muted/50 transition-colors"
                           >
                             <Calendar className="w-5 h-5 text-muted-foreground" />
-                            <span className="text-sm font-medium">Mes reservations</span>
+                            <span className="text-sm font-medium">{t('myBookings')}</span>
                           </Link>
                         )}
                         <button
@@ -409,16 +416,16 @@ export function Header() {
                           className="flex items-center gap-4 p-4 rounded-2xl w-full hover:bg-destructive/10 transition-colors text-destructive cursor-pointer"
                         >
                           <LogOut className="w-5 h-5" />
-                          <span className="text-sm font-medium">Deconnexion</span>
+                          <span className="text-sm font-medium">{t('logout')}</span>
                         </button>
                       </>
                     ) : (
                       <div className="space-y-3 pt-2">
                         <Link href="/auth/login" onClick={closeMobileMenu} className="block">
-                          <Button variant="outline" className="w-full rounded-xl h-12">Connexion</Button>
+                          <Button variant="outline" className="w-full rounded-xl h-12">{t('login')}</Button>
                         </Link>
                         <Link href="/auth/register" onClick={closeMobileMenu} className="block">
-                          <Button className="w-full rounded-xl h-12">Inscription</Button>
+                          <Button className="w-full rounded-xl h-12">{t('register')}</Button>
                         </Link>
                       </div>
                     )}

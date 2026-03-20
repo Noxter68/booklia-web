@@ -4,12 +4,17 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 class ApiClient {
   private token: string | null = null;
+  private locale: string = 'fr';
   private refreshTokenFn: (() => Promise<boolean>) | null = null;
   private isRefreshing = false;
   private refreshQueue: Array<{ resolve: (value: boolean) => void }> = [];
 
   setToken(token: string | null) {
     this.token = token;
+  }
+
+  setLocale(locale: string) {
+    this.locale = locale;
   }
 
   /** Register a callback to refresh the token (called by AuthClient) */
@@ -47,6 +52,7 @@ class ApiClient {
   ): Promise<T> {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      'Accept-Language': this.locale,
       ...options.headers,
     };
 
