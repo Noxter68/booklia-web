@@ -34,6 +34,7 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Link } from '@/i18n/routing';
 import { BusinessImage, BusinessHours, Category, BusinessPromotion } from '@/types';
 import { useTranslations, useLocale } from 'next-intl';
+import { ExceptionsManager } from './components/exceptions-manager';
 
 const LOCALE_MAP: Record<string, string> = {
   fr: 'fr-FR',
@@ -972,7 +973,7 @@ export default function BusinessSettingsPage() {
                               onChange={(e) =>
                                 handleHourChange(dayOfWeek, 'startTime', e.target.value)
                               }
-                              className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                              className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-foreground focus:ring-1 focus:ring-foreground outline-none"
                             />
                             <span className="text-muted-foreground">-</span>
                             <input
@@ -981,7 +982,7 @@ export default function BusinessSettingsPage() {
                               onChange={(e) =>
                                 handleHourChange(dayOfWeek, 'endTime', e.target.value)
                               }
-                              className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                              className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-foreground focus:ring-1 focus:ring-foreground outline-none"
                             />
                           </div>
                         )}
@@ -1000,6 +1001,19 @@ export default function BusinessSettingsPage() {
                   <Save className="w-4 h-4 mr-2" />
                   {updateHoursMutation.isPending ? t('saving') : t('saveHours')}
                 </Button>
+              </div>
+
+              {/* Exceptions (fermetures & horaires spéciaux) */}
+              <div className="mt-8 pt-6 border-t border-border/50">
+                <div className="mb-5">
+                  <h3 className="font-bold">Jours spéciaux</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Ajoutez des fermetures exceptionnelles ou des horaires différents
+                    sur des jours précis. Ces exceptions remplacent les horaires
+                    hebdomadaires pour la journée concernée.
+                  </p>
+                </div>
+                <ExceptionsManager employees={business?.employees ?? []} />
               </div>
             </motion.div>
           )}

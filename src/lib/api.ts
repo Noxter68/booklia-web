@@ -12,6 +12,45 @@ export interface CategoryOptionInput {
   sortOrder?: number;
 }
 
+export interface ExceptionTimeSlot {
+  id: string;
+  exceptionId: string;
+  startTime: string; // "09:00"
+  endTime: string;
+}
+
+export interface EmployeeException {
+  id: string;
+  employeeId: string;
+  date: string; // "2026-04-27" (backend @db.Date serialized to ISO)
+  isClosed: boolean;
+  reason: string | null;
+  slots: ExceptionTimeSlot[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TimeRangeInput {
+  startTime: string; // "09:00"
+  endTime: string; // "18:00"
+}
+
+/** Input for creating an exception. Use either `date` OR `dateFrom`+`dateTo`. */
+export type CreateExceptionInput =
+  | {
+      date: string;
+      isClosed: boolean;
+      slots?: TimeRangeInput[];
+      reason?: string;
+    }
+  | {
+      dateFrom: string;
+      dateTo: string;
+      isClosed: boolean;
+      slots?: TimeRangeInput[];
+      reason?: string;
+    };
+
 class ApiClient {
   private token: string | null = null;
   private locale: string = 'fr';
@@ -398,6 +437,34 @@ class ApiClient {
     return this.request<{ success: boolean }>(`/employees/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Employee exceptions (closures / special hours)
+  async listEmployeeExceptions(
+    employeeId: string,
+    range?: { from?: string; to?: string },
+  ) {
+    const params = new URLSearchParams();
+    if (range?.from) params.set('from', range.from);
+    if (range?.to) params.set('to', range.to);
+    const qs = params.toString();
+    return this.request<EmployeeException[]>(
+      `/employees/${employeeId}/exceptions${qs ? `?${qs}` : ''}`,
+    );
+  }
+
+  async createEmployeeException(employeeId: string, data: CreateExceptionInput) {
+    return this.request<EmployeeException[]>(
+      `/employees/${employeeId}/exceptions`,
+      { method: 'POST', body: JSON.stringify(data) },
+    );
+  }
+
+  async deleteEmployeeException(exceptionId: string) {
+    return this.request<{ success: boolean }>(
+      `/employees/exceptions/${exceptionId}`,
+      { method: 'DELETE' },
+    );
   }
 
   async getEmployeesByBusiness(businessId: string) {
