@@ -26,6 +26,7 @@ import {
   AlertCircle,
   FileText,
   CalendarDays,
+  CornerDownRight,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -646,54 +647,11 @@ function BusinessDashboardContent() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="space-y-6"
           >
-            {/* Categories Section */}
-            <BusinessCategoriesEditor business={business} />
-
-            {/* Prestations Section */}
-            <div className="bg-surface border border-border rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Scissors className="w-5 h-5" />
-                    {t('prestations')}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {t('managePrestations')}
-                  </p>
-                </div>
-                <Link href="/business/services/new">
-                  <Button className="rounded-full">
-                    <Plus className="w-4 h-4 mr-2" />
-                    {t('add')}
-                  </Button>
-                </Link>
-              </div>
-
-              {business.services?.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">{t('noPrestation')}</p>
-                  <Link href="/business/services/new">
-                    <Button variant="outline" className="rounded-full">
-                      <Plus className="w-4 h-4 mr-2" />
-                      {t('createPrestation')}
-                    </Button>
-                  </Link>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {business.services?.map((service) => (
-                    <DashboardServiceCard
-                      key={service.id}
-                      service={service}
-                      categories={business.categories || []}
-                      onDelete={() => deleteServiceMutation.mutate(service.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            <ServicesByCategoryView
+              business={business}
+              onDeleteService={(id) => deleteServiceMutation.mutate(id)}
+            />
           </motion.div>
         )}
 
@@ -1035,36 +993,25 @@ function BusinessDashboardContent() {
   );
 }
 
-// Business Categories Editor Component
-function BusinessCategoriesEditor({ business }: { business: Business }) {
+// ============================================
+// Services-by-category hierarchical view
+// Layout: category > options (sub-folder) > services (sub-folder)
+// ============================================
+function ServicesByCategoryView({
+  business,
+  onDeleteService,
+}: {
+  business: Business;
+  onDeleteService: (id: string) => void;
+}) {
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
   const t = useTranslations('dashboard');
-  const tc = useTranslations('common');
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
-
-  const createCategoryMutation = useMutation({
-    mutationFn: (name: string) => api.createBusinessCategory({ name }),
-    onSuccess: () => {
-      success(t('categoryCreated'));
-      setNewCategoryName('');
-      queryClient.invalidateQueries({ queryKey: ['my-business'] });
-    },
-    onError: () => showError(t('errorDelete')),
-  });
-
-  const updateCategoryMutation = useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) =>
-      api.updateBusinessCategory(id, { name }),
-    onSuccess: () => {
-      success(t('categoryUpdated'));
-      setEditingId(null);
-      queryClient.invalidateQueries({ queryKey: ['my-business'] });
-    },
-    onError: () => showError(t('errorUpdate')),
-  });
+  const tf = useTranslations('serviceForm');
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<BusinessCategory | null>(null);
+  // Accordion: at most one group open at a time. "__uncategorized__" for orphan block.
+  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
 
   const deleteCategoryMutation = useMutation({
     mutationFn: (id: string) => api.deleteBusinessCategory(id),
@@ -1075,127 +1022,673 @@ function BusinessCategoriesEditor({ business }: { business: Business }) {
     onError: () => showError(t('errorDelete')),
   });
 
-  const handleCreate = () => {
-    if (newCategoryName.trim()) {
-      createCategoryMutation.mutate(newCategoryName.trim());
-    }
-  };
+  const categories = business.categories ?? [];
+  const services = business.services ?? [];
 
-  const handleUpdate = (id: string) => {
-    if (editingName.trim()) {
-      updateCategoryMutation.mutate({ id, name: editingName.trim() });
+  // Group services by category (null category = orphan/uncategorized)
+  const servicesByCategory = useMemo(() => {
+    const map = new Map<string, BusinessService[]>();
+    for (const s of services) {
+      const key = s.businessCategoryId ?? '__uncategorized__';
+      const arr = map.get(key) ?? [];
+      arr.push(s);
+      map.set(key, arr);
     }
-  };
+    return map;
+  }, [services]);
 
-  const startEditing = (category: { id: string; name: string }) => {
-    setEditingId(category.id);
-    setEditingName(category.name);
-  };
+  const uncategorizedServices = servicesByCategory.get('__uncategorized__') ?? [];
 
   return (
-    <div className="bg-surface border border-border rounded-2xl p-6">
-      <div className="mb-6">
-        <h3 className="font-semibold flex items-center gap-2">
-          <Scissors className="w-5 h-5" />
-          {t('serviceCategories')}
-        </h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          {t('serviceCategoriesDesc')}
-        </p>
-      </div>
-
-      {/* Add new category */}
-      <div className="flex gap-2 mb-4">
-        <input
-          type="text"
-          value={newCategoryName}
-          onChange={(e) => setNewCategoryName(e.target.value)}
-          placeholder={t('newCategory')}
-          className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleCreate();
-          }}
-        />
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold">{t('prestations')}</h2>
+          <p className="text-sm text-muted-foreground mt-1">{t('managePrestations')}</p>
+        </div>
         <Button
-          onClick={handleCreate}
-          disabled={!newCategoryName.trim() || createCategoryMutation.isPending}
-          className="rounded-full"
+          onClick={() => setShowCreateCategory(true)}
+          className="rounded-full shrink-0"
+          size="sm"
         >
           <Plus className="w-4 h-4 mr-1" />
-          {t('add')}
+          {t('newCategory')}
         </Button>
       </div>
 
-      {/* Categories list */}
-      {business.categories && business.categories.length > 0 ? (
-        <div className="space-y-2">
-          {business.categories.map((category) => (
-            <div
-              key={category.id}
-              className="flex items-center gap-3 p-3 rounded-xl bg-background"
+      {categories.length === 0 && services.length === 0 && (
+        <div className="bg-surface border border-border rounded-2xl p-8 text-center">
+          <Scissors className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-muted-foreground mb-4">{t('noCategoriesHint')}</p>
+          <Button
+            onClick={() => setShowCreateCategory(true)}
+            className="rounded-full"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {t('newCategory')}
+          </Button>
+        </div>
+      )}
+
+      {/* Categories with their services */}
+      {categories.map((category) => {
+        const catServices = servicesByCategory.get(category.id) ?? [];
+        return (
+          <CategoryGroup
+            key={category.id}
+            category={category}
+            services={catServices}
+            categories={categories}
+            isOpen={openGroupId === category.id}
+            onToggle={() =>
+              setOpenGroupId((prev) => (prev === category.id ? null : category.id))
+            }
+            onEditCategory={() => setEditingCategory(category)}
+            onDeleteCategory={() => deleteCategoryMutation.mutate(category.id)}
+            deletingCategory={deleteCategoryMutation.isPending}
+            onDeleteService={onDeleteService}
+          />
+        );
+      })}
+
+      {/* Uncategorized services (also collapsible) */}
+      {uncategorizedServices.length > 0 && (
+        <UncategorizedGroup
+          services={uncategorizedServices}
+          categories={categories}
+          isOpen={openGroupId === '__uncategorized__'}
+          onToggle={() =>
+            setOpenGroupId((prev) =>
+              prev === '__uncategorized__' ? null : '__uncategorized__',
+            )
+          }
+          onDeleteService={onDeleteService}
+        />
+      )}
+
+      {showCreateCategory && (
+        <CategoryEditorModal mode="create" onClose={() => setShowCreateCategory(false)} />
+      )}
+      {editingCategory && (
+        <CategoryEditorModal
+          mode="edit"
+          category={editingCategory}
+          onClose={() => setEditingCategory(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// Uncategorized services block (collapsible)
+// ============================================
+function UncategorizedGroup({
+  services,
+  categories,
+  isOpen,
+  onToggle,
+  onDeleteService,
+}: {
+  services: BusinessService[];
+  categories: BusinessCategory[];
+  isOpen: boolean;
+  onToggle: () => void;
+  onDeleteService: (id: string) => void;
+}) {
+  const tf = useTranslations('serviceForm');
+
+  return (
+    <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+        className={`w-full flex items-center gap-3 p-4 text-left hover:bg-muted/40 transition-colors cursor-pointer ${
+          isOpen ? 'border-b border-border bg-muted/30' : ''
+        }`}
+      >
+        <ChevronRight
+          className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${
+            isOpen ? 'rotate-90' : ''
+          }`}
+        />
+        <Scissors className="w-5 h-5 text-muted-foreground shrink-0" />
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold truncate">{tf('recapNoCategory')}</h3>
+          <p className="text-xs text-muted-foreground">
+            {services.length} {services.length > 1 ? 'prestations' : 'prestation'}
+          </p>
+        </div>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            key="body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
+          >
+            <div className="p-4 space-y-2">
+              {services.map((service) => (
+                <DashboardServiceCard
+                  key={service.id}
+                  service={service}
+                  categories={categories}
+                  onDelete={() => onDeleteService(service.id)}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ============================================
+// Single category block: collapsible header + options subfolder + services subfolder
+// ============================================
+function CategoryGroup({
+  category,
+  services,
+  categories,
+  isOpen,
+  onToggle,
+  onEditCategory,
+  onDeleteCategory,
+  deletingCategory,
+  onDeleteService,
+}: {
+  category: BusinessCategory;
+  services: BusinessService[];
+  categories: BusinessCategory[];
+  isOpen: boolean;
+  onToggle: () => void;
+  onEditCategory: () => void;
+  onDeleteCategory: () => void;
+  deletingCategory: boolean;
+  onDeleteService: (id: string) => void;
+}) {
+  const t = useTranslations('dashboard');
+  const tf = useTranslations('serviceForm');
+  const options = category.options ?? [];
+  const serviceCount = category._count?.services ?? services.length;
+
+  return (
+    <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+      {/* Category header — clickable row; action buttons stop propagation */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+        className={`w-full flex items-center gap-3 p-4 text-left hover:bg-muted/40 transition-colors cursor-pointer ${
+          isOpen ? 'border-b border-border bg-muted/30' : ''
+        }`}
+      >
+        <ChevronRight
+          className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${
+            isOpen ? 'rotate-90' : ''
+          }`}
+        />
+        <Scissors className="w-5 h-5 text-primary shrink-0" />
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold truncate">{category.name}</h3>
+          <p className="text-xs text-muted-foreground">
+            {serviceCount} {serviceCount > 1 ? 'prestations' : 'prestation'}
+            {options.length > 0 &&
+              ` · ${options.length} ${options.length > 1 ? 'options' : 'option'}`}
+          </p>
+        </div>
+        <div
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          className="flex items-center gap-1 shrink-0"
+        >
+          <Link href={`/business/services/new?category=${category.id}`}>
+            <Button size="sm" variant="outline" className="rounded-full gap-1">
+              <Plus className="w-3.5 h-3.5" />
+              {t('add')}
+            </Button>
+          </Link>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onEditCategory}
+            className="rounded-full h-8 w-8 p-0"
+            title={t('editCategory')}
+          >
+            <Edit2 className="w-4 h-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onDeleteCategory}
+            disabled={deletingCategory}
+            className="rounded-full h-8 w-8 p-0 text-destructive hover:text-destructive"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Collapsible body */}
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            key="body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
+          >
+            {/* Options subfolder */}
+            {options.length > 0 && (
+              <div className="px-4 pt-4 pb-2">
+                <div className="pl-4 border-l-2 border-muted">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5">
+                    <CornerDownRight className="w-3 h-3" />
+                    {tf('options')}
+                  </p>
+                  <div className="space-y-1.5">
+                    {options.map((opt) => (
+                      <div
+                        key={opt.id}
+                        className="flex items-center gap-2 py-1.5 px-3 rounded-lg bg-muted/40 text-sm"
+                      >
+                        <span className="font-medium truncate">{opt.name}</span>
+                        {opt.groupName && (
+                          <span className="text-xs bg-muted text-muted-foreground rounded px-1.5 py-0.5">
+                            {opt.groupName}
+                          </span>
+                        )}
+                        <span className="ml-auto text-xs text-primary font-medium shrink-0">
+                          +{(opt.priceCents / 100).toFixed(2)} €
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Services subfolder */}
+            <div className="px-4 pt-3 pb-4">
+              <div className="pl-4 border-l-2 border-muted">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <CornerDownRight className="w-3 h-3" />
+                  {t('prestations')}
+                </p>
+                {services.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">{t('noPrestation')}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {services.map((service) => (
+                      <DashboardServiceCard
+                        key={service.id}
+                        service={service}
+                        categories={categories}
+                        onDelete={() => onDeleteService(service.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ============================================
+// Category create/edit modal (with inline options management)
+// ============================================
+function CategoryEditorModal({
+  mode,
+  category,
+  onClose,
+}: {
+  mode: 'create' | 'edit';
+  category?: BusinessCategory;
+  onClose: () => void;
+}) {
+  const { success, error: showError } = useToast();
+  const queryClient = useQueryClient();
+  const t = useTranslations('dashboard');
+  const tf = useTranslations('serviceForm');
+  const tc = useTranslations('common');
+
+  const [name, setName] = useState(category?.name ?? '');
+  // Options state: keeps `id` on existing entries so the server can diff-update
+  const [options, setOptions] = useState<import('@/lib/api').CategoryOptionInput[]>(
+    (category?.options ?? []).map((o) => ({
+      id: o.id,
+      name: o.name,
+      description: o.description ?? undefined,
+      priceCents: o.priceCents,
+      durationMinutes: o.durationMinutes ?? undefined,
+      groupName: o.groupName ?? undefined,
+      sortOrder: o.sortOrder,
+    })),
+  );
+
+  const createMutation = useMutation({
+    mutationFn: () => api.createBusinessCategory({ name: name.trim(), options }),
+    onSuccess: () => {
+      success(t('categoryCreated'));
+      queryClient.invalidateQueries({ queryKey: ['my-business'] });
+      onClose();
+    },
+    onError: () => showError(t('errorUpdate')),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: () =>
+      api.updateBusinessCategory(category!.id, { name: name.trim(), options }),
+    onSuccess: () => {
+      success(t('categoryUpdated'));
+      queryClient.invalidateQueries({ queryKey: ['my-business'] });
+      onClose();
+    },
+    onError: () => showError(t('errorUpdate')),
+  });
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
+  const canSave = name.trim().length >= 2 && !isPending;
+
+  const handleSubmit = () => {
+    if (!canSave) return;
+    if (mode === 'create') createMutation.mutate();
+    else updateMutation.mutate();
+  };
+
+  const addOption = (opt: import('@/lib/api').CategoryOptionInput) => {
+    setOptions((prev) => [...prev, opt]);
+  };
+  const updateOption = (index: number, patch: Partial<import('@/lib/api').CategoryOptionInput>) => {
+    setOptions((prev) => prev.map((o, i) => (i === index ? { ...o, ...patch } : o)));
+  };
+  const removeOption = (index: number) => {
+    setOptions((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const modalContent = (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] flex items-center justify-center p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          onClick={(e) => e.stopPropagation()}
+          className="bg-surface rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+        >
+          <div className="flex items-center justify-between p-6 border-b border-border">
+            <h2 className="text-xl font-bold">
+              {mode === 'create' ? t('newCategory') : t('editCategory')}
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer"
             >
-              {editingId === category.id ? (
-                <>
-                  <input
-                    type="text"
-                    value={editingName}
-                    onChange={(e) => setEditingName(e.target.value)}
-                    className="flex-1 px-3 py-1.5 text-sm border border-border rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleUpdate(category.id);
-                      if (e.key === 'Escape') setEditingId(null);
-                    }}
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-5 overflow-y-auto flex-1">
+            <div>
+              <label className="text-sm font-medium mb-2 block">{t('categoryName')} *</label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t('categoryNamePlaceholder')}
+                maxLength={100}
+              />
+            </div>
+
+            <CategoryOptionsEditor
+              options={options}
+              onAdd={addOption}
+              onUpdate={updateOption}
+              onRemove={removeOption}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 p-6 border-t border-border">
+            <Button variant="outline" onClick={onClose} className="rounded-full" disabled={isPending}>
+              {tc('cancel')}
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!canSave}
+              isLoading={isPending}
+              className="rounded-full"
+            >
+              {tc('save')}
+            </Button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+
+  if (typeof window === 'undefined') return null;
+  return createPortal(modalContent, document.body);
+}
+
+// ============================================
+// Options editor (list + inline add form) for CategoryEditorModal
+// ============================================
+function CategoryOptionsEditor({
+  options,
+  onAdd,
+  onUpdate,
+  onRemove,
+}: {
+  options: import('@/lib/api').CategoryOptionInput[];
+  onAdd: (opt: import('@/lib/api').CategoryOptionInput) => void;
+  onUpdate: (index: number, patch: Partial<import('@/lib/api').CategoryOptionInput>) => void;
+  onRemove: (index: number) => void;
+}) {
+  const tf = useTranslations('serviceForm');
+  const tc = useTranslations('common');
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [groupName, setGroupName] = useState('');
+
+  const resetDraft = () => {
+    setName('');
+    setDescription('');
+    setPrice('');
+    setGroupName('');
+    setDraftOpen(false);
+  };
+
+  const canAddDraft = name.trim().length > 0 && price !== '' && !isNaN(parseFloat(price));
+  const handleAddDraft = () => {
+    if (!canAddDraft) return;
+    onAdd({
+      name: name.trim(),
+      description: description.trim() || undefined,
+      priceCents: Math.round(parseFloat(price) * 100),
+      groupName: groupName.trim() || undefined,
+    });
+    resetDraft();
+  };
+
+  return (
+    <div className="border-t border-border pt-5">
+      <label className="text-sm font-medium block mb-1">{tf('options')}</label>
+      <p className="text-xs text-muted-foreground mb-3">{tf('optionsHint')}</p>
+
+      {options.length > 0 && (
+        <div className="space-y-2 mb-3">
+          {options.map((opt, i) => (
+            <div
+              key={opt.id ?? `new-${i}`}
+              className="flex items-start gap-3 p-3 rounded-xl border border-border bg-background"
+            >
+              <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-center">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Input
+                      value={opt.name}
+                      onChange={(e) => onUpdate(i, { name: e.target.value })}
+                      className="h-8 text-sm flex-1 min-w-[120px]"
+                      maxLength={100}
+                    />
+                    {opt.groupName && (
+                      <span className="text-xs bg-muted text-muted-foreground rounded px-1.5 py-0.5">
+                        {opt.groupName}
+                      </span>
+                    )}
+                  </div>
+                  {opt.description && (
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {opt.description}
+                    </p>
+                  )}
+                </div>
+                <div className="relative w-28">
+                  <Euro className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Input
+                    type="number"
+                    value={opt.priceCents / 100}
+                    onChange={(e) =>
+                      onUpdate(i, {
+                        priceCents: e.target.value
+                          ? Math.round(parseFloat(e.target.value) * 100)
+                          : 0,
+                      })
+                    }
+                    min={0}
+                    step={0.5}
+                    className="pl-7 h-8 text-sm"
                   />
-                  <Button
-                    size="sm"
-                    onClick={() => handleUpdate(category.id)}
-                    disabled={updateCategoryMutation.isPending}
-                    className="rounded-full"
-                  >
-                    {t('save')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setEditingId(null)}
-                    className="rounded-full"
-                  >
-                    {tc('cancel')}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <span className="flex-1 font-medium">{category.name}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {category._count?.services || 0} prestation{(category._count?.services || 0) > 1 ? 's' : ''}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => startEditing(category)}
-                    className="rounded-full h-8 w-8 p-0"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => deleteCategoryMutation.mutate(category.id)}
-                    disabled={deleteCategoryMutation.isPending}
-                    className="rounded-full h-8 w-8 p-0 text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </>
-              )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onRemove(i)}
+                className="text-muted-foreground hover:text-destructive transition-colors shrink-0 mt-1"
+                aria-label={tf('remove')}
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           ))}
         </div>
+      )}
+
+      {draftOpen ? (
+        <div className="border border-border rounded-xl p-4 space-y-3 bg-background">
+          <div>
+            <label className="text-xs font-medium mb-1 block">{tf('optionName')} *</label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={tf('optionNamePlaceholder')}
+              maxLength={100}
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1 block">{tf('optionDescription')}</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={tf('optionDescriptionPlaceholder')}
+              maxLength={500}
+              rows={2}
+              className="flex w-full rounded-xl border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium mb-1 block">{tf('optionPrice')} *</label>
+              <div className="relative">
+                <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0.00"
+                  min={0}
+                  step={0.5}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block">{tf('optionGroup')}</label>
+              <Input
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                placeholder={tf('optionGroupPlaceholder')}
+                maxLength={50}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">{tf('optionGroupHint')}</p>
+          <div className="flex gap-2 pt-1">
+            <Button
+              type="button"
+              onClick={handleAddDraft}
+              disabled={!canAddDraft}
+              size="sm"
+              className="rounded-full gap-1"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              {tf('addOption')}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={resetDraft}
+              className="rounded-full"
+            >
+              {tc('cancel')}
+            </Button>
+          </div>
+        </div>
       ) : (
-        <p className="text-sm text-muted-foreground text-center py-4">
-  {t('noCategoriesHint')}
-        </p>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setDraftOpen(true)}
+          className="w-full rounded-xl gap-2"
+          size="sm"
+        >
+          <Plus className="w-4 h-4" />
+          {tf('addOption')}
+        </Button>
       )}
     </div>
   );

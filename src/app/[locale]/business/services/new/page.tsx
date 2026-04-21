@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
-import { Category, BusinessCategory } from '@/types';
+import { BusinessCategory } from '@/types';
 import { useTranslations } from 'next-intl';
 
 type Step = 1 | 2 | 3;
@@ -37,13 +37,14 @@ interface FormData {
 }
 
 const steps = [
-  { number: 1, titleKey: 'stepInfo' as const, icon: FileText },
-  { number: 2, titleKey: 'stepPricing' as const, icon: Euro },
-  { number: 3, titleKey: 'stepCategory' as const, icon: Scissors },
-];
+  { number: 1, key: 'stepInfo', icon: FileText },
+  { number: 2, key: 'stepPricing', icon: Euro },
+  { number: 3, key: 'stepRecap', icon: Check },
+] as const;
 
 export default function NewBusinessServicePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
@@ -57,7 +58,7 @@ export default function NewBusinessServicePage() {
     detailedDescription: '',
     priceCents: null,
     durationMinutes: null,
-    businessCategoryId: null,
+    businessCategoryId: searchParams.get('category') || null,
   });
 
   const { data: business, isLoading: businessLoading } = useQuery({
@@ -79,7 +80,7 @@ export default function NewBusinessServicePage() {
     onSuccess: () => {
       success(t('success'));
       queryClient.invalidateQueries({ queryKey: ['my-business'] });
-      router.push('/business/dashboard');
+      router.push('/business/dashboard?tab=services');
     },
     onError: (err: Error) => {
       showError(err.message || t('error'));
@@ -95,29 +96,26 @@ export default function NewBusinessServicePage() {
       case 1:
         return formData.name.trim().length >= 2;
       case 2:
-        return formData.priceCents !== null && formData.priceCents >= 0 && formData.durationMinutes !== null && formData.durationMinutes > 0;
+        return (
+          formData.priceCents !== null &&
+          formData.priceCents >= 0 &&
+          formData.durationMinutes !== null &&
+          formData.durationMinutes > 0
+        );
       case 3:
-        return true; // Categorie optionnelle
+        return true;
       default:
         return false;
     }
   };
 
   const nextStep = () => {
-    if (step < 3 && canProceed()) {
-      setStep((s) => (s + 1) as Step);
-    }
+    if (step < 3 && canProceed()) setStep((s) => (s + 1) as Step);
   };
-
   const prevStep = () => {
-    if (step > 1) {
-      setStep((s) => (s - 1) as Step);
-    }
+    if (step > 1) setStep((s) => (s - 1) as Step);
   };
-
-  const handleSubmit = () => {
-    createMutation.mutate();
-  };
+  const handleSubmit = () => createMutation.mutate();
 
   if (authLoading) {
     return (
@@ -131,9 +129,7 @@ export default function NewBusinessServicePage() {
     return (
       <div className="container mx-auto px-4 py-8 pt-24 text-center">
         <h1 className="text-2xl font-bold mb-4">{t('loginRequired')}</h1>
-        <p className="text-muted-foreground mb-4">
-          {t('loginRequiredDesc')}
-        </p>
+        <p className="text-muted-foreground mb-4">{t('loginRequiredDesc')}</p>
         <Link href="/auth/login">
           <Button>{t('loginButton')}</Button>
         </Link>
@@ -152,9 +148,7 @@ export default function NewBusinessServicePage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold">{t('title')}</h1>
-          <p className="text-muted-foreground text-sm">
-            {t('subtitle')}
-          </p>
+          <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
         </div>
       </div>
 
@@ -168,18 +162,15 @@ export default function NewBusinessServicePage() {
                   initial={false}
                   animate={{
                     backgroundColor: step >= s.number ? 'var(--primary)' : 'var(--muted)',
-                    color: step >= s.number ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
+                    color:
+                      step >= s.number ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
                   }}
                   className="w-10 h-10 rounded-full flex items-center justify-center"
                 >
-                  {step > s.number ? (
-                    <Check className="w-5 h-5" />
-                  ) : (
-                    <s.icon className="w-5 h-5" />
-                  )}
+                  {step > s.number ? <Check className="w-5 h-5" /> : <s.icon className="w-5 h-5" />}
                 </motion.div>
                 <span className="text-xs mt-2 font-medium hidden sm:block">
-                  {s.titleKey === 'stepInfo' ? t('name') : s.titleKey === 'stepPricing' ? t('price') : t('category')}
+                  {t(s.key)}
                 </span>
               </div>
               {index < steps.length - 1 && (
@@ -208,26 +199,21 @@ export default function NewBusinessServicePage() {
           >
             {step === 1 && (
               <StepInfo
-                name={formData.name}
-                description={formData.description}
-                detailedDescription={formData.detailedDescription}
-                onChange={(updates) => updateForm(updates)}
+                formData={formData}
+                categories={business?.categories || []}
+                categoriesLoading={businessLoading}
+                onChange={updateForm}
               />
             )}
             {step === 2 && (
               <StepPricing
                 priceCents={formData.priceCents}
                 durationMinutes={formData.durationMinutes}
-                onChange={(updates) => updateForm(updates)}
+                onChange={updateForm}
               />
             )}
             {step === 3 && (
-              <StepCategory
-                categories={business?.categories || []}
-                loading={businessLoading}
-                selectedId={formData.businessCategoryId}
-                onChange={(businessCategoryId) => updateForm({ businessCategoryId })}
-              />
+              <StepRecap formData={formData} categories={business?.categories || []} />
             )}
           </motion.div>
         </AnimatePresence>
@@ -266,17 +252,19 @@ export default function NewBusinessServicePage() {
   );
 }
 
-// Step 1: Basic Info
+// ============================================
+// STEP 1 — Infos & Category
+// ============================================
 function StepInfo({
-  name,
-  description,
-  detailedDescription,
+  formData,
+  categories,
+  categoriesLoading,
   onChange,
 }: {
-  name: string;
-  description: string;
-  detailedDescription: string;
-  onChange: (updates: { name?: string; description?: string; detailedDescription?: string }) => void;
+  formData: FormData;
+  categories: BusinessCategory[];
+  categoriesLoading: boolean;
+  onChange: (updates: Partial<FormData>) => void;
 }) {
   const t = useTranslations('serviceForm');
 
@@ -287,32 +275,47 @@ function StepInfo({
           <FileText className="w-7 h-7 text-primary" />
         </div>
         <h2 className="text-xl font-bold mb-1">{t('infoTitle')}</h2>
-        <p className="text-muted-foreground text-sm">
-          {t('infoSubtitle')}
-        </p>
+        <p className="text-muted-foreground text-sm">{t('infoSubtitle')}</p>
       </div>
 
       <div>
-        <label className="text-sm font-medium mb-2 block">
-          {t('name')} *
-        </label>
+        <label className="text-sm font-medium mb-2 block">{t('category')}</label>
+        {categoriesLoading ? (
+          <p className="text-sm text-muted-foreground">...</p>
+        ) : (
+          <select
+            value={formData.businessCategoryId ?? ''}
+            onChange={(e) => onChange({ businessCategoryId: e.target.value || null })}
+            className="w-full px-4 py-3 bg-background border border-border rounded-xl text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+          >
+            <option value="">{t('noCategory')}</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        )}
+        {!categoriesLoading && categories.length === 0 && (
+          <p className="text-xs text-muted-foreground mt-2">{t('noCategoriesHint')}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="text-sm font-medium mb-2 block">{t('name')} *</label>
         <Input
-          value={name}
+          value={formData.name}
           onChange={(e) => onChange({ name: e.target.value })}
           placeholder={t('namePlaceholder')}
           maxLength={100}
         />
-        <p className="text-xs text-muted-foreground mt-1">
-          {t('nameMinChars')}
-        </p>
+        <p className="text-xs text-muted-foreground mt-1">{t('nameMinChars')}</p>
       </div>
 
       <div>
-        <label className="text-sm font-medium mb-2 block">
-          {t('shortDescription')}
-        </label>
+        <label className="text-sm font-medium mb-2 block">{t('shortDescription')}</label>
         <textarea
-          value={description}
+          value={formData.description}
           onChange={(e) => onChange({ description: e.target.value })}
           placeholder={t('shortDescriptionPlaceholder')}
           maxLength={500}
@@ -322,14 +325,10 @@ function StepInfo({
       </div>
 
       <div>
-        <label className="text-sm font-medium mb-2 block">
-          {t('detailedDescription')}
-        </label>
-        <p className="text-xs text-muted-foreground mb-2">
-          {t('detailedDescriptionHint')}
-        </p>
+        <label className="text-sm font-medium mb-2 block">{t('detailedDescription')}</label>
+        <p className="text-xs text-muted-foreground mb-2">{t('detailedDescriptionHint')}</p>
         <RichTextEditor
-          value={detailedDescription}
+          value={formData.detailedDescription}
           onChange={(value) => onChange({ detailedDescription: value })}
           placeholder={t('detailedDescriptionPlaceholder')}
           minHeight="150px"
@@ -339,7 +338,9 @@ function StepInfo({
   );
 }
 
-// Step 2: Pricing & Duration
+// ============================================
+// STEP 2 — Pricing & Duration
+// ============================================
 function StepPricing({
   priceCents,
   durationMinutes,
@@ -347,7 +348,7 @@ function StepPricing({
 }: {
   priceCents: number | null;
   durationMinutes: number | null;
-  onChange: (updates: { priceCents?: number | null; durationMinutes?: number | null }) => void;
+  onChange: (updates: Partial<FormData>) => void;
 }) {
   const t = useTranslations('serviceForm');
   const durationOptions = [15, 30, 45, 60, 90, 120];
@@ -359,15 +360,11 @@ function StepPricing({
           <Euro className="w-7 h-7 text-primary" />
         </div>
         <h2 className="text-xl font-bold mb-1">{t('pricingTitle')}</h2>
-        <p className="text-muted-foreground text-sm">
-          {t('pricingSubtitle')}
-        </p>
+        <p className="text-muted-foreground text-sm">{t('pricingSubtitle')}</p>
       </div>
 
       <div>
-        <label className="text-sm font-medium mb-2 block">
-          {t('price')} *
-        </label>
+        <label className="text-sm font-medium mb-2 block">{t('price')} *</label>
         <div className="relative">
           <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -408,9 +405,7 @@ function StepPricing({
           ))}
         </div>
         <div className="mt-3">
-          <label className="text-xs text-muted-foreground mb-1 block">
-            {t('customDuration')}
-          </label>
+          <label className="text-xs text-muted-foreground mb-1 block">{t('customDuration')}</label>
           <Input
             type="number"
             value={durationMinutes || ''}
@@ -427,70 +422,99 @@ function StepPricing({
   );
 }
 
-// Step 3: Category Selection
-function StepCategory({
+// ============================================
+// STEP 3 — Recap
+// ============================================
+function StepRecap({
+  formData,
   categories,
-  loading,
-  selectedId,
-  onChange,
 }: {
+  formData: FormData;
   categories: BusinessCategory[];
-  loading: boolean;
-  selectedId: string | null;
-  onChange: (id: string | null) => void;
 }) {
   const t = useTranslations('serviceForm');
-  const tc = useTranslations('common');
 
-  if (loading) {
-    return <PageLoader text={tc('loading')} />;
-  }
+  const selectedCategory = useMemo(
+    () => categories.find((c) => c.id === formData.businessCategoryId) ?? null,
+    [categories, formData.businessCategoryId],
+  );
+
+  // Options are inherited from the category; shown read-only here for transparency.
+  const inheritedOptions = selectedCategory?.options ?? [];
 
   return (
-    <div className="space-y-4">
-      <div className="text-center mb-6">
+    <div className="space-y-5">
+      <div className="text-center mb-2">
         <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Scissors className="w-7 h-7 text-primary" />
+          <Check className="w-7 h-7 text-primary" />
         </div>
-        <h2 className="text-xl font-bold mb-1">{t('category')}</h2>
-        <p className="text-muted-foreground text-sm">
-          {t('categoryOptional')}
-        </p>
+        <h2 className="text-xl font-bold mb-1">{t('recapTitle')}</h2>
+        <p className="text-muted-foreground text-sm">{t('recapSubtitle')}</p>
       </div>
 
-      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-        {/* Option: No category */}
-        <motion.button
-          onClick={() => onChange(null)}
-          className={`w-full p-4 rounded-xl border text-left transition-colors cursor-pointer ${
-            selectedId === null
-              ? 'border-primary bg-primary/5'
-              : 'border-border hover:border-primary/50'
-          }`}
-        >
-          <span className="font-medium text-muted-foreground">{t('noCategory')}</span>
-        </motion.button>
+      <div className="rounded-xl border border-border divide-y divide-border">
+        <RecapRow label={t('name')} value={formData.name} />
+        {formData.description && (
+          <RecapRow label={t('shortDescription')} value={formData.description} />
+        )}
+        <RecapRow
+          label={t('recapCategory')}
+          value={selectedCategory?.name ?? t('recapNoCategory')}
+        />
+        <RecapRow
+          label={t('price')}
+          value={`${((formData.priceCents ?? 0) / 100).toFixed(2)} €`}
+        />
+        <RecapRow
+          label={t('duration')}
+          value={`${formData.durationMinutes ?? 0} min`}
+        />
 
-        {categories.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            {t('noCategoriesHint')}
-          </p>
-        ) : (
-          categories.map((category) => (
-            <motion.button
-              key={category.id}
-              onClick={() => onChange(category.id)}
-              className={`w-full p-4 rounded-xl border text-left transition-colors cursor-pointer ${
-                selectedId === category.id
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              <span className="font-medium">{category.name}</span>
-            </motion.button>
-          ))
+        {selectedCategory && (
+          <div className="p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+              {t('options')}
+            </p>
+            {inheritedOptions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t('recapNoOptions')}</p>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground mb-3">{t('inheritedFromCategory')}</p>
+                <ul className="space-y-1.5">
+                  {inheritedOptions.map((opt) => (
+                    <li
+                      key={opt.id}
+                      className="flex justify-between items-center text-sm"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Scissors className="w-3.5 h-3.5 text-muted-foreground" />
+                        {opt.name}
+                        {opt.groupName && (
+                          <span className="text-xs bg-muted text-muted-foreground rounded px-1.5 py-0.5">
+                            {opt.groupName}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-primary font-medium">
+                        +{(opt.priceCents / 100).toFixed(2)} €
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function RecapRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="p-4 flex items-start justify-between gap-4">
+      <span className="text-xs uppercase tracking-wide text-muted-foreground shrink-0">{label}</span>
+      <span className="text-sm font-medium text-right">{value}</span>
     </div>
   );
 }

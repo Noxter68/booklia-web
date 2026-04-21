@@ -28,6 +28,7 @@ interface ConfirmBookingModalProps {
   time: string;
   durationMinutes: number;
   priceCents: number;
+  selectedOptions?: { name: string; priceCents: number }[];
 }
 
 export function ConfirmBookingModal({
@@ -44,6 +45,7 @@ export function ConfirmBookingModal({
   time,
   durationMinutes,
   priceCents,
+  selectedOptions,
 }: ConfirmBookingModalProps) {
   if (!isOpen) return null;
 
@@ -122,6 +124,25 @@ export function ConfirmBookingModal({
                 )}
               </div>
             </div>
+
+            {/* Options recap */}
+            {selectedOptions && selectedOptions.length > 0 && (
+              <div className="bg-muted/30 rounded-xl p-4 space-y-2">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Options
+                </p>
+                <ul className="space-y-1.5 text-sm">
+                  {selectedOptions.map((opt, i) => (
+                    <li key={i} className="flex justify-between">
+                      <span>{opt.name}</span>
+                      <span className="text-primary font-medium">
+                        +{formatPrice(opt.priceCents)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Price */}
             <div className="flex items-center justify-between bg-primary/5 rounded-xl px-4 py-3">

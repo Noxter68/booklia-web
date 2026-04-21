@@ -50,6 +50,7 @@ export default function BookingPage() {
   const [direction, setDirection] = useState(0);
   const [expandedDayOverride, setExpandedDayOverride] = useState<string | null | undefined>(undefined);
   const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
+  const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -81,6 +82,59 @@ export default function BookingPage() {
 
   // Get the selected service
   const selectedService = business?.services?.find(s => s.id === serviceId);
+
+  // Service options inherited from the service's business category
+  const serviceOptions = useMemo(
+    () =>
+      (selectedService?.businessCategory?.options ?? []).filter(
+        (o) => o.isActive,
+      ),
+    [selectedService],
+  );
+
+  // Group options by groupName: entries with null group become individual checkboxes
+  const optionGroups = useMemo(() => {
+    const groups = new Map<string, typeof serviceOptions>();
+    const ungrouped: typeof serviceOptions = [];
+    for (const opt of serviceOptions) {
+      if (opt.groupName) {
+        const arr = groups.get(opt.groupName) ?? [];
+        arr.push(opt);
+        groups.set(opt.groupName, arr);
+      } else {
+        ungrouped.push(opt);
+      }
+    }
+    return { groups: Array.from(groups.entries()), ungrouped };
+  }, [serviceOptions]);
+
+  const selectedOptions = useMemo(
+    () => serviceOptions.filter((o) => selectedOptionIds.includes(o.id)),
+    [serviceOptions, selectedOptionIds],
+  );
+
+  const optionsExtraCents = useMemo(
+    () => selectedOptions.reduce((sum, o) => sum + o.priceCents, 0),
+    [selectedOptions],
+  );
+
+  const totalPriceCents = (selectedService?.priceCents ?? 0) + optionsExtraCents;
+
+  const toggleOption = (optionId: string, groupName: string | null | undefined) => {
+    setSelectedOptionIds((prev) => {
+      if (prev.includes(optionId)) {
+        return prev.filter((id) => id !== optionId);
+      }
+      if (groupName) {
+        // Replace any other option from the same group
+        const othersInGroup = serviceOptions
+          .filter((o) => o.groupName === groupName && o.id !== optionId)
+          .map((o) => o.id);
+        return [...prev.filter((id) => !othersInGroup.includes(id)), optionId];
+      }
+      return [...prev, optionId];
+    });
+  };
 
   // Get employees for this service
   const employeesForService = useMemo(() => {
@@ -134,6 +188,7 @@ export default function BookingPage() {
         businessServiceId: serviceId as string,
         employeeId: selectedEmployee!,
         scheduledAt,
+        selectedOptionIds: selectedOptionIds.length ? selectedOptionIds : undefined,
       });
     },
     onSuccess: () => {
@@ -306,7 +361,7 @@ export default function BookingPage() {
               </div>
               <div className="flex justify-between pt-2 border-t border-border">
                 <span className="font-medium">{t('total')}</span>
-                <span className="font-bold text-primary">{formatPrice(selectedService.priceCents)}</span>
+                <span className="font-bold text-primary">{formatPrice(totalPriceCents)}</span>
               </div>
             </div>
 
@@ -358,7 +413,7 @@ export default function BookingPage() {
                   {t('duration', { minutes: selectedService.durationMinutes })}
                 </span>
                 <span className="font-semibold text-primary">
-                  {formatPrice(selectedService.priceCents)}
+                  {formatPrice(totalPriceCents)}
                 </span>
               </div>
             </div>
@@ -522,6 +577,107 @@ export default function BookingPage() {
             </div>
           </div>
         </div>
+
+        {/* Options Section */}
+        {selectedEmployee && serviceOptions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-5 bg-surface border border-border rounded-2xl"
+          >
+            <h2 className="text-lg font-semibold mb-1">{t('optionsTitle')}</h2>
+            <p className="text-sm text-muted-foreground mb-4">{t('optionsSubtitle')}</p>
+
+            <div className="space-y-5">
+              {/* Grouped options (exclusive choice) */}
+              {optionGroups.groups.map(([groupName, opts]) => (
+                <div key={groupName}>
+                  <p className="text-sm font-medium mb-2">{groupName}</p>
+                  <div className="space-y-2">
+                    {opts.map((opt) => {
+                      const checked = selectedOptionIds.includes(opt.id);
+                      return (
+                        <label
+                          key={opt.id}
+                          className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                            checked
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`option-group-${groupName}`}
+                            checked={checked}
+                            onChange={() => toggleOption(opt.id, groupName)}
+                            className="mt-1 w-4 h-4 text-primary focus:ring-primary"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium text-sm">{opt.name}</span>
+                              <span className="text-sm font-semibold text-primary shrink-0">
+                                +{formatPrice(opt.priceCents)}
+                              </span>
+                            </div>
+                            {opt.description && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {opt.description}
+                              </p>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {/* Ungrouped options (free multi-select) */}
+              {optionGroups.ungrouped.length > 0 && (
+                <div>
+                  {optionGroups.groups.length > 0 && (
+                    <p className="text-sm font-medium mb-2">{t('optionsExtras')}</p>
+                  )}
+                  <div className="space-y-2">
+                    {optionGroups.ungrouped.map((opt) => {
+                      const checked = selectedOptionIds.includes(opt.id);
+                      return (
+                        <label
+                          key={opt.id}
+                          className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                            checked
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleOption(opt.id, null)}
+                            className="mt-1 w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium text-sm">{opt.name}</span>
+                              <span className="text-sm font-semibold text-primary shrink-0">
+                                +{formatPrice(opt.priceCents)}
+                              </span>
+                            </div>
+                            {opt.description && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {opt.description}
+                              </p>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         {/* Calendar Section */}
         {selectedEmployee && (
@@ -769,7 +925,8 @@ export default function BookingPage() {
         date={selectedDate}
         time={selectedTime}
         durationMinutes={selectedService.durationMinutes}
-        priceCents={selectedService.priceCents}
+        priceCents={totalPriceCents}
+        selectedOptions={selectedOptions.map((o) => ({ name: o.name, priceCents: o.priceCents }))}
       />
 
       {/* Fixed Bottom Bar */}
@@ -803,7 +960,7 @@ export default function BookingPage() {
                   </div>
                 )}
                 <span className="font-bold text-primary">
-                  {formatPrice(selectedService.priceCents)}
+                  {formatPrice(totalPriceCents)}
                 </span>
               </div>
 

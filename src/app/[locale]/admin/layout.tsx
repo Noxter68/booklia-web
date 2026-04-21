@@ -25,8 +25,8 @@ export default function AdminLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const hasRedirected = useRef(false);
 
-  // Allow login page without auth
-  const isLoginPage = pathname === '/admin/login';
+  // Allow login page without auth (pathname includes locale prefix, e.g. /fr/admin/login)
+  const isLoginPage = pathname.endsWith('/admin/login');
 
   useEffect(() => {
     // Reset redirect flag when on login page

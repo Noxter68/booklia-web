@@ -1059,41 +1059,6 @@ export default function BusinessPublicPage() {
           {/* Sidebar - Desktop only */}
           <div className="hidden lg:block lg:col-span-1">
             <div className="sticky top-24 space-y-5">
-              {/* Business Hours Card */}
-              {business.hours && business.hours.length > 0 && (
-                <div className="bg-surface border border-border rounded-2xl p-6">
-                  <h3 className="font-bold text-base mb-4">
-                    {t('openingHours')}
-                  </h3>
-                  <div className="space-y-3">
-                    {[1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
-                      const dayHours = business.hours?.find((h) => h.dayOfWeek === dayOfWeek);
-                      const isToday = new Date().getDay() === dayOfWeek;
-
-                      return (
-                        <div
-                          key={dayOfWeek}
-                          className={`flex items-center justify-between text-sm ${
-                            isToday ? 'font-semibold' : ''
-                          }`}
-                        >
-                          <span className={isToday ? 'font-bold' : 'text-foreground'}>
-                            {getDayName(dayOfWeek)}
-                          </span>
-                          <span className={`font-medium ${dayHours?.isClosed ? 'text-muted-foreground' : ''}`}>
-                            {dayHours?.isClosed
-                              ? t('closed')
-                              : dayHours
-                              ? `${dayHours.startTime} - ${dayHours.endTime}`
-                              : t('closed')}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               {/* Reviews Card - Desktop */}
               <div className="bg-surface border border-border rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -1159,6 +1124,41 @@ export default function BusinessPublicPage() {
                   </button>
                 )}
               </div>
+
+              {/* Business Hours Card — below reviews */}
+              {business.hours && business.hours.length > 0 && (
+                <div className="bg-surface border border-border rounded-2xl p-6">
+                  <h3 className="font-bold text-base mb-4">
+                    {t('openingHours')}
+                  </h3>
+                  <div className="space-y-3">
+                    {[1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
+                      const dayHours = business.hours?.find((h) => h.dayOfWeek === dayOfWeek);
+                      const isToday = new Date().getDay() === dayOfWeek;
+
+                      return (
+                        <div
+                          key={dayOfWeek}
+                          className={`flex items-center justify-between text-sm ${
+                            isToday ? 'font-semibold' : ''
+                          }`}
+                        >
+                          <span className={isToday ? 'font-bold' : 'text-foreground'}>
+                            {getDayName(dayOfWeek)}
+                          </span>
+                          <span className={`font-medium ${dayHours?.isClosed ? 'text-muted-foreground' : ''}`}>
+                            {dayHours?.isClosed
+                              ? t('closed')
+                              : dayHours
+                              ? `${dayHours.startTime} - ${dayHours.endTime}`
+                              : t('closed')}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Address Card - Desktop */}
               {business.address && (

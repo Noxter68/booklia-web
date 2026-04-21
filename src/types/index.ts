@@ -56,6 +56,7 @@ export interface Booking {
   reviews?: Review[];
   kind?: CalendarEntryKind;
   blockReason?: BlockReason | null;
+  options?: BookingOption[];
   createdAt: string;
   updatedAt: string;
 }
@@ -217,6 +218,30 @@ export interface BusinessCategory {
   _count?: {
     services: number;
   };
+  options?: ServiceOption[];
+}
+
+export interface ServiceOption {
+  id: string;
+  businessCategoryId: string;
+  name: string;
+  description?: string;
+  priceCents: number;
+  durationMinutes?: number | null;
+  groupName?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BookingOption {
+  id: string;
+  bookingId: string;
+  serviceOptionId?: string | null;
+  name: string;
+  priceCents: number;
+  createdAt: string;
 }
 
 export interface BusinessImage {

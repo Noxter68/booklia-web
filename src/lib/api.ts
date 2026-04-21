@@ -2,6 +2,16 @@ import { translateError } from './error-messages';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
+export interface CategoryOptionInput {
+  id?: string; // present = update existing, absent = create new
+  name: string;
+  description?: string;
+  priceCents: number;
+  durationMinutes?: number;
+  groupName?: string;
+  sortOrder?: number;
+}
+
 class ApiClient {
   private token: string | null = null;
   private locale: string = 'fr';
@@ -329,7 +339,10 @@ class ApiClient {
     });
   }
 
-  async updateBusinessService(id: string, data: Partial<import('@/types').BusinessService>) {
+  async updateBusinessService(
+    id: string,
+    data: Partial<import('@/types').BusinessService>,
+  ) {
     return this.request<import('@/types').BusinessService>(`/business/services/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -427,6 +440,7 @@ class ApiClient {
     employeeId: string;
     scheduledAt: string;
     notes?: string;
+    selectedOptionIds?: string[];
   }) {
     return this.request<import('@/types').Booking>('/bookings', {
       method: 'POST',
@@ -460,14 +474,25 @@ class ApiClient {
     return this.request<import('@/types').BusinessCategory[]>('/business/categories/mine');
   }
 
-  async createBusinessCategory(data: { name: string; sortOrder?: number }) {
+  async createBusinessCategory(data: {
+    name: string;
+    sortOrder?: number;
+    options?: CategoryOptionInput[];
+  }) {
     return this.request<import('@/types').BusinessCategory>('/business/categories', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateBusinessCategory(id: string, data: { name?: string; sortOrder?: number }) {
+  async updateBusinessCategory(
+    id: string,
+    data: {
+      name?: string;
+      sortOrder?: number;
+      options?: CategoryOptionInput[];
+    },
+  ) {
     return this.request<import('@/types').BusinessCategory>(`/business/categories/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
