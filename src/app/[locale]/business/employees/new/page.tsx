@@ -591,18 +591,18 @@ function StepAvailability({
 
                 {isActive && (
                   <div className="flex items-center gap-2">
-                    <Input
+                    <input
                       type="time"
                       value={availability.startTime}
                       onChange={(e) => updateTime(dayValue, 'startTime', e.target.value)}
-                      className="w-28 h-9 text-sm"
+                      className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-foreground focus:ring-1 focus:ring-foreground outline-none"
                     />
-                    <span className="text-muted-foreground">&rarr;</span>
-                    <Input
+                    <span className="text-muted-foreground">-</span>
+                    <input
                       type="time"
                       value={availability.endTime}
                       onChange={(e) => updateTime(dayValue, 'endTime', e.target.value)}
-                      className="w-28 h-9 text-sm"
+                      className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-foreground focus:ring-1 focus:ring-foreground outline-none"
                     />
                   </div>
                 )}
@@ -643,18 +643,18 @@ function StepAvailability({
 
                 {isActive && (
                   <div className="flex items-center gap-2">
-                    <Input
+                    <input
                       type="time"
                       value={availability.startTime}
                       onChange={(e) => updateTime(0, 'startTime', e.target.value)}
-                      className="w-28 h-9 text-sm"
+                      className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-foreground focus:ring-1 focus:ring-foreground outline-none"
                     />
-                    <span className="text-muted-foreground">&rarr;</span>
-                    <Input
+                    <span className="text-muted-foreground">-</span>
+                    <input
                       type="time"
                       value={availability.endTime}
                       onChange={(e) => updateTime(0, 'endTime', e.target.value)}
-                      className="w-28 h-9 text-sm"
+                      className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-foreground focus:ring-1 focus:ring-foreground outline-none"
                     />
                   </div>
                 )}

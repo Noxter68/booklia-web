@@ -18,6 +18,8 @@ import {
   Save,
   Camera,
   Loader2,
+  Plus,
+  X,
 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { useAuth } from '@/hooks/useAuth';
@@ -501,7 +503,7 @@ function StepIdentity({
   );
 }
 
-// Step 2: Availability
+// Step 2: Availability (multi-slot per day)
 function StepAvailability({
   availabilities,
   onChange,
@@ -521,23 +523,71 @@ function StepAvailability({
     6: t('saturday'),
   };
 
-  const toggleDay = (dayOfWeek: number) => {
-    const existing = availabilities.find((a) => a.dayOfWeek === dayOfWeek);
-    if (existing) {
-      onChange(availabilities.filter((a) => a.dayOfWeek !== dayOfWeek));
-    } else {
-      onChange([
-        ...availabilities,
-        { dayOfWeek, startTime: '09:00', endTime: '18:00' },
-      ]);
-    }
+  // All slots for a given weekday, sorted by startTime
+  const slotsFor = (day: number) =>
+    availabilities
+      .filter((a) => a.dayOfWeek === day)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+  const addSlot = (day: number) => {
+    const existing = slotsFor(day);
+    // Default: same as last slot, or 9-18 if first
+    const last = existing[existing.length - 1];
+    onChange([
+      ...availabilities,
+      {
+        dayOfWeek: day,
+        startTime: last ? last.endTime : '09:00',
+        endTime: last ? '18:00' : '18:00',
+      },
+    ]);
   };
 
-  const updateTime = (dayOfWeek: number, field: 'startTime' | 'endTime', value: string) => {
+  const removeSlotAt = (day: number, indexWithinDay: number) => {
+    const daySlots = slotsFor(day);
+    const target = daySlots[indexWithinDay];
+    if (!target) return;
+    // Remove the matching entry — match by reference since we already sorted
+    let removed = false;
     onChange(
-      availabilities.map((a) =>
-        a.dayOfWeek === dayOfWeek ? { ...a, [field]: value } : a
-      )
+      availabilities.filter((a) => {
+        if (
+          !removed &&
+          a.dayOfWeek === day &&
+          a.startTime === target.startTime &&
+          a.endTime === target.endTime
+        ) {
+          removed = true;
+          return false;
+        }
+        return true;
+      }),
+    );
+  };
+
+  const updateSlot = (
+    day: number,
+    indexWithinDay: number,
+    field: 'startTime' | 'endTime',
+    value: string,
+  ) => {
+    const daySlots = slotsFor(day);
+    const target = daySlots[indexWithinDay];
+    if (!target) return;
+    let updated = false;
+    onChange(
+      availabilities.map((a) => {
+        if (
+          !updated &&
+          a.dayOfWeek === day &&
+          a.startTime === target.startTime &&
+          a.endTime === target.endTime
+        ) {
+          updated = true;
+          return { ...a, [field]: value };
+        }
+        return a;
+      }),
     );
   };
 
@@ -558,6 +608,8 @@ function StepAvailability({
     }));
     onChange(allDays);
   };
+
+  const dayOrder = [1, 2, 3, 4, 5, 6, 0]; // Monday-first, Sunday last
 
   return (
     <div className="space-y-6">
@@ -595,111 +647,72 @@ function StepAvailability({
         </button>
       </div>
 
-      {/* Days grid */}
+      {/* Days list with multi-slot support */}
       <div className="space-y-3">
-        {[1, 2, 3, 4, 5, 6].map((dayValue) => {
-          const availability = availabilities.find((a) => a.dayOfWeek === dayValue);
-          const isActive = !!availability;
-
+        {dayOrder.map((day) => {
+          const daySlots = slotsFor(day);
+          const isActive = daySlots.length > 0;
           return (
             <div
-              key={dayValue}
+              key={day}
               className={`p-4 rounded-xl border transition-colors ${
                 isActive ? 'border-primary bg-primary/5' : 'border-border'
               }`}
             >
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => toggleDay(dayValue)}
-                  className="flex items-center gap-3 cursor-pointer"
-                >
-                  <div
-                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
-                      isActive
-                        ? 'border-primary bg-primary'
-                        : 'border-muted-foreground'
+              <div className="flex items-start justify-between gap-4">
+                <div className="shrink-0 pt-1.5">
+                  <span
+                    className={`font-medium ${
+                      isActive ? '' : 'text-muted-foreground'
                     }`}
                   >
-                    {isActive && <Check className="w-3 h-3 text-primary-foreground" />}
-                  </div>
-                  <span className={`font-medium ${isActive ? '' : 'text-muted-foreground'}`}>
-                    {dayLabels[dayValue]}
+                    {dayLabels[day]}
                   </span>
-                </button>
-
-                {isActive && (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="time"
-                      value={availability.startTime}
-                      onChange={(e) => updateTime(dayValue, 'startTime', e.target.value)}
-                      className="w-28 h-9 text-sm"
-                    />
-                    <span className="text-muted-foreground">-</span>
-                    <Input
-                      type="time"
-                      value={availability.endTime}
-                      onChange={(e) => updateTime(dayValue, 'endTime', e.target.value)}
-                      className="w-28 h-9 text-sm"
-                    />
+                </div>
+                <div className="flex-1 space-y-2">
+                  {daySlots.map((slot, i) => (
+                    <div
+                      key={`${day}-${i}`}
+                      className="flex items-center gap-2 justify-end"
+                    >
+                      <input
+                        type="time"
+                        value={slot.startTime}
+                        onChange={(e) => updateSlot(day, i, 'startTime', e.target.value)}
+                        className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-foreground focus:ring-1 focus:ring-foreground outline-none"
+                      />
+                      <span className="text-muted-foreground">-</span>
+                      <input
+                        type="time"
+                        value={slot.endTime}
+                        onChange={(e) => updateSlot(day, i, 'endTime', e.target.value)}
+                        className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-foreground focus:ring-1 focus:ring-foreground outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeSlotAt(day, i)}
+                        className="p-1 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                        aria-label="Retirer cette plage"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => addSlot(day)}
+                      className="text-xs text-primary hover:underline inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      {isActive ? 'Ajouter une plage' : 'Activer ce jour'}
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           );
         })}
-
-        {/* Sunday at the end */}
-        {(() => {
-          const availability = availabilities.find((a) => a.dayOfWeek === 0);
-          const isActive = !!availability;
-
-          return (
-            <div
-              className={`p-4 rounded-xl border transition-colors ${
-                isActive ? 'border-primary bg-primary/5' : 'border-border'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => toggleDay(0)}
-                  className="flex items-center gap-3 cursor-pointer"
-                >
-                  <div
-                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
-                      isActive
-                        ? 'border-primary bg-primary'
-                        : 'border-muted-foreground'
-                    }`}
-                  >
-                    {isActive && <Check className="w-3 h-3 text-primary-foreground" />}
-                  </div>
-                  <span className={`font-medium ${isActive ? '' : 'text-muted-foreground'}`}>
-                    {dayLabels[0]}
-                  </span>
-                </button>
-
-                {isActive && (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="time"
-                      value={availability.startTime}
-                      onChange={(e) => updateTime(0, 'startTime', e.target.value)}
-                      className="w-28 h-9 text-sm"
-                    />
-                    <span className="text-muted-foreground">-</span>
-                    <Input
-                      type="time"
-                      value={availability.endTime}
-                      onChange={(e) => updateTime(0, 'endTime', e.target.value)}
-                      className="w-28 h-9 text-sm"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })()}
       </div>
     </div>
   );
