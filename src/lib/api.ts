@@ -2,14 +2,29 @@ import { translateError } from './error-messages';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
+export interface CategoryOptionInput {
+  id?: string; // present = update existing, absent = create new
+  name: string;
+  description?: string;
+  priceCents: number;
+  durationMinutes?: number;
+  groupName?: string;
+  sortOrder?: number;
+}
+
 class ApiClient {
   private token: string | null = null;
+  private locale: string = 'fr';
   private refreshTokenFn: (() => Promise<boolean>) | null = null;
   private isRefreshing = false;
   private refreshQueue: Array<{ resolve: (value: boolean) => void }> = [];
 
   setToken(token: string | null) {
     this.token = token;
+  }
+
+  setLocale(locale: string) {
+    this.locale = locale;
   }
 
   /** Register a callback to refresh the token (called by AuthClient) */
@@ -47,6 +62,7 @@ class ApiClient {
   ): Promise<T> {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      'Accept-Language': this.locale,
       ...options.headers,
     };
 
@@ -106,6 +122,29 @@ class ApiClient {
     }
 
     return response.json();
+  }
+
+  // Download binary file (ZIP, PDF, etc.) with proper auth
+  async downloadBlob(url: string): Promise<ArrayBuffer> {
+    const headers: HeadersInit = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(url, { headers });
+
+    if (response.status === 401) {
+      const refreshed = await this.handleTokenRefresh();
+      if (refreshed) {
+        return this.downloadBlob(url);
+      }
+    }
+
+    if (!response.ok) {
+      throw new Error('Erreur lors du téléchargement');
+    }
+
+    return response.arrayBuffer();
   }
 
   // Auth
@@ -300,7 +339,10 @@ class ApiClient {
     });
   }
 
-  async updateBusinessService(id: string, data: Partial<import('@/types').BusinessService>) {
+  async updateBusinessService(
+    id: string,
+    data: Partial<import('@/types').BusinessService>,
+  ) {
     return this.request<import('@/types').BusinessService>(`/business/services/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -398,6 +440,7 @@ class ApiClient {
     employeeId: string;
     scheduledAt: string;
     notes?: string;
+    selectedOptionIds?: string[];
   }) {
     return this.request<import('@/types').Booking>('/bookings', {
       method: 'POST',
@@ -431,14 +474,25 @@ class ApiClient {
     return this.request<import('@/types').BusinessCategory[]>('/business/categories/mine');
   }
 
-  async createBusinessCategory(data: { name: string; sortOrder?: number }) {
+  async createBusinessCategory(data: {
+    name: string;
+    sortOrder?: number;
+    options?: CategoryOptionInput[];
+  }) {
     return this.request<import('@/types').BusinessCategory>('/business/categories', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateBusinessCategory(id: string, data: { name?: string; sortOrder?: number }) {
+  async updateBusinessCategory(
+    id: string,
+    data: {
+      name?: string;
+      sortOrder?: number;
+      options?: CategoryOptionInput[];
+    },
+  ) {
     return this.request<import('@/types').BusinessCategory>(`/business/categories/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -585,6 +639,19 @@ class ApiClient {
   }
 
   // Business Clients
+  async createBusinessClient(data: {
+    name: string;
+    email: string;
+    phone?: string;
+    address?: string;
+    notes?: string;
+  }) {
+    return this.request<import('@/types').BusinessClient>('/business/clients', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async getBusinessClients(search?: string) {
     const params = search ? `?search=${encodeURIComponent(search)}` : '';
     return this.request<import('@/types').BusinessClient[]>(`/business/clients${params}`);
@@ -838,6 +905,41 @@ class ApiClient {
 
   async getInvoicePdfUrl(invoiceId: string) {
     return this.request<{ url: string }>(`/invoices/${invoiceId}/pdf`);
+  }
+
+  // ============================================
+  // Invoice Batch
+  // ============================================
+
+  async batchPreview(startDate: string, endDate: string) {
+    return this.request<import('@/types').BatchPreviewResult>('/invoices/batch/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startDate, endDate }),
+    });
+  }
+
+  async batchGenerate(startDate: string, endDate: string) {
+    return this.request<import('@/types').BatchResult>('/invoices/batch/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startDate, endDate }),
+    });
+  }
+
+  getBatchDownloadUrl(startDate: string, endDate: string) {
+    const params = new URLSearchParams({ startDate, endDate });
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    return `${baseUrl}/invoices/batch/download?${params}`;
+  }
+
+  async getBatchHistory() {
+    return this.request<import('@/types').BatchGeneration[]>('/invoices/batch/history');
+  }
+
+  getBatchDownloadByIdUrl(batchId: string) {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    return `${baseUrl}/invoices/batch/${batchId}/download`;
   }
 
   // ============================================

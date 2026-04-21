@@ -56,6 +56,7 @@ export interface Booking {
   reviews?: Review[];
   kind?: CalendarEntryKind;
   blockReason?: BlockReason | null;
+  options?: BookingOption[];
   createdAt: string;
   updatedAt: string;
 }
@@ -217,6 +218,30 @@ export interface BusinessCategory {
   _count?: {
     services: number;
   };
+  options?: ServiceOption[];
+}
+
+export interface ServiceOption {
+  id: string;
+  businessCategoryId: string;
+  name: string;
+  description?: string;
+  priceCents: number;
+  durationMinutes?: number | null;
+  groupName?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BookingOption {
+  id: string;
+  bookingId: string;
+  serviceOptionId?: string | null;
+  name: string;
+  priceCents: number;
+  createdAt: string;
 }
 
 export interface BusinessImage {
@@ -360,6 +385,55 @@ export interface Invoice {
     businessService?: { name: string };
     employee?: { firstName: string; lastName: string };
   };
+  createdBy?: { id: string; name?: string };
+}
+
+// Invoice Batch
+export interface BatchPreviewBooking {
+  id: string;
+  clientName: string;
+  serviceName: string;
+  scheduledAt: string;
+  priceCents: number;
+}
+
+export interface BatchPreviewResult {
+  count: number;
+  bookings: BatchPreviewBooking[];
+}
+
+export interface BatchProgress {
+  current: number;
+  total: number;
+  currentClient: string;
+  phase: 'creating' | 'done' | 'error';
+}
+
+export interface BatchResult {
+  generatedCount: number;
+  totalHTCents: number;
+  totalVATCents: number;
+  totalTTCCents: number;
+  invoiceIds: string[];
+  errors: string[];
+  batchId?: string;
+}
+
+export type BatchGenerationStatus = 'COMPLETED' | 'FAILED';
+
+export interface BatchGeneration {
+  id: string;
+  businessId: string;
+  status: BatchGenerationStatus;
+  startDate: string;
+  endDate: string;
+  invoiceCount: number;
+  totalHTCents: number;
+  totalVATCents: number;
+  totalTTCCents: number;
+  invoiceIds: string[];
+  errors: string[];
+  createdAt: string;
   createdBy?: { id: string; name?: string };
 }
 

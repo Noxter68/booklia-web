@@ -1,7 +1,11 @@
-import Link from 'next/link';
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const t = useTranslations('footer');
 
   return (
     <footer className="border-t border-border bg-surface">
@@ -13,27 +17,27 @@ export function Footer() {
               Booklia
             </Link>
             <p className="text-sm text-muted-foreground mt-3 max-w-xs">
-              La plateforme de services entre particuliers, basée sur la confiance et la réputation.
+              {t('tagline')}
             </p>
           </div>
 
           {/* Platform */}
           <div>
-            <h4 className="font-semibold mb-3 sm:mb-4">Plateforme</h4>
+            <h4 className="font-semibold mb-3 sm:mb-4">{t('platform')}</h4>
             <ul className="space-y-2">
               <li>
                 <Link href="/search" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Rechercher
+                  {t('search')}
                 </Link>
               </li>
               <li>
                 <Link href="/search?kind=OFFER" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Offres de services
+                  {t('serviceOffers')}
                 </Link>
               </li>
               <li>
                 <Link href="/search?kind=REQUEST" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Demandes de services
+                  {t('serviceRequests')}
                 </Link>
               </li>
             </ul>
@@ -42,31 +46,31 @@ export function Footer() {
           {/* Company + Legal side by side on mobile */}
           <div className="flex gap-12 sm:gap-0 sm:block">
             <div>
-              <h4 className="font-semibold mb-3 sm:mb-4">Entreprise</h4>
+              <h4 className="font-semibold mb-3 sm:mb-4">{t('company')}</h4>
               <ul className="space-y-2">
                 <li>
                   <Link href="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Qui sommes-nous
+                    {t('about')}
                   </Link>
                 </li>
                 <li>
                   <Link href="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Contact
+                    {t('contact')}
                   </Link>
                 </li>
               </ul>
             </div>
             <div className="sm:hidden">
-              <h4 className="font-semibold mb-3">Légal</h4>
+              <h4 className="font-semibold mb-3">{t('legal')}</h4>
               <ul className="space-y-2">
                 <li>
                   <Link href="/legal/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    CGU
+                    {t('terms')}
                   </Link>
                 </li>
                 <li>
                   <Link href="/legal/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Confidentialité
+                    {t('privacy')}
                   </Link>
                 </li>
               </ul>
@@ -75,16 +79,16 @@ export function Footer() {
 
           {/* Legal - hidden on mobile (shown inline above) */}
           <div className="hidden sm:block">
-            <h4 className="font-semibold mb-3 sm:mb-4">Légal</h4>
+            <h4 className="font-semibold mb-3 sm:mb-4">{t('legal')}</h4>
             <ul className="space-y-2">
               <li>
                 <Link href="/legal/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  CGU
+                  {t('terms')}
                 </Link>
               </li>
               <li>
                 <Link href="/legal/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Confidentialité
+                  {t('privacy')}
                 </Link>
               </li>
             </ul>
@@ -94,7 +98,7 @@ export function Footer() {
         {/* Bottom */}
         <div className="pt-6 sm:pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs sm:text-sm text-muted-foreground">
-            © {currentYear} Booklia. Tous droits réservés.
+            {t('allRightsReserved', { year: currentYear })}
           </p>
           <div className="flex items-center gap-5">
             <a

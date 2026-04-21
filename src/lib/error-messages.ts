@@ -85,14 +85,14 @@ export function translateError(message: string, statusCode?: number): string {
     }
   }
 
-  // Fall back to status code message
-  if (statusCode && STATUS_MESSAGES[statusCode]) {
-    return STATUS_MESSAGES[statusCode];
-  }
-
   // If message looks like it's already in French (contains accented chars), return as is
   if (/[àâäéèêëïîôùûüç]/i.test(message)) {
     return message;
+  }
+
+  // Fall back to status code message
+  if (statusCode && STATUS_MESSAGES[statusCode]) {
+    return STATUS_MESSAGES[statusCode];
   }
 
   // Default message

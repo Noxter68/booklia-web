@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, X, Send } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
@@ -21,9 +22,9 @@ export function ReviewFormModal({ booking, onClose, onSuccess }: ReviewFormModal
   const [comment, setComment] = useState('');
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
+  const t = useTranslations('review');
+  const tc = useTranslations('common');
 
-  // Determine review type based on who the user is in the booking
-  // If you are the requester, you review the provider
   const reviewType: ReviewType = 'REVIEW_PROVIDER';
 
   const createReviewMutation = useMutation({
@@ -35,7 +36,7 @@ export function ReviewFormModal({ booking, onClose, onSuccess }: ReviewFormModal
         comment: comment.trim() || undefined,
       }),
     onSuccess: () => {
-      success('Avis envoyé !');
+      success(t('success'));
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
       queryClient.invalidateQueries({ queryKey: ['business-reviews'] });
@@ -45,18 +46,18 @@ export function ReviewFormModal({ booking, onClose, onSuccess }: ReviewFormModal
       onClose();
     },
     onError: (err: Error) => {
-      showError(err.message || 'Erreur lors de l\'envoi de l\'avis');
+      showError(err.message || t('error'));
     },
   });
 
   if (!booking) return null;
 
-  const serviceName = booking.businessService?.name || 'la prestation';
-  const targetName = booking.businessService?.business?.name || booking.provider?.name || 'le prestataire';
+  const serviceName = booking.businessService?.name || tc('prestation');
+  const targetName = booking.businessService?.business?.name || booking.provider?.name || '';
 
   const handleSubmit = () => {
     if (score === 0) {
-      showError('Veuillez donner une note');
+      showError(t('rating'));
       return;
     }
     createReviewMutation.mutate();
@@ -81,7 +82,7 @@ export function ReviewFormModal({ booking, onClose, onSuccess }: ReviewFormModal
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold">Écrire un avis</h3>
+              <h3 className="text-lg font-bold">{t('title')}</h3>
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-muted rounded-lg transition-colors"
@@ -92,16 +93,13 @@ export function ReviewFormModal({ booking, onClose, onSuccess }: ReviewFormModal
 
             {/* Service info */}
             <div className="mb-6">
-              <p className="text-sm text-muted-foreground">
-                Votre expérience avec
-              </p>
               <p className="font-medium">{targetName}</p>
-              <p className="text-sm text-muted-foreground">pour {serviceName}</p>
+              <p className="text-sm text-muted-foreground">{serviceName}</p>
             </div>
 
             {/* Star rating */}
             <div className="mb-6">
-              <p className="text-sm font-medium mb-3">Votre note</p>
+              <p className="text-sm font-medium mb-3">{t('rating')}</p>
               <div className="flex items-center gap-2">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <button
@@ -121,27 +119,18 @@ export function ReviewFormModal({ booking, onClose, onSuccess }: ReviewFormModal
                     />
                   </button>
                 ))}
-                {score > 0 && (
-                  <span className="ml-2 text-sm text-muted-foreground">
-                    {score === 1 && 'Décevant'}
-                    {score === 2 && 'Moyen'}
-                    {score === 3 && 'Bien'}
-                    {score === 4 && 'Très bien'}
-                    {score === 5 && 'Excellent'}
-                  </span>
-                )}
               </div>
             </div>
 
             {/* Comment */}
             <div className="mb-6">
               <label className="text-sm font-medium mb-2 block">
-                Votre commentaire <span className="text-muted-foreground font-normal">(optionnel)</span>
+                {t('comment')}
               </label>
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Partagez votre expérience..."
+                placeholder={t('commentPlaceholder')}
                 className="w-full px-4 py-3 border border-border rounded-xl bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
                 rows={4}
                 maxLength={500}
@@ -158,7 +147,7 @@ export function ReviewFormModal({ booking, onClose, onSuccess }: ReviewFormModal
                 className="flex-1 rounded-xl"
                 onClick={onClose}
               >
-                Annuler
+                {tc('cancel')}
               </Button>
               <Button
                 className="flex-1 rounded-xl"
@@ -166,11 +155,11 @@ export function ReviewFormModal({ booking, onClose, onSuccess }: ReviewFormModal
                 disabled={score === 0 || createReviewMutation.isPending}
               >
                 {createReviewMutation.isPending ? (
-                  'Envoi...'
+                  tc('loading')
                 ) : (
                   <>
                     <Send className="w-4 h-4 mr-2" />
-                    Envoyer
+                    {t('submit')}
                   </>
                 )}
               </Button>

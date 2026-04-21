@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronRight, X, Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Category } from '@/types';
 
 interface CategoryDropdownProps {
@@ -25,6 +26,8 @@ export function CategoryDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<Category | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations('search');
+  const tc = useTranslations('common');
 
   const selectedCategory = selectedCategoryId
     ? categories.find((c) => c.id === selectedCategoryId)
@@ -34,7 +37,6 @@ export function CategoryDropdown({
     ? selectedCategory.children?.find((c) => c.id === subcategoryId)
     : null;
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -69,7 +71,7 @@ export function CategoryDropdown({
     if (selectedCategory) {
       return selectedCategory.name;
     }
-    return 'Catégorie';
+    return t('category');
   };
 
   return (
@@ -105,14 +107,14 @@ export function CategoryDropdown({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute top-full left-0 mt-2 w-[600px] z-50"
+            className="absolute top-full left-0 mt-2 w-[600px] z-[100]"
           >
             <div className="bg-surface border border-border rounded-2xl shadow-xl shadow-black/10 p-4">
               <div className="grid grid-cols-2 gap-4">
                 {/* Left column - Categories */}
                 <div className="border-r border-border pr-4">
                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">
-                    Catégories
+                    {t('category')}
                   </div>
                   <div className="space-y-1 max-h-[350px] overflow-y-auto">
                     {/* All categories option */}
@@ -128,7 +130,7 @@ export function CategoryDropdown({
                           : 'border border-transparent hover:border-primary/30 hover:bg-primary/5'
                       }`}
                     >
-                      <span className="text-sm font-medium">Toutes les catégories</span>
+                      <span className="text-sm font-medium">{t('allCategories')}</span>
                     </button>
 
                     {categories.map((category) => (
@@ -181,7 +183,7 @@ export function CategoryDropdown({
                           }}
                           className="text-xs text-primary hover:underline cursor-pointer"
                         >
-                          Voir tout →
+                          {tc('seeAll')} →
                         </button>
                       </div>
                       <div className="space-y-1 max-h-[350px] overflow-y-auto">
@@ -207,7 +209,7 @@ export function CategoryDropdown({
                           ))
                         ) : (
                           <p className="text-sm text-muted-foreground px-3 py-2">
-                            Aucune sous-catégorie
+                            {t('subcategory')}
                           </p>
                         )}
                       </div>
@@ -218,7 +220,7 @@ export function CategoryDropdown({
                         <Search className="w-6 h-6 text-muted-foreground" />
                       </div>
                       <p className="text-muted-foreground text-sm">
-                        Sélectionnez une catégorie<br />pour voir les sous-catégories
+                        {t('subcategory')}
                       </p>
                     </div>
                   )}

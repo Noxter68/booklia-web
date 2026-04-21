@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Bell,
   CheckCheck,
@@ -46,19 +47,17 @@ export function NotificationBell({ hasBusiness }: NotificationBellProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const { isConnected, onNotification, onNotificationCount } = useWebSocket();
+  const t = useTranslations('notifications');
+  const locale = useLocale();
 
-  // Fetch notifications - fallback to polling when WebSocket is disconnected
   const { data, isLoading } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.getNotifications(20),
-    // Fallback polling every 30s when WebSocket is not connected
     refetchInterval: isConnected ? false : 30000,
   });
 
-  // Listen for WebSocket notifications
   useEffect(() => {
     const unsubNotification = onNotification((notification) => {
-      // Add new notification to the cache
       queryClient.setQueryData(['notifications'], (oldData: { notifications: Notification[]; unreadCount: number } | undefined) => {
         if (!oldData) return { notifications: [notification], unreadCount: 1 };
         return {
@@ -69,7 +68,6 @@ export function NotificationBell({ hasBusiness }: NotificationBellProps) {
     });
 
     const unsubCount = onNotificationCount((count) => {
-      // Update unread count in the cache
       queryClient.setQueryData(['notifications'], (oldData: { notifications: Notification[]; unreadCount: number } | undefined) => {
         if (!oldData) return oldData;
         return { ...oldData, unreadCount: count };
@@ -82,7 +80,6 @@ export function NotificationBell({ hasBusiness }: NotificationBellProps) {
     };
   }, [onNotification, onNotificationCount, queryClient]);
 
-  // Mark as read mutation
   const markAsReadMutation = useMutation({
     mutationFn: (id: string) => api.markNotificationAsRead(id),
     onSuccess: () => {
@@ -90,7 +87,6 @@ export function NotificationBell({ hasBusiness }: NotificationBellProps) {
     },
   });
 
-  // Mark all as read mutation
   const markAllAsReadMutation = useMutation({
     mutationFn: () => api.markAllNotificationsAsRead(),
     onSuccess: () => {
@@ -98,7 +94,6 @@ export function NotificationBell({ hasBusiness }: NotificationBellProps) {
     },
   });
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -110,11 +105,7 @@ export function NotificationBell({ hasBusiness }: NotificationBellProps) {
   }, []);
 
   const getNotificationRoute = (notification: Notification): string => {
-    // BOOKING_NEW is sent to the business owner
-    // BOOKING_ACCEPTED/REJECTED/CANCELED/COMPLETED are sent to the customer
-    // REVIEW_RECEIVED is sent to the business owner
     const isBusinessNotification = notification.type === 'BOOKING_NEW' || notification.type === 'REVIEW_RECEIVED';
-
     if (isBusinessNotification || hasBusiness) {
       return '/business/dashboard?tab=bookings';
     }
@@ -122,12 +113,9 @@ export function NotificationBell({ hasBusiness }: NotificationBellProps) {
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    // Mark as read
     if (!notification.isRead) {
       markAsReadMutation.mutate(notification.id);
     }
-
-    // Navigate to the appropriate page
     router.push(getNotificationRoute(notification));
     setIsOpen(false);
   };
@@ -143,11 +131,11 @@ export function NotificationBell({ hasBusiness }: NotificationBellProps) {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'A l\'instant';
-    if (diffMins < 60) return `Il y a ${diffMins} min`;
-    if (diffHours < 24) return `Il y a ${diffHours}h`;
-    if (diffDays < 7) return `Il y a ${diffDays}j`;
-    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    if (diffMins < 1) return locale === 'en' ? 'Just now' : locale === 'pt' ? 'Agora' : 'À l\'instant';
+    if (diffMins < 60) return `${diffMins} min`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+    return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
   };
 
   return (
@@ -155,7 +143,7 @@ export function NotificationBell({ hasBusiness }: NotificationBellProps) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer"
-        aria-label="Notifications"
+        aria-label={t('title')}
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -176,7 +164,7 @@ export function NotificationBell({ hasBusiness }: NotificationBellProps) {
           >
             {/* Header */}
             <div className="p-4 border-b border-border/50 flex items-center justify-between">
-              <h3 className="font-semibold">Notifications</h3>
+              <h3 className="font-semibold">{t('title')}</h3>
               {unreadCount > 0 && (
                 <button
                   onClick={() => markAllAsReadMutation.mutate()}
@@ -188,7 +176,7 @@ export function NotificationBell({ hasBusiness }: NotificationBellProps) {
                   ) : (
                     <CheckCheck className="w-3 h-3" />
                   )}
-                  Tout marquer comme lu
+                  {t('markAllRead')}
                 </button>
               )}
             </div>
@@ -202,7 +190,7 @@ export function NotificationBell({ hasBusiness }: NotificationBellProps) {
               ) : notifications.length === 0 ? (
                 <div className="p-8 text-center">
                   <Bell className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">Aucune notification</p>
+                  <p className="text-sm text-muted-foreground">{t('empty')}</p>
                 </div>
               ) : (
                 <div className="divide-y divide-border/30">
@@ -253,7 +241,7 @@ export function NotificationBell({ hasBusiness }: NotificationBellProps) {
                   }}
                   className="w-full text-center text-sm text-primary hover:underline cursor-pointer"
                 >
-                  {hasBusiness ? 'Voir tout dans le dashboard' : 'Voir mes réservations'}
+                  {hasBusiness ? t('title') : t('title')}
                 </button>
               </div>
             )}
