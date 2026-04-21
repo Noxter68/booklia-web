@@ -1,123 +1,78 @@
 // Enums
-export type ServiceKind = 'OFFER' | 'REQUEST';
-export type ServiceStatus = 'DRAFT' | 'PUBLISHED' | 'PAUSED';
-export type Urgency = 'URGENT' | 'SOON' | 'FLEXIBLE';
-export type Recurrence = 'ONE_TIME' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'CUSTOM';
-export type BookingStatus = 'PENDING' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELED' | 'DISPUTED';
-export type ReviewType = 'REVIEW_PROVIDER' | 'REVIEW_REQUESTER';
+export type BookingStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED' | 'CANCELED' | 'NO_SHOW';
+export type CalendarEntryKind = 'APPOINTMENT' | 'BLOCK';
+export type BlockReason = 'BREAK' | 'UNAVAILABLE' | 'PERSONAL' | 'CLOSED';
+export type ReviewType = 'REVIEW_PROVIDER';
 export type SubscriptionStatus = 'FREE' | 'PRO' | 'CANCELED';
-export type WeekDay = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
 export type BusinessTier = 'STARTER' | 'PRO' | 'PREMIUM';
 
-// User & Profile
+// User
 export interface User {
   id: string;
   email: string;
   name?: string;
   image?: string;
-  subscriptionStatus: SubscriptionStatus;
+  isAdmin?: boolean;
+  emailVerified?: boolean;
   createdAt: string;
-  profile?: Profile;
-  reputation?: UserReputation;
 }
 
-export interface Profile {
-  userId: string;
-  displayName?: string;
-  avatarUrl?: string;
-  bio?: string;
-  city?: string;
-}
-
-export interface UserReputation {
-  userId: string;
-  ratingAvg10: number;
-  ratingCount: number;
-  xp: number;
-  level: number;
-  trustScore: number;
-}
-
-// Category & Tag
+// Category
 export interface Category {
   id: string;
   name: string;
   slug: string;
   parentId?: string;
   children?: Category[];
-  _count?: { services: number };
-}
-
-export interface Tag {
-  id: string;
-  name: string;
-}
-
-// Service
-export interface Service {
-  id: string;
-  kind: ServiceKind;
-  title: string;
-  description: string;
-  priceMinCents?: number;
-  priceMaxCents?: number;
-  currency: string;
-  // Duration
-  durationMinutes?: number;
-  // Availability
-  availableDays?: WeekDay[];
-  availableFromTime?: string;
-  availableToTime?: string;
-  availableFromDate?: string;
-  availableToDate?: string;
-  // Location
-  city?: string;
-  latitude?: number;
-  longitude?: number;
-  // Category & Tags
-  categoryId?: string;
-  category?: Category;
-  tags?: { tag: Tag }[];
-  createdByUserId: string;
-  createdBy?: {
-    id: string;
-    profile?: { displayName?: string; avatarUrl?: string; city?: string };
-    reputation?: UserReputation;
-  };
-  status: ServiceStatus;
-  deadlineAt?: string;
-  expiresAt: string;
-  urgency: Urgency;
-  isRecurring: boolean;
-  recurrence: Recurrence;
-  sessionsCount?: number;
-  boostedUntil?: string;
-  createdAt: string;
-  updatedAt: string;
+  _count?: { businessServices: number };
 }
 
 // Booking
 export interface Booking {
   id: string;
-  serviceId: string;
-  service?: Service;
+  businessServiceId?: string;
+  businessService?: BusinessService & {
+    business?: Business;
+  };
+  employeeId: string;
+  employee?: Employee;
   requesterId: string;
   requester?: {
     id: string;
-    profile?: { displayName?: string; avatarUrl?: string };
+    name?: string;
   };
   providerId: string;
   provider?: {
     id: string;
-    profile?: { displayName?: string; avatarUrl?: string };
+    name?: string;
   };
   status: BookingStatus;
   agreedPriceCents?: number;
   scheduledAt?: string;
+  scheduledEndAt?: string;
   completedAt?: string;
+  notes?: string;
+  rejectionMessage?: string;
   reviews?: Review[];
+  kind?: CalendarEntryKind;
+  blockReason?: BlockReason | null;
+  options?: BookingOption[];
   createdAt: string;
   updatedAt: string;
+}
+
+// Calendar entry (booking with guaranteed time fields)
+export interface CalendarEntry extends Omit<Booking, 'employee' | 'scheduledAt' | 'scheduledEndAt' | 'kind'> {
+  scheduledAt: string;
+  scheduledEndAt: string;
+  employeeId: string;
+  employee: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string;
+  };
+  kind: CalendarEntryKind;
 }
 
 // Review
@@ -127,12 +82,18 @@ export interface Review {
   authorId: string;
   author?: {
     id: string;
-    profile?: { displayName?: string; avatarUrl?: string };
+    name?: string;
   };
   targetUserId: string;
   type: ReviewType;
   score: number;
   comment?: string;
+  reply?: string;
+  repliedAt?: string;
+  booking?: {
+    businessService?: { name: string };
+    employee?: { firstName: string; lastName: string };
+  };
   createdAt: string;
 }
 
@@ -144,35 +105,6 @@ export interface PaginatedResponse<T> {
   offset: number;
 }
 
-export interface SearchFilters {
-  q?: string;
-  kind?: ServiceKind;
-  categoryId?: string;
-  subcategoryId?: string;
-  priceMin?: number;
-  priceMax?: number;
-  urgency?: Urgency;
-  isRecurring?: boolean;
-  city?: string;
-  // Geolocation
-  lat?: number;
-  lng?: number;
-  radius?: number;
-  limit?: number;
-  offset?: number;
-}
-
-// Service suggestion for autocomplete
-export interface ServiceSuggestion {
-  id: string;
-  title: string;
-  kind: ServiceKind;
-  category?: { name: string };
-  createdBy?: {
-    profile?: { displayName?: string; city?: string };
-  };
-}
-
 // Business
 export interface Business {
   id: string;
@@ -180,6 +112,9 @@ export interface Business {
   name: string;
   slug: string;
   description?: string;
+  presentation?: string;
+  categoryId?: string;
+  category?: Category;
   logoUrl?: string;
   coverUrl?: string;
   phone?: string;
@@ -195,20 +130,28 @@ export interface Business {
   subscriptionStatus: SubscriptionStatus;
   isVerified: boolean;
   isActive: boolean;
+  isEarlyAdopter: boolean;
   acceptsOnlineBooking: boolean;
+  autoAcceptBookings: boolean;
+  isOnVacation: boolean;
+  vacationMessage?: string;
   createdAt: string;
   updatedAt: string;
   owner?: {
     id: string;
     name?: string;
-    reputation?: UserReputation;
   };
   employees?: Employee[];
   services?: BusinessService[];
+  hours?: BusinessHours[];
+  categories?: BusinessCategory[];
+  images?: BusinessImage[];
+  promotions?: BusinessPromotion[];
   _count?: {
     employees: number;
     services: number;
   };
+  distance?: number;
 }
 
 export interface BusinessService {
@@ -216,11 +159,14 @@ export interface BusinessService {
   businessId: string;
   name: string;
   description?: string;
+  detailedDescription?: string;
   priceCents: number;
   currency: string;
   durationMinutes: number;
   categoryId?: string;
   category?: Category;
+  businessCategoryId?: string;
+  businessCategory?: BusinessCategory;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -251,4 +197,262 @@ export interface EmployeeAvailability {
   dayOfWeek: number;
   startTime: string;
   endTime: string;
+}
+
+export interface BusinessHours {
+  id: string;
+  businessId: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isClosed: boolean;
+}
+
+export interface BusinessCategory {
+  id: string;
+  businessId: string;
+  name: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    services: number;
+  };
+  options?: ServiceOption[];
+}
+
+export interface ServiceOption {
+  id: string;
+  businessCategoryId: string;
+  name: string;
+  description?: string;
+  priceCents: number;
+  durationMinutes?: number | null;
+  groupName?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BookingOption {
+  id: string;
+  bookingId: string;
+  serviceOptionId?: string | null;
+  name: string;
+  priceCents: number;
+  createdAt: string;
+}
+
+export interface BusinessImage {
+  id: string;
+  businessId: string;
+  url: string;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface BusinessPromotion {
+  id: string;
+  businessId: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Client Management
+export type ClientTrustLevel = 'fiable' | 'peu_fiable' | 'attention';
+
+export interface BusinessClient {
+  id: string;
+  businessId: string;
+  userId: string;
+  isBlocked: boolean;
+  notes?: string;
+  phone?: string;
+  address?: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    name?: string;
+    email: string;
+    image?: string;
+  };
+  stats?: ClientStats;
+}
+
+export interface ClientStats {
+  totalBookings: number;
+  completedBookings: number;
+  canceledByClient: number;
+  totalRevenueCents: number;
+  servicesUsed: string[];
+  completionRate: number;
+  trustLevel: ClientTrustLevel;
+  lastBookingAt: string | null;
+}
+
+// Booking Notes
+export type NoteVisibility = 'PRIVATE_BUSINESS';
+
+export interface BookingNote {
+  id: string;
+  businessId: string;
+  clientId: string;
+  bookingId: string;
+  createdByUserId: string;
+  visibility: NoteVisibility;
+  content: string;
+  structured?: Record<string, unknown>;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  booking?: {
+    businessService?: { name: string };
+    employee?: { firstName: string; lastName: string };
+    scheduledAt?: string;
+  };
+  createdBy?: { id: string; name?: string };
+}
+
+// Billing & Invoicing
+export type VatMode = 'FRANCHISE_293B' | 'STANDARD';
+export type InvoiceStatus = 'DRAFT' | 'FINALIZED' | 'CANCELLED';
+export type InvoiceLineKind = 'SERVICE' | 'PRODUCT' | 'OTHER';
+
+export interface BusinessBillingSettings {
+  id: string;
+  businessId: string;
+  legalName: string;
+  addressLine1: string;
+  addressLine2?: string;
+  postalCode: string;
+  city: string;
+  country: string;
+  siret: string;
+  vatNumber?: string;
+  vatMode: VatMode;
+  invoicePrefix: string;
+  nextInvoiceSequence: number;
+  logoKey?: string;
+  paymentTerms?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InvoiceLine {
+  id: string;
+  invoiceId: string;
+  kind: InvoiceLineKind;
+  label: string;
+  quantity: number;
+  unitPriceHTCents: number;
+  vatRate: number;
+  totalHTCents: number;
+  totalVATCents: number;
+  totalTTCCents: number;
+  sortOrder: number;
+}
+
+export interface Invoice {
+  id: string;
+  businessId: string;
+  clientId?: string;
+  bookingId?: string;
+  status: InvoiceStatus;
+  invoiceNumber?: string;
+  issueDate?: string;
+  serviceDate?: string;
+  currency: string;
+  totalHTCents: number;
+  totalVATCents: number;
+  totalTTCCents: number;
+  vatMode: VatMode;
+  snapshot?: Record<string, unknown>;
+  pdfKey?: string;
+  createdByUserId: string;
+  createdAt: string;
+  updatedAt: string;
+  lines?: InvoiceLine[];
+  client?: { id: string; name?: string; email: string };
+  booking?: {
+    businessService?: { name: string };
+    employee?: { firstName: string; lastName: string };
+  };
+  createdBy?: { id: string; name?: string };
+}
+
+// Invoice Batch
+export interface BatchPreviewBooking {
+  id: string;
+  clientName: string;
+  serviceName: string;
+  scheduledAt: string;
+  priceCents: number;
+}
+
+export interface BatchPreviewResult {
+  count: number;
+  bookings: BatchPreviewBooking[];
+}
+
+export interface BatchProgress {
+  current: number;
+  total: number;
+  currentClient: string;
+  phase: 'creating' | 'done' | 'error';
+}
+
+export interface BatchResult {
+  generatedCount: number;
+  totalHTCents: number;
+  totalVATCents: number;
+  totalTTCCents: number;
+  invoiceIds: string[];
+  errors: string[];
+  batchId?: string;
+}
+
+export type BatchGenerationStatus = 'COMPLETED' | 'FAILED';
+
+export interface BatchGeneration {
+  id: string;
+  businessId: string;
+  status: BatchGenerationStatus;
+  startDate: string;
+  endDate: string;
+  invoiceCount: number;
+  totalHTCents: number;
+  totalVATCents: number;
+  totalTTCCents: number;
+  invoiceIds: string[];
+  errors: string[];
+  createdAt: string;
+  createdBy?: { id: string; name?: string };
+}
+
+// Notifications
+export type NotificationType =
+  | 'BOOKING_NEW'
+  | 'BOOKING_ACCEPTED'
+  | 'BOOKING_REJECTED'
+  | 'BOOKING_CANCELED'
+  | 'BOOKING_COMPLETED'
+  | 'REVIEW_RECEIVED';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  bookingId?: string;
+  isRead: boolean;
+  createdAt: string;
 }

@@ -1,92 +1,92 @@
 @import "tailwindcss";
 
 :root {
-  /* Acote Color Palette - Light Mode */
-  /* Elegant Sand & Taupe Theme */
-  --background: #FAFAF8;
-  --foreground: #1C1917;
+  /* Booklia Color Palette - Light Mode */
+  /* Dark Blue Theme */
+  --background: #FAFAFA;
+  --foreground: #0E1116;
   --surface: #FFFFFF;
-  --surface-2: #F5F5F0;
-  --muted: #F0EDE8;
-  --muted-foreground: #78716C;
-  --border: #E7E5E0;
+  --surface-2: #F5F5F7;
+  --muted: #F0F0F2;
+  --muted-foreground: #6B7280;
+  --border: #E5E7EB;
 
-  /* Primary - Elegant Taupe/Sand */
-  --primary: #8B7355;
-  --primary-hover: #7A6349;
-  --primary-active: #69543D;
+  /* Primary - Dark Blue */
+  --primary: #0E1116;
+  --primary-hover: #1A1F26;
+  --primary-active: #262D36;
   --primary-foreground: #FFFFFF;
 
-  /* Secondary - Soft Sand */
-  --secondary: #FAF7F2;
-  --secondary-foreground: #44403C;
-  --secondary-hover: #F5F0E8;
-  --secondary-border: #E7E2D9;
+  /* Secondary - Light Gray */
+  --secondary: #F9FAFB;
+  --secondary-foreground: #374151;
+  --secondary-hover: #F3F4F6;
+  --secondary-border: #E5E7EB;
 
-  /* Accent - Warm Beige */
-  --accent: #F5F0E8;
-  --accent-foreground: #44403C;
+  /* Accent - Soft Blue Gray */
+  --accent: #F1F5F9;
+  --accent-foreground: #334155;
 
-  /* Premium Beige Gradient */
-  --gold-light: #A89078;
-  --gold-dark: #8B7355;
-  --gold-soft: #F5EDE5;
+  /* Premium Blue Gradient */
+  --gold-light: #374151;
+  --gold-dark: #0E1116;
+  --gold-soft: #E5E7EB;
 
-  /* Success - Sage Green */
-  --success: #6B8E6B;
-  --success-soft: #E8F0E8;
+  /* Success - Green */
+  --success: #059669;
+  --success-soft: #D1FAE5;
 
   /* Destructive */
-  --destructive: #C53030;
+  --destructive: #DC2626;
   --destructive-foreground: #ffffff;
 
   /* Ring */
-  --ring: #8B7355;
+  --ring: #0E1116;
   --radius: 0.75rem;
 }
 
 .dark {
-  /* Acote Color Palette - Dark Mode */
-  /* Elegant Sand & Taupe Theme - Dark */
-  --background: #0C0A09;
-  --foreground: #FAFAF9;
-  --surface: #1C1917;
-  --surface-2: #292524;
-  --muted: #292524;
-  --muted-foreground: #A8A29E;
-  --border: #3D3835;
+  /* Booklia Color Palette - Dark Mode */
+  /* Dark Blue Theme - Dark */
+  --background: #0E1116;
+  --foreground: #F9FAFB;
+  --surface: #1A1F26;
+  --surface-2: #262D36;
+  --muted: #262D36;
+  --muted-foreground: #9CA3AF;
+  --border: #374151;
 
-  /* Primary - Elegant Taupe/Sand */
-  --primary: #C4A882;
-  --primary-hover: #D4BC9A;
-  --primary-active: #E0CCB0;
-  --primary-foreground: #0C0A09;
+  /* Primary - Light Blue/White for dark mode */
+  --primary: #E5E7EB;
+  --primary-hover: #F3F4F6;
+  --primary-active: #FFFFFF;
+  --primary-foreground: #0E1116;
 
-  /* Secondary - Soft Sand */
-  --secondary: #292524;
-  --secondary-foreground: #E7E5E4;
-  --secondary-hover: #3D3835;
-  --secondary-border: #57534E;
+  /* Secondary */
+  --secondary: #262D36;
+  --secondary-foreground: #E5E7EB;
+  --secondary-hover: #374151;
+  --secondary-border: #4B5563;
 
   /* Accent */
-  --accent: #292524;
-  --accent-foreground: #FAFAF9;
+  --accent: #262D36;
+  --accent-foreground: #F9FAFB;
 
-  /* Premium Beige */
-  --gold-light: #D4BC9A;
-  --gold-dark: #C4A882;
-  --gold-soft: #44403C;
+  /* Premium Blue */
+  --gold-light: #9CA3AF;
+  --gold-dark: #E5E7EB;
+  --gold-soft: #374151;
 
-  /* Success - Sage Green */
-  --success: #7DA67D;
-  --success-soft: #292524;
+  /* Success - Green */
+  --success: #10B981;
+  --success-soft: #262D36;
 
   /* Destructive */
-  --destructive: #E53E3E;
-  --destructive-foreground: #FAFAF9;
+  --destructive: #EF4444;
+  --destructive-foreground: #F9FAFB;
 
   /* Ring */
-  --ring: #C4A882;
+  --ring: #E5E7EB;
 }
 
 @theme inline {

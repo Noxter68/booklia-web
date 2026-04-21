@@ -1,11 +1,13 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { authClient, AuthUser } from '@/lib/auth';
 
 interface AuthContextType {
   user: AuthUser | null;
+  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<{ user: AuthUser }>;
@@ -14,7 +16,6 @@ interface AuthContextType {
     lastName: string;
     email: string;
     password: string;
-    isBusiness?: boolean;
   }) => Promise<{ user: AuthUser }>;
   logout: () => void;
   checkSession: () => Promise<void>;
@@ -24,18 +25,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const queryClient = useQueryClient();
+  // Incremented on login/register to invalidate any in-flight checkSession
+  const authVersion = useRef(0);
 
   const checkSession = useCallback(async () => {
+    const version = authVersion.current;
     setIsLoading(true);
     try {
       const session = await authClient.getSession();
+      // Only apply result if no login/register happened while we were fetching
+      if (authVersion.current !== version) return;
       setUser(session);
+      const storedToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      setToken(storedToken);
     } catch {
+      if (authVersion.current !== version) return;
       setUser(null);
+      setToken(null);
     } finally {
-      setIsLoading(false);
+      if (authVersion.current === version) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -63,7 +77,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const result = await authClient.login(email, password);
+    // Invalidate any in-flight checkSession so it won't overwrite this state
+    authVersion.current++;
     setUser(result.user);
+    const storedToken = localStorage.getItem('accessToken');
+    setToken(storedToken);
+    setIsLoading(false);
+    // Refetch all queries now that we're authenticated (e.g. my-business)
+    queryClient.invalidateQueries();
     return result;
   };
 
@@ -72,23 +93,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastName: string;
     email: string;
     password: string;
-    isBusiness?: boolean;
   }) => {
     const result = await authClient.register(data);
+    authVersion.current++;
     setUser(result.user);
+    const storedToken = localStorage.getItem('accessToken');
+    setToken(storedToken);
+    setIsLoading(false);
+    queryClient.invalidateQueries();
     return result;
   };
 
   const logout = useCallback(() => {
     authClient.logout();
     setUser(null);
+    setToken(null);
+    queryClient.clear();
     router.push('/');
-  }, [router]);
+  }, [router, queryClient]);
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        token,
         isLoading,
         isAuthenticated: !!user,
         login,

@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "booklia-frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,12 +12,18 @@
     "@tanstack/react-query": "^5.90.20",
     "better-auth": "^1.4.18",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.31.0",
     "lucide-react": "^0.563.0",
+    "mapbox-gl": "^3.19.1",
     "next": "16.1.6",
+    "next-intl": "^4.8.3",
     "next-themes": "^0.4.6",
     "react": "19.2.3",
+    "react-day-picker": "^9.13.1",
     "react-dom": "19.2.3",
+    "recharts": "^3.7.0",
+    "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.4.0",
     "zustand": "^5.0.11"
   },

@@ -3,21 +3,12 @@ import { api } from './api';
 const TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
-export interface UserReputation {
-  userId: string;
-  ratingAvg10: number;
-  ratingCount: number;
-  xp: number;
-  level: number;
-  trustScore: number;
-}
-
 export interface AuthUser {
   id: string;
   email: string;
   name: string | null;
-  isBusiness?: boolean;
-  reputation?: UserReputation | null;
+  isAdmin?: boolean;
+  emailVerified?: boolean;
 }
 
 export interface AuthResponse {
@@ -36,6 +27,8 @@ class AuthClient {
       if (token) {
         api.setToken(token);
       }
+      // Register refresh callback so API client can auto-refresh on 401
+      api.setRefreshTokenFn(() => this.refreshTokens());
     }
   }
 
@@ -44,7 +37,6 @@ class AuthClient {
     lastName: string;
     email: string;
     password: string;
-    isBusiness?: boolean;
   }): Promise<AuthResponse> {
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/auth/register`,
