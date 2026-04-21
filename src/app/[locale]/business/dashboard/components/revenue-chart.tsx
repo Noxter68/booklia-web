@@ -38,6 +38,14 @@ function getDateRange(period: Period): { from: Date; to: Date } {
   return { from, to };
 }
 
+/** YYYY-MM-DD in local time (matches how the cursor iterates). */
+function localDayKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 /** Fill missing days for revenue data (cumulative) */
 function fillRevenueDays(
   data: { date: string; revenue: number; count: number }[],
@@ -55,7 +63,7 @@ function fillRevenueDays(
       let weekCount = 0;
       const weekStart = new Date(cursor);
       for (let i = 0; i < 7 && cursor <= to; i++) {
-        const key = cursor.toISOString().slice(0, 10);
+        const key = localDayKey(cursor);
         const entry = dataMap.get(key);
         if (entry) {
           cumulative += entry.revenue;
@@ -76,7 +84,7 @@ function fillRevenueDays(
   const cursor = new Date(from);
   let cumulative = 0;
   while (cursor <= to) {
-    const key = cursor.toISOString().slice(0, 10);
+    const key = localDayKey(cursor);
     const entry = dataMap.get(key);
     if (entry) {
       cumulative += entry.revenue;
@@ -112,7 +120,7 @@ function fillClientDays(
       const weekStart = new Date(cursor);
       let weekNew = 0;
       for (let i = 0; i < 7 && cursor <= to; i++) {
-        const key = cursor.toISOString().slice(0, 10);
+        const key = localDayKey(cursor);
         const dayCount = dataMap.get(key) || 0;
         cumulative += dayCount;
         weekNew += dayCount;
@@ -131,7 +139,7 @@ function fillClientDays(
   const cursor = new Date(from);
   let cumulative = baseCount;
   while (cursor <= to) {
-    const key = cursor.toISOString().slice(0, 10);
+    const key = localDayKey(cursor);
     const dayCount = dataMap.get(key) || 0;
     cumulative += dayCount;
     result.push({
