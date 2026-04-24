@@ -39,12 +39,27 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { formatPrice } from '@/lib/utils';
 import { createPortal } from 'react-dom';
 import { Business, Employee, BusinessService, Booking, BookingStatus, BusinessHours, BusinessCategory, BusinessImage } from '@/types';
-import { ClientsTab } from './components/clients-tab';
-import { InvoicesTab } from './components/invoices-tab';
+import dynamic from 'next/dynamic';
 import { RevenueChart } from './components/revenue-chart';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-import { AgendaTab } from './components/calendar/agenda-tab';
 import { LatestReviews } from './components/latest-reviews';
+
+// Heavy tabs (clients, invoices, agenda) pull in recharts / calendar libs,
+// big forms, and the invoice editor. Lazy-load them so the initial dashboard
+// bundle only contains the overview path.
+const ClientsTab = dynamic(
+  () => import('./components/clients-tab').then((m) => ({ default: m.ClientsTab })),
+  { ssr: false },
+);
+const InvoicesTab = dynamic(
+  () => import('./components/invoices-tab').then((m) => ({ default: m.InvoicesTab })),
+  { ssr: false },
+);
+const AgendaTab = dynamic(
+  () =>
+    import('./components/calendar/agenda-tab').then((m) => ({ default: m.AgendaTab })),
+  { ssr: false },
+);
 import { useTranslations, useLocale } from 'next-intl';
 import {
   AmountsVisibilityProvider,

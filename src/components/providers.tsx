@@ -20,8 +20,24 @@ export function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000,
+            // 2 min stale + 10 min gc is a good fit for a dashboard that
+            // receives WebSocket events on mutating state and relies on
+            // explicit invalidations after user actions. Longer staleness
+            // cuts the refetch storm when tabs mount and remount.
+            staleTime: 2 * 60 * 1000,
+            gcTime: 10 * 60 * 1000,
             refetchOnWindowFocus: false,
+            refetchOnReconnect: 'always',
+            retry: (failureCount, error: unknown) => {
+              // Don't retry 4xx (client errors); retry 5xx and network errors up to 2x.
+              const status =
+                (error as { status?: number } | undefined)?.status ?? 0;
+              if (status >= 400 && status < 500) return false;
+              return failureCount < 2;
+            },
+          },
+          mutations: {
+            retry: false,
           },
         },
       })
