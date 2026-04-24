@@ -7,6 +7,7 @@ import { Euro, Users, ChevronDown, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
+import { MaskedAmount, useAmountsVisibility } from '@/contexts/amounts-visibility-context';
 
 type Period = 'week' | 'month' | '6months';
 type Metric = 'revenue' | 'clients';
@@ -158,12 +159,14 @@ function fillClientDays(
 const CHART_BLUE = '#4f7df9';
 const CHART_GREEN = '#10b981';
 
-function RevenueTooltip({ active, payload, label }: any) {
+function RevenueTooltip({ active, payload, label, visible }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-surface border border-border rounded-xl px-3 py-2 shadow-lg text-sm">
       <p className="font-medium mb-1">{label}</p>
-      <p style={{ color: CHART_BLUE }} className="font-semibold">{formatPrice(payload[0].value)}</p>
+      <p style={{ color: CHART_BLUE }} className="font-semibold">
+        {visible ? formatPrice(payload[0].value) : '•••'}
+      </p>
       <p className="text-muted-foreground text-xs">{payload[0].payload.count} prestation{payload[0].payload.count > 1 ? 's' : ''}</p>
     </div>
   );
@@ -186,6 +189,7 @@ export function RevenueChart() {
   const [period, setPeriod] = useState<Period>('month');
   const [metric, setMetric] = useState<Metric>('revenue');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { visible: amountsVisible } = useAmountsVisibility();
 
   const { from, to } = useMemo(() => getDateRange(period), [period]);
 
@@ -266,7 +270,9 @@ export function RevenueChart() {
                 <>
                   <h3 className="font-semibold text-sm sm:text-base">Chiffre d&apos;affaires</h3>
                   <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground text-base sm:text-lg">{formatPrice(totalRevenue)}</span>
+                    <span className="font-semibold text-foreground text-base sm:text-lg">
+                      <MaskedAmount value={formatPrice(totalRevenue)} />
+                    </span>
                     <span>{totalBookings} prestation{totalBookings > 1 ? 's' : ''}</span>
                   </div>
                 </>
@@ -389,12 +395,12 @@ export function RevenueChart() {
                     tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                     tickFormatter={
                       metric === 'revenue'
-                        ? (v) => (v === 0 ? '0' : `${(v / 100).toFixed(0)}€`)
+                        ? (v) => (!amountsVisible ? '•••' : v === 0 ? '0' : `${(v / 100).toFixed(0)}€`)
                         : (v) => String(Math.floor(v))
                     }
                     allowDecimals={false}
                   />
-                  <Tooltip content={metric === 'revenue' ? <RevenueTooltip /> : <ClientsTooltip />} />
+                  <Tooltip content={metric === 'revenue' ? <RevenueTooltip visible={amountsVisible} /> : <ClientsTooltip />} />
                   <Area
                     type="monotone"
                     dataKey="value"

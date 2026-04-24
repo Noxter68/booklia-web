@@ -73,6 +73,7 @@ export default function BusinessSettingsPage() {
   const [coverUrl, setCoverUrl] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [autoAcceptBookings, setAutoAcceptBookings] = useState(false);
+  const [acceptsOnlineBooking, setAcceptsOnlineBooking] = useState(true);
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
@@ -124,6 +125,7 @@ export default function BusinessSettingsPage() {
       setCoverUrl(business.coverUrl || '');
       setSelectedCategoryId(business.categoryId || '');
       setAutoAcceptBookings(business.autoAcceptBookings ?? false);
+      setAcceptsOnlineBooking(business.acceptsOnlineBooking ?? true);
       setIsProfileLoaded(true);
     }
   }, [business, isProfileLoaded]);
@@ -232,6 +234,7 @@ export default function BusinessSettingsPage() {
       logoUrl?: string;
       coverUrl?: string;
       autoAcceptBookings?: boolean;
+      acceptsOnlineBooking?: boolean;
     }) => api.updateBusiness(data),
     onSuccess: () => {
       success(t('profileUpdated'));
@@ -1230,7 +1233,30 @@ export default function BusinessSettingsPage() {
               <div>
                 <h3 className="text-lg font-semibold mb-4">{t('bookingsSection')}</h3>
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="pr-4">
+                    <p className="text-sm font-medium">Accepter les réservations en ligne</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Désactivez pour utiliser l&apos;app uniquement comme CRM client et facturation. Les boutons de réservation seront masqués sur votre profil public.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !acceptsOnlineBooking;
+                      setAcceptsOnlineBooking(next);
+                      updateBusinessMutation.mutate({ acceptsOnlineBooking: next });
+                    }}
+                    className="shrink-0 cursor-pointer"
+                  >
+                    <div className={`w-11 h-6 rounded-full transition-colors flex items-center ${
+                      acceptsOnlineBooking ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'
+                    }`}>
+                      <div className="w-5 h-5 rounded-full bg-white shadow mx-0.5" />
+                    </div>
+                  </button>
+                </div>
+                <div className={`flex items-center justify-between mt-4 transition-opacity ${acceptsOnlineBooking ? '' : 'opacity-50 pointer-events-none'}`}>
+                  <div className="pr-4">
                     <p className="text-sm font-medium">{t('autoAccept')}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {t('autoAcceptHint')}
@@ -1243,6 +1269,7 @@ export default function BusinessSettingsPage() {
                       updateBusinessMutation.mutate({ autoAcceptBookings: !autoAcceptBookings });
                     }}
                     className="shrink-0 cursor-pointer"
+                    disabled={!acceptsOnlineBooking}
                   >
                     <div className={`w-11 h-6 rounded-full transition-colors flex items-center ${
                       autoAcceptBookings ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'

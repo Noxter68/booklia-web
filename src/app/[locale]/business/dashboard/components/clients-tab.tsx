@@ -32,6 +32,8 @@ import { ClientTrustLevel } from '@/types';
 import { ClientLastNoteCard } from './client-last-note-card';
 import { BookingNoteEditor } from './booking-note-editor';
 import { InvoiceEditor } from './invoice-editor';
+import { SendInvoiceButton } from './send-invoice-button';
+import { MaskedAmount } from '@/contexts/amounts-visibility-context';
 
 function getTrustBadge(level: ClientTrustLevel) {
   switch (level) {
@@ -377,7 +379,7 @@ export function ClientsTab({ businessId, initialClientId }: {
                     {client.stats && (
                       <>
                         <span className="text-muted-foreground">{client.stats.totalBookings} RDV</span>
-                        <span className="font-medium">{formatPrice(client.stats.totalRevenueCents)}</span>
+                        <span className="font-medium"><MaskedAmount value={formatPrice(client.stats.totalRevenueCents)} /></span>
                       </>
                     )}
                     {client.isBlocked && (
@@ -408,7 +410,7 @@ export function ClientsTab({ businessId, initialClientId }: {
                     )}
                   </div>
                   <span className="text-sm text-right">{client.stats?.totalBookings ?? 0}</span>
-                  <span className="text-sm font-medium text-right">{formatPrice(client.stats?.totalRevenueCents ?? 0)}</span>
+                  <span className="text-sm font-medium text-right"><MaskedAmount value={formatPrice(client.stats?.totalRevenueCents ?? 0)} /></span>
                   <span className="text-sm text-right">{client.stats?.canceledByClient ?? 0}</span>
                   <div className="flex justify-center">
                     {client.isBlocked && (
@@ -593,7 +595,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                 </div>
                 <div className="border-t border-border pt-3 flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Chiffre d&apos;affaires</span>
-                  <span className="font-bold text-primary">{formatPrice(client.stats.totalRevenueCents)}</span>
+                  <span className="font-bold text-primary"><MaskedAmount value={formatPrice(client.stats.totalRevenueCents)} /></span>
                 </div>
                 {client.stats.lastBookingAt && (
                   <div className="flex items-center justify-between">
@@ -784,16 +786,26 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                       <div className="flex items-center gap-2 shrink-0 ml-3">
                         {booking.status === 'COMPLETED' && (
                           <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleQuickInvoice(booking)}
-                              disabled={createInvoiceMutation.isPending}
-                              className="rounded-full text-xs"
-                            >
-                              <Receipt className="w-3.5 h-3.5 mr-1" />
-                              Facturer
-                            </Button>
+                            {booking.invoice && booking.invoice.status === 'FINALIZED' ? (
+                              <SendInvoiceButton
+                                invoiceId={booking.invoice.id}
+                                emailSentAt={booking.invoice.emailSentAt}
+                                clientEmail={client.user?.email}
+                                variant="label"
+                                invalidateKeys={[['business-client-bookings', clientId]]}
+                              />
+                            ) : !booking.invoice ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleQuickInvoice(booking)}
+                                disabled={createInvoiceMutation.isPending}
+                                className="rounded-full text-xs"
+                              >
+                                <Receipt className="w-3.5 h-3.5 mr-1" />
+                                Facturer
+                              </Button>
+                            ) : null}
                             <Button
                               variant="ghost"
                               size="sm"
