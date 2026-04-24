@@ -57,6 +57,12 @@ export interface Booking {
   kind?: CalendarEntryKind;
   blockReason?: BlockReason | null;
   options?: BookingOption[];
+  invoice?: {
+    id: string;
+    status: InvoiceStatus;
+    emailSentAt?: string | null;
+    invoiceNumber?: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -376,6 +382,7 @@ export interface Invoice {
   vatMode: VatMode;
   snapshot?: Record<string, unknown>;
   pdfKey?: string;
+  emailSentAt?: string | null;
   createdByUserId: string;
   createdAt: string;
   updatedAt: string;

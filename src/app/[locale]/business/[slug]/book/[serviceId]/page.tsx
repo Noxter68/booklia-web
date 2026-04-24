@@ -14,6 +14,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  CalendarX,
+  Phone,
+  Mail,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -296,6 +299,42 @@ export default function BookingPage() {
           <p className="text-muted-foreground mb-4">{t('serviceNotFoundDesc')}</p>
           <Link href={`/business/${slug}`}>
             <Button>{tc('back')}</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Online booking disabled by the business
+  if (business && !business.acceptsOnlineBooking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md px-4">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CalendarX className="w-8 h-8 text-amber-600" />
+          </div>
+          <h1 className="text-xl font-bold mb-2">Réservation en ligne indisponible</h1>
+          <p className="text-muted-foreground mb-6">
+            Ce salon n&apos;accepte pas les réservations en ligne pour le moment. Contactez-le directement pour prendre rendez-vous.
+          </p>
+          {(business.phone || business.email) && (
+            <div className="bg-muted rounded-xl p-4 mb-6 text-left space-y-2">
+              {business.phone && (
+                <a href={`tel:${business.phone}`} className="flex items-center gap-2 text-sm hover:text-primary">
+                  <Phone className="w-4 h-4 text-muted-foreground" />
+                  <span>{business.phone}</span>
+                </a>
+              )}
+              {business.email && (
+                <a href={`mailto:${business.email}`} className="flex items-center gap-2 text-sm hover:text-primary">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <span>{business.email}</span>
+                </a>
+              )}
+            </div>
+          )}
+          <Link href={`/business/${slug}`}>
+            <Button variant="outline">{t('backToProfile')}</Button>
           </Link>
         </div>
       </div>

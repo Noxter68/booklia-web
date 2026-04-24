@@ -202,6 +202,13 @@ class ApiClient {
     });
   }
 
+  async verifyPassword(password: string) {
+    return this.request<{ valid: boolean }>('/auth/verify-password', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    });
+  }
+
   // Bookings
 
   async getRevenueStats(from: string, to: string) {
@@ -972,6 +979,13 @@ class ApiClient {
 
   async getInvoicePdfUrl(invoiceId: string) {
     return this.request<{ url: string }>(`/invoices/${invoiceId}/pdf`);
+  }
+
+  async sendInvoiceEmail(invoiceId: string, email?: string) {
+    return this.request<import('@/types').Invoice>(`/invoices/${invoiceId}/send-email`, {
+      method: 'POST',
+      body: JSON.stringify(email ? { email } : {}),
+    });
   }
 
   // ============================================

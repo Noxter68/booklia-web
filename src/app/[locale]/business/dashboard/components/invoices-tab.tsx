@@ -7,7 +7,6 @@ import {
   FileStack,
   Plus,
   Loader2,
-  Download,
   Settings,
   Trash2,
   Search,
@@ -26,6 +25,8 @@ import { InvoiceEditor } from './invoice-editor';
 import { BillingSettingsTab } from './billing-settings-tab';
 import { BatchInvoiceModal } from './batch-invoice-modal';
 import { BatchHistory } from './batch-history';
+import { SendInvoiceButton } from './send-invoice-button';
+import { MaskedAmount } from '@/contexts/amounts-visibility-context';
 
 const statusLabels: Record<InvoiceStatus, string> = {
   DRAFT: 'Brouillon',
@@ -424,12 +425,12 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
                 </h3>
                 <div className="bg-surface border border-border rounded-2xl overflow-hidden">
                   {/* Header */}
-                  <div className="hidden md:grid md:grid-cols-[1fr_150px_120px_120px_100px] gap-4 px-4 py-3 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <div className="hidden md:grid md:grid-cols-[1fr_150px_120px_120px_140px] gap-4 px-4 py-3 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     <span>Numéro / Client</span>
                     <span>Date</span>
                     <span className="text-right">Total TTC</span>
                     <span className="text-center">Statut</span>
-                    <span />
+                    <span className="text-right">Envoyer au client</span>
                   </div>
 
                   {group.invoices.map((invoice: Invoice, idx: number) => (
@@ -466,18 +467,25 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             )}
+                            {invoice.status === 'FINALIZED' && invoice.pdfKey && (
+                              <SendInvoiceButton
+                                invoiceId={invoice.id}
+                                emailSentAt={invoice.emailSentAt}
+                                clientEmail={invoice.client?.email}
+                              />
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span>{invoice.client?.name || 'Sans client'}</span>
                           <span className="font-semibold text-foreground">
-                            {formatPrice(invoice.totalTTCCents)}
+                            <MaskedAmount value={formatPrice(invoice.totalTTCCents)} />
                           </span>
                         </div>
                       </div>
 
                       {/* Desktop */}
-                      <div className="hidden md:grid md:grid-cols-[1fr_150px_120px_120px_100px] gap-4 items-center px-4 py-3">
+                      <div className="hidden md:grid md:grid-cols-[1fr_150px_120px_120px_140px] gap-4 items-center px-4 py-3">
                         <div>
                           <p className="font-medium text-sm">
                             {invoice.invoiceNumber || 'Brouillon'}
@@ -500,14 +508,14 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
                               })}
                         </span>
                         <span className="text-sm font-semibold text-right">
-                          {formatPrice(invoice.totalTTCCents)}
+                          <MaskedAmount value={formatPrice(invoice.totalTTCCents)} />
                         </span>
                         <div className="flex justify-center">
                           <Badge className={statusColors[invoice.status]}>
                             {statusLabels[invoice.status]}
                           </Badge>
                         </div>
-                        <div className="flex justify-end">
+                        <div className="flex justify-end items-center gap-1">
                           {invoice.status === 'DRAFT' ? (
                             <button
                               onClick={(e) => {
@@ -520,8 +528,13 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
-                          ) : invoice.pdfKey ? (
-                            <Download className="w-4 h-4 text-muted-foreground" />
+                          ) : invoice.status === 'FINALIZED' && invoice.pdfKey ? (
+                            <SendInvoiceButton
+                              invoiceId={invoice.id}
+                              emailSentAt={invoice.emailSentAt}
+                              clientEmail={invoice.client?.email}
+                              variant="label"
+                            />
                           ) : null}
                         </div>
                       </div>

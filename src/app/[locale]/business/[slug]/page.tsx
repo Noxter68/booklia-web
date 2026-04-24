@@ -370,11 +370,13 @@ function ServiceRow({
   service,
   onSelect,
   disabled = false,
+  hideBookButton = false,
   t,
 }: {
   service: BusinessService;
   onSelect: (service: BusinessService) => void;
   disabled?: boolean;
+  hideBookButton?: boolean;
   t: ReturnType<typeof useTranslations>;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -389,7 +391,7 @@ function ServiceRow({
   };
 
   return (
-    <div className={disabled ? 'opacity-60' : ''}>
+    <div className={disabled && !hideBookButton ? 'opacity-60' : ''}>
       <div className="flex items-center justify-between gap-4 py-4 sm:py-5">
         {/* Left: Text content */}
         <div className="flex-1 min-w-0">
@@ -427,17 +429,19 @@ function ServiceRow({
           <span className="text-sm font-semibold">
             {formatPrice(service.priceCents)}
           </span>
-          <button
-            onClick={() => !disabled && onSelect(service)}
-            disabled={disabled}
-            className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              disabled
-                ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                : 'bg-foreground text-background hover:opacity-90 cursor-pointer'
-            }`}
-          >
-            {t('choose')}
-          </button>
+          {!hideBookButton && (
+            <button
+              onClick={() => !disabled && onSelect(service)}
+              disabled={disabled}
+              className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                disabled
+                  ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                  : 'bg-foreground text-background hover:opacity-90 cursor-pointer'
+              }`}
+            >
+              {t('choose')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -908,7 +912,8 @@ export default function BusinessPublicPage() {
                                   <ServiceRow
                                     service={service}
                                     onSelect={handleServiceSelect}
-                                    disabled={business.isOnVacation || isBusinessAccount}
+                                    disabled={business.isOnVacation || isBusinessAccount || !business.acceptsOnlineBooking}
+                                    hideBookButton={!business.acceptsOnlineBooking && !isBusinessAccount}
                                     t={t}
                                   />
                                 </div>
@@ -932,7 +937,8 @@ export default function BusinessPublicPage() {
                                   <ServiceRow
                                     service={service}
                                     onSelect={handleServiceSelect}
-                                    disabled={business.isOnVacation || isBusinessAccount}
+                                    disabled={business.isOnVacation || isBusinessAccount || !business.acceptsOnlineBooking}
+                                    hideBookButton={!business.acceptsOnlineBooking && !isBusinessAccount}
                                     t={t}
                                   />
                                 </div>

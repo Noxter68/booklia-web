@@ -46,6 +46,11 @@ import { useWebSocket } from '@/contexts/WebSocketContext';
 import { AgendaTab } from './components/calendar/agenda-tab';
 import { LatestReviews } from './components/latest-reviews';
 import { useTranslations, useLocale } from 'next-intl';
+import {
+  AmountsVisibilityProvider,
+  AmountsVisibilityToggle,
+  MaskedAmount,
+} from '@/contexts/amounts-visibility-context';
 
 const LOCALE_MAP: Record<string, string> = {
   fr: 'fr-FR',
@@ -304,7 +309,8 @@ function BusinessDashboardContent() {
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <AmountsVisibilityToggle />
           <Link href={`/business/${business.slug}`}>
             <Button variant="outline" className="rounded-full">
               {t('viewMyPage')}
@@ -392,7 +398,9 @@ function BusinessDashboardContent() {
                     <Home className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold">{formatPrice(completedRevenue)}</div>
+                <div className="text-2xl font-bold">
+                  <MaskedAmount value={formatPrice(completedRevenue)} />
+                </div>
                 <div className="text-sm text-muted-foreground">{viewMode === 'week' ? t('caWeek') : t('caMonth')}</div>
               </div>
             </div>
@@ -2136,7 +2144,9 @@ function EmployeeCard({ employee, onDelete }: { employee: Employee; onDelete: ()
 export default function BusinessDashboardPage() {
   return (
     <Suspense fallback={<div className="container mx-auto px-4 py-16 pt-24"><PageLoader /></div>}>
-      <BusinessDashboardContent />
+      <AmountsVisibilityProvider>
+        <BusinessDashboardContent />
+      </AmountsVisibilityProvider>
     </Suspense>
   );
 }
