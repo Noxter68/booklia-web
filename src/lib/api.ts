@@ -1082,6 +1082,57 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // ============================================
+  // Referrals
+  // ============================================
+
+  async createReferral(data: {
+    firstName: string;
+    lastName: string;
+    instagram: string;
+    phone: string;
+  }) {
+    return this.request<import('@/types').Referral>('/referrals', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMyReferrals() {
+    return this.request<import('@/types').MyReferralsResponse>('/referrals/mine');
+  }
+
+  // Admin
+  async adminListReferralsByBusiness() {
+    return this.request<import('@/types').AdminReferralBusinessRow[]>('/admin/referrals');
+  }
+
+  async adminGetReferralsForBusiness(businessId: string) {
+    return this.request<import('@/types').AdminReferralBusinessDetail>(
+      `/admin/referrals/business/${businessId}`,
+    );
+  }
+
+  async adminValidateReferral(id: string) {
+    return this.request<import('@/types').Referral>(`/admin/referrals/${id}/validate`, {
+      method: 'PATCH',
+    });
+  }
+
+  async adminRejectReferral(id: string, reason?: string) {
+    return this.request<import('@/types').Referral>(`/admin/referrals/${id}/reject`, {
+      method: 'PATCH',
+      body: JSON.stringify(reason ? { reason } : {}),
+    });
+  }
+
+  async adminUpdateReferralNotes(id: string, notes: string | null) {
+    return this.request<import('@/types').Referral>(`/admin/referrals/${id}/notes`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes }),
+    });
+  }
 }
 
 export const api = new ApiClient();

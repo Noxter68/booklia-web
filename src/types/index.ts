@@ -463,3 +463,54 @@ export interface Notification {
   isRead: boolean;
   createdAt: string;
 }
+
+// Referrals
+export type ReferralStatus = 'PENDING' | 'VALIDATED' | 'REJECTED';
+
+export interface Referral {
+  id: string;
+  businessId: string;
+  firstName: string;
+  lastName: string;
+  instagram: string;
+  phone: string;
+  status: ReferralStatus;
+  notes?: string | null;
+  rewardGrantedAt?: string | null;
+  validatedAt?: string | null;
+  rejectedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MyReferralsResponse {
+  data: Referral[];
+  freeMonthsEarned: number;
+  validatedTowardNext: number;
+  nextRewardThreshold: number;
+}
+
+export interface AdminReferralBusinessRow {
+  businessId: string;
+  businessName: string;
+  businessSlug: string | null;
+  ownerName: string | null;
+  ownerEmail: string | null;
+  freeMonthsEarned: number;
+  totalReferrals: number;
+  pendingCount: number;
+  validatedCount: number;
+  rejectedCount: number;
+  lastSubmittedAt: string;
+}
+
+export interface AdminReferralBusinessDetail {
+  business: {
+    id: string;
+    name: string;
+    slug: string;
+    freeMonthsEarned: number;
+    owner: { name: string | null; email: string };
+  };
+  referrals: Referral[];
+}

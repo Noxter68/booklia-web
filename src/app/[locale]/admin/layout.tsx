@@ -10,6 +10,7 @@ import {
   Menu,
   X,
   LayoutDashboard,
+  Heart,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { PageLoader } from '@/components/ui/spinner';
@@ -73,6 +74,7 @@ export default function AdminLayout({
   const navItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/businesses', icon: Building2, label: 'Business' },
+    { href: '/admin/referrals', icon: Heart, label: 'Parrainages' },
   ];
 
   const handleLogout = () => {

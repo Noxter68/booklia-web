@@ -23,6 +23,7 @@ import {
   Pencil,
   Lock,
   Settings,
+  Heart,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -35,6 +36,7 @@ import { Link } from '@/i18n/routing';
 import { BusinessImage, BusinessHours, Category, BusinessPromotion } from '@/types';
 import { useTranslations, useLocale } from 'next-intl';
 import { ExceptionsManager } from './components/exceptions-manager';
+import { ReferralsTab } from './components/referrals-tab';
 
 const LOCALE_MAP: Record<string, string> = {
   fr: 'fr-FR',
@@ -42,7 +44,7 @@ const LOCALE_MAP: Record<string, string> = {
   pt: 'pt-BR',
 };
 
-type Tab = 'profile' | 'images' | 'hours' | 'promotions' | 'settings';
+type Tab = 'profile' | 'images' | 'hours' | 'promotions' | 'settings' | 'referrals';
 
 export default function BusinessSettingsPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -50,6 +52,7 @@ export default function BusinessSettingsPage() {
   const queryClient = useQueryClient();
   const t = useTranslations('businessSettings');
   const tc = useTranslations('common');
+  const tReferrals = useTranslations('referrals');
   const locale = useLocale();
   const dateLocale = LOCALE_MAP[locale] || 'fr-FR';
   const [tab, setTab] = useState<Tab>('profile');
@@ -540,6 +543,17 @@ export default function BusinessSettingsPage() {
           >
             <Settings className="w-4 h-4" />
             {t('tabSettings')}
+          </button>
+          <button
+            onClick={() => setTab('referrals')}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
+              tab === 'referrals'
+                ? 'bg-surface text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Heart className="w-4 h-4" />
+            {tReferrals('tabReferrals')}
           </button>
         </div>
 
@@ -1347,6 +1361,19 @@ export default function BusinessSettingsPage() {
                   </div>
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {/* Referrals Tab */}
+          {tab === 'referrals' && (
+            <motion.div
+              key="referrals"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-surface rounded-2xl border border-border p-6 lg:p-8"
+            >
+              <ReferralsTab />
             </motion.div>
           )}
         </AnimatePresence>
