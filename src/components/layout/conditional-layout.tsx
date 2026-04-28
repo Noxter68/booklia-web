@@ -21,8 +21,11 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   // Don't show header/footer on admin pages
   const isAdminPage = cleanPath.startsWith('/admin');
   const isMapPage = cleanPath.startsWith('/search');
+  // Request-invite has its own back-to-home button and a soft gradient
+  // background; the global header just clutters it.
+  const isStandaloneAuthPage = cleanPath.startsWith('/auth/request-invite');
 
-  if (isAdminPage) {
+  if (isAdminPage || isStandaloneAuthPage) {
     return <>{children}</>;
   }
 
