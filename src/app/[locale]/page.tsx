@@ -138,17 +138,8 @@ export default function LandingPage() {
               >
                 <Link href="/auth/request-invite">
                   <Button size="lg" className="rounded-full px-7 h-12 text-base">
-                    {t('hero.ctaPrimary')}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
-                <Link href="#features">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="rounded-full px-7 h-12 text-base bg-white/80 backdrop-blur"
-                  >
                     {t('hero.ctaSecondary')}
+                    <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
               </motion.div>
@@ -160,7 +151,7 @@ export default function LandingPage() {
                 className="mt-4 text-xs text-muted-foreground flex items-center gap-1.5 justify-center lg:justify-start"
               >
                 <Check className="w-3.5 h-3.5 text-emerald-600" />
-                {t('hero.noCard')}
+                {t('hero.heroNote')}
               </motion.p>
             </motion.div>
 
