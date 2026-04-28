@@ -869,15 +869,15 @@
       "noCard": "No credit card required"
     },
     "trustBar": {
-      "title": "Made for every wellness profession",
+      "title": "Built for every wellness profession",
       "categories": {
         "hair": "Hair",
-        "barber": "Barbers",
+        "barber": "Barber",
         "nails": "Nails",
         "beauty": "Beauty",
-        "massage": "Massage",
-        "spa": "Spa"
-      }
+        "wellness": "Wellness"
+      },
+      "subtitle": "Hair, barber, nails, beauty, wellness. Booklia adapts to your craft."
     },
     "features": {
       "title": "Everything you need to run your salon",
@@ -908,19 +908,19 @@
       }
     },
     "how": {
-      "title": "Get started in 10 minutes",
-      "subtitle": "Three simple steps to bring your salon online.",
+      "title": "How to join Booklia",
+      "subtitle": "Booklia is in early access. We set up your salon with you.",
       "step1": {
-        "title": "Create your account",
-        "desc": "Free sign-up, no credit card. Add your salon details."
+        "title": "You reach out to us",
+        "desc": "Send us a quick message. We get back to you within 24h to understand your needs."
       },
       "step2": {
-        "title": "Set up your services",
-        "desc": "Add services, hours, employees. Our interface guides you step by step."
+        "title": "We set it up together",
+        "desc": "We create your account, import your services, employees and hours. With you, on video or on-site."
       },
       "step3": {
-        "title": "Receive your first bookings",
-        "desc": "Share your Booklia link. Clients book online, you manage from the dashboard."
+        "title": "Your salon is live",
+        "desc": "You get your Booklia link, share it with your clients. Manage everything from the dashboard."
       }
     },
     "why": {
@@ -941,7 +941,8 @@
       "fast": {
         "title": "Fast to learn",
         "desc": "Designed for speed. Your team gets trained in 15 minutes."
-      }
+      },
+      "badge": "Why Booklia"
     },
     "pricing": {
       "badge": "Early access",
@@ -981,6 +982,40 @@
       "statsTitle": "This week",
       "newClients": "New clients",
       "completionRate": "Completion rate"
+    },
+    "showcase": {
+      "booking": {
+        "eyebrow": "24/7 booking",
+        "title": "Your clients book even at night",
+        "description": "A public page dedicated to your salon. Your clients pick a slot in 30 seconds, no calling, no waiting for opening hours.",
+        "bullet1": "Public page with your visual identity",
+        "bullet2": "Slots updated in real time",
+        "bullet3": "Auto-confirm or manual validation"
+      },
+      "clients": {
+        "eyebrow": "Client files",
+        "title": "Know your clients by heart",
+        "description": "Full history, loyalty stats, private notes and preferences. Everything you need to deliver personalized service at every appointment.",
+        "bullet1": "Appointment, service and revenue history",
+        "bullet2": "Private notes and preferences (allergies, products)",
+        "bullet3": "Loyalty level and automatic VIP badge"
+      },
+      "team": {
+        "eyebrow": "Multi-employee",
+        "title": "One team, one unified schedule",
+        "description": "Manage multiple employees in parallel with individual hours, employee-specific services and time-off in a few clicks.",
+        "bullet1": "Schedule per employee, unified overview",
+        "bullet2": "Custom services per employee",
+        "bullet3": "Time-off and schedule exceptions"
+      },
+      "reminders": {
+        "eyebrow": "Email reminders",
+        "title": "Cut no-shows without lifting a finger",
+        "description": "Your clients automatically receive a reminder 24h before their appointment. No more no-shows, no more manual follow-ups.",
+        "bullet1": "Reminder sent 24h before the appointment",
+        "bullet2": "Branded with your colors and info",
+        "bullet3": "Zero setup required"
+      }
     }
   }
 }

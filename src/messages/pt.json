@@ -871,13 +871,13 @@
     "trustBar": {
       "title": "Pensado para todas as profissões de bem-estar",
       "categories": {
-        "hair": "Cabeleireiros",
-        "barber": "Barbeiros",
+        "hair": "Cabeleireiro",
+        "barber": "Barbeiro",
         "nails": "Manicure",
         "beauty": "Estética",
-        "massage": "Massagem",
-        "spa": "Spa"
-      }
+        "wellness": "Bem-estar"
+      },
+      "subtitle": "Cabeleireiro, barbeiro, manicure, estética, bem-estar. Booklia se adapta à sua profissão."
     },
     "features": {
       "title": "Tudo o que você precisa para gerir seu salão",
@@ -908,19 +908,19 @@
       }
     },
     "how": {
-      "title": "Comece em 10 minutos",
-      "subtitle": "Três passos simples para colocar seu salão online.",
+      "title": "Como entrar no Booklia",
+      "subtitle": "Booklia está em acesso antecipado. Configuramos seu salão com você.",
       "step1": {
-        "title": "Crie sua conta",
-        "desc": "Cadastro gratuito, sem cartão. Preencha os dados do seu salão."
+        "title": "Você entra em contato",
+        "desc": "Envie uma mensagem rápida. Retornamos em 24h para entender suas necessidades."
       },
       "step2": {
-        "title": "Configure seus serviços",
-        "desc": "Adicione serviços, horários, funcionários. A interface te guia passo a passo."
+        "title": "Configuramos juntos",
+        "desc": "Criamos sua conta, importamos seus serviços, funcionários e horários. Com você, em vídeo ou presencial."
       },
       "step3": {
-        "title": "Receba suas primeiras reservas",
-        "desc": "Compartilhe seu link Booklia. Os clientes reservam, você gerencia tudo no painel."
+        "title": "Seu salão está online",
+        "desc": "Você recebe seu link Booklia, compartilha com suas clientes. Gerencia tudo no painel."
       }
     },
     "why": {
@@ -941,7 +941,8 @@
       "fast": {
         "title": "Rápido de aprender",
         "desc": "Interface pensada para ser rápida. Sua equipe se forma em 15 minutos."
-      }
+      },
+      "badge": "Por que Booklia"
     },
     "pricing": {
       "badge": "Acesso antecipado",
@@ -981,6 +982,40 @@
       "statsTitle": "Esta semana",
       "newClients": "Novos clientes",
       "completionRate": "Taxa de conclusão"
+    },
+    "showcase": {
+      "booking": {
+        "eyebrow": "Reserva 24/7",
+        "title": "Suas clientes reservam até à noite",
+        "description": "Uma página pública dedicada ao seu salão. Suas clientes escolhem um horário em 30 segundos, sem ligar nem esperar pelo horário de funcionamento.",
+        "bullet1": "Página pública com sua identidade visual",
+        "bullet2": "Horários atualizados em tempo real",
+        "bullet3": "Confirmação automática ou validação manual"
+      },
+      "clients": {
+        "eyebrow": "Fichas de clientes",
+        "title": "Conheça suas clientes de cor",
+        "description": "Histórico completo, estatísticas de fidelidade, notas privadas e preferências. Tudo o que você precisa para oferecer um serviço personalizado.",
+        "bullet1": "Histórico de agendamentos, serviços e faturamento",
+        "bullet2": "Notas privadas e preferências (alergias, produtos)",
+        "bullet3": "Nível de fidelidade e badge VIP automático"
+      },
+      "team": {
+        "eyebrow": "Multi-funcionários",
+        "title": "Uma equipe, uma agenda unificada",
+        "description": "Gerencie vários funcionários em paralelo com horários individuais, serviços específicos por funcionário e gestão de ausências em poucos cliques.",
+        "bullet1": "Agenda por funcionário, visão unificada",
+        "bullet2": "Serviços personalizados por funcionário",
+        "bullet3": "Gestão de folgas e exceções de horário"
+      },
+      "reminders": {
+        "eyebrow": "Lembretes por email",
+        "title": "Reduza os esquecimentos sem fazer nada",
+        "description": "Suas clientes recebem automaticamente um email de lembrete 24h antes do agendamento. Sem mais no-shows, sem mais lembretes manuais.",
+        "bullet1": "Lembrete enviado 24h antes do agendamento",
+        "bullet2": "Personalizado com suas cores e informações",
+        "bullet3": "Zero configuração necessária"
+      }
     }
   }
 }

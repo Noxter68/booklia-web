@@ -871,13 +871,13 @@
     "trustBar": {
       "title": "Pensé pour tous les métiers du soin",
       "categories": {
-        "hair": "Coiffeurs",
-        "barber": "Barbiers",
+        "hair": "Coiffure",
+        "barber": "Barbier",
         "nails": "Manucure",
-        "beauty": "Esthétique",
-        "massage": "Massage",
-        "spa": "Spa"
-      }
+        "beauty": "Institut de beauté",
+        "wellness": "Bien-être"
+      },
+      "subtitle": "Coiffure, barbier, manucure, esthétique, bien-être. Booklia s'adapte à votre métier."
     },
     "features": {
       "title": "Tout ce qu'il faut pour gérer votre salon",
@@ -908,19 +908,19 @@
       }
     },
     "how": {
-      "title": "Démarrez en 10 minutes",
-      "subtitle": "Trois étapes simples pour mettre votre salon en ligne.",
+      "title": "Comment rejoindre Booklia",
+      "subtitle": "Booklia est en accès anticipé. On configure votre salon avec vous.",
       "step1": {
-        "title": "Créez votre compte",
-        "desc": "Inscription gratuite, sans carte bancaire. Renseignez les informations de votre salon."
+        "title": "Vous nous contactez",
+        "desc": "Envoyez-nous un message rapide. On vous recontacte sous 24h pour comprendre vos besoins."
       },
       "step2": {
-        "title": "Configurez vos prestations",
-        "desc": "Ajoutez vos services, horaires et employés. Notre interface vous guide pas à pas."
+        "title": "On configure ensemble",
+        "desc": "On crée votre compte, on importe vos prestations, vos employés et vos horaires. Avec vous, en visio ou sur place."
       },
       "step3": {
-        "title": "Recevez vos premières réservations",
-        "desc": "Partagez votre lien Booklia. Vos clients réservent, vous gérez tout depuis le tableau de bord."
+        "title": "Votre salon est en ligne",
+        "desc": "Vous recevez votre lien Booklia, partagez-le à vos clientes. Vous gérez tout depuis le tableau de bord."
       }
     },
     "why": {
@@ -941,7 +941,8 @@
       "fast": {
         "title": "Rapide à prendre en main",
         "desc": "Interface pensée pour aller vite. Vos employés se forment en 15 minutes."
-      }
+      },
+      "badge": "Pourquoi Booklia"
     },
     "pricing": {
       "badge": "Accès anticipé",
@@ -981,6 +982,40 @@
       "statsTitle": "Cette semaine",
       "newClients": "Nouveaux clients",
       "completionRate": "Taux de complétion"
+    },
+    "showcase": {
+      "booking": {
+        "eyebrow": "Réservation 24/7",
+        "title": "Vos clientes réservent même la nuit",
+        "description": "Une page publique dédiée à votre salon. Vos clientes choisissent un créneau en 30 secondes, sans avoir à appeler ni à attendre vos horaires d'ouverture.",
+        "bullet1": "Page publique avec votre identité visuelle",
+        "bullet2": "Créneaux mis à jour en temps réel",
+        "bullet3": "Confirmation automatique ou validation manuelle"
+      },
+      "clients": {
+        "eyebrow": "Fiches clients",
+        "title": "Connaissez vos clientes par cœur",
+        "description": "Historique complet, statistiques de fidélité, notes privées et préférences. Tout ce qu'il faut pour offrir un service personnalisé à chaque rendez-vous.",
+        "bullet1": "Historique de RDV, prestations et chiffre d'affaires",
+        "bullet2": "Notes privées et préférences (allergies, produits)",
+        "bullet3": "Niveau de fidélité et badge VIP automatique"
+      },
+      "team": {
+        "eyebrow": "Multi-employés",
+        "title": "Une équipe, un planning unifié",
+        "description": "Gérez plusieurs employés en parallèle avec des horaires individuels, des prestations spécifiques et la gestion des absences en quelques clics.",
+        "bullet1": "Planning par employé, vue d'ensemble unifiée",
+        "bullet2": "Prestations personnalisées par employé",
+        "bullet3": "Gestion des congés et exceptions horaires"
+      },
+      "reminders": {
+        "eyebrow": "Rappels par email",
+        "title": "Réduisez les oublis sans rien faire",
+        "description": "Vos clientes reçoivent automatiquement un email de rappel 24h avant leur rendez-vous. Plus de no-shows, plus de relances manuelles à faire.",
+        "bullet1": "Rappel envoyé 24h avant le rendez-vous",
+        "bullet2": "Personnalisé avec vos couleurs et infos",
+        "bullet3": "Aucune configuration requise"
+      }
     }
   }
 }
