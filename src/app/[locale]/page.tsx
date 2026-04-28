@@ -136,7 +136,7 @@ export default function LandingPage() {
                 transition={{ duration: 0.5, delay: 0.3 }}
                 className="mt-8 flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start"
               >
-                <Link href="/auth/register">
+                <Link href="/auth/request-invite">
                   <Button size="lg" className="rounded-full px-7 h-12 text-base">
                     {t('hero.ctaPrimary')}
                     <ArrowRight className="w-4 h-4 ml-2" />
@@ -489,41 +489,6 @@ export default function LandingPage() {
       </section>
 
       {/* ======================================================
-          PRICING TEASER
-          ====================================================== */}
-      <section className="py-20 sm:py-28 bg-foreground text-background">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
-            transition={{ duration: 0.5 }}
-            className="max-w-2xl mx-auto text-center"
-          >
-            <span className="inline-block px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-medium mb-6">
-              {t('pricing.badge')}
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              {t('pricing.title')}
-            </h2>
-            <p className="text-base sm:text-lg text-background/70 mb-8">
-              {t('pricing.subtitle')}
-            </p>
-            <Link href="/auth/register">
-              <Button
-                size="lg"
-                className="rounded-full px-8 h-12 text-base bg-background text-foreground hover:bg-background/90"
-              >
-                {t('pricing.cta')}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-            <p className="mt-4 text-xs text-background/60">{t('pricing.detail')}</p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ======================================================
           TESTIMONIAL
           ====================================================== */}
       <section className="py-20 sm:py-28">
@@ -555,9 +520,12 @@ export default function LandingPage() {
       </section>
 
       {/* ======================================================
-          FINAL CTA
+          FINAL CTA — dark
           ====================================================== */}
-      <section className="py-20 sm:py-28 border-t border-border/50">
+      <section className="py-20 sm:py-28 bg-foreground text-background relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 bg-rose-500/10 rounded-full blur-3xl" />
+        </div>
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -569,11 +537,14 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
               {t('finalCta.title')}
             </h2>
-            <p className="text-base sm:text-lg text-muted-foreground mb-8">
+            <p className="text-base sm:text-lg text-background/70 mb-8">
               {t('finalCta.subtitle')}
             </p>
-            <Link href="/auth/register">
-              <Button size="lg" className="rounded-full px-8 h-12 text-base">
+            <Link href="/auth/request-invite">
+              <Button
+                size="lg"
+                className="rounded-full px-8 h-12 text-base bg-background text-foreground hover:bg-background/90"
+              >
                 {t('finalCta.cta')}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>

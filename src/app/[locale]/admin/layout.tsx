@@ -12,12 +12,14 @@ import {
   X,
   LayoutDashboard,
   Heart,
+  Inbox,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { PageLoader } from '@/components/ui/spinner';
 import { api } from '@/lib/api';
 
 const REFERRALS_LAST_SEEN_KEY = 'admin:referrals:lastSeenAt';
+const INVITE_REQUESTS_LAST_SEEN_KEY = 'admin:invite-requests:lastSeenAt';
 
 export default function AdminLayout({
   children,
@@ -75,25 +77,45 @@ export default function AdminLayout({
     );
   }
 
-  // Track when the admin last opened the referrals page so we can highlight
-  // only newly submitted ones in the sidebar badge.
-  const [lastSeenAt, setLastSeenAt] = useState<string | null>(() => {
+  // Track lastSeenAt per badge channel so each sidebar item only shows
+  // new items received after the admin last opened that page.
+  const [referralsLastSeenAt, setReferralsLastSeenAt] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
     return window.localStorage.getItem(REFERRALS_LAST_SEEN_KEY);
   });
+  const [invitesLastSeenAt, setInvitesLastSeenAt] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(INVITE_REQUESTS_LAST_SEEN_KEY);
+  });
 
-  // Reset the badge when the admin navigates to the referrals page.
+  // Reset the relevant badge when the admin navigates to its page.
   useEffect(() => {
     if (pathname.endsWith('/admin/referrals')) {
       const now = new Date().toISOString();
       window.localStorage.setItem(REFERRALS_LAST_SEEN_KEY, now);
-      setLastSeenAt(now);
+      setReferralsLastSeenAt(now);
+    }
+    if (pathname.endsWith('/admin/invite-requests')) {
+      const now = new Date().toISOString();
+      window.localStorage.setItem(INVITE_REQUESTS_LAST_SEEN_KEY, now);
+      setInvitesLastSeenAt(now);
     }
   }, [pathname]);
 
   const { data: referralsBadge } = useQuery({
-    queryKey: ['admin-referrals-pending-count', lastSeenAt],
-    queryFn: () => api.adminGetReferralsPendingCount(lastSeenAt ?? undefined),
+    queryKey: ['admin-referrals-pending-count', referralsLastSeenAt],
+    queryFn: () =>
+      api.adminGetReferralsPendingCount(referralsLastSeenAt ?? undefined),
+    enabled: !!user?.isAdmin,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
+  });
+
+  const { data: invitesBadge } = useQuery({
+    queryKey: ['admin-invite-requests-pending-count', invitesLastSeenAt],
+    queryFn: () =>
+      api.adminGetInviteRequestsPendingCount(invitesLastSeenAt ?? undefined),
     enabled: !!user?.isAdmin,
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
@@ -101,10 +123,17 @@ export default function AdminLayout({
   });
 
   const referralsBadgeCount = referralsBadge?.count ?? 0;
+  const invitesBadgeCount = invitesBadge?.count ?? 0;
 
   const navItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/businesses', icon: Building2, label: 'Business' },
+    {
+      href: '/admin/invite-requests',
+      icon: Inbox,
+      label: 'Demandes',
+      badge: invitesBadgeCount,
+    },
     {
       href: '/admin/referrals',
       icon: Heart,

@@ -737,7 +737,8 @@
       "businesses": "Estabelecimentos",
       "users": "Usuários",
       "logout": "Sair",
-      "referrals": "Indicações"
+      "referrals": "Indicações",
+      "inviteRequests": "Solicitacoes"
     },
     "businesses": {
       "title": "Estabelecimentos",
@@ -777,6 +778,19 @@
       "statusPending": "Pendente",
       "statusValidated": "Validada",
       "statusRejected": "Rejeitada"
+    },
+    "inviteRequests": {
+      "title": "Solicitacoes de convite",
+      "subtitle": "Pessoas interessadas no Booklia, para retornar contato.",
+      "empty": "Nenhuma solicitacao ainda.",
+      "columnName": "Nome",
+      "columnEmail": "Email",
+      "columnPhone": "Telefone",
+      "columnDate": "Data",
+      "delete": "Excluir",
+      "deleteConfirm": "Excluir esta solicitacao?",
+      "deletedToast": "Solicitacao excluida",
+      "errorToast": "Erro"
     }
   },
   "notifications": {
@@ -944,13 +958,6 @@
       },
       "badge": "Por que Booklia"
     },
-    "pricing": {
-      "badge": "Acesso antecipado",
-      "title": "Experimente grátis, sem compromisso",
-      "subtitle": "Booklia está em beta fechado no lançamento. Peça seu convite, configuramos seu salão em 24h.",
-      "cta": "Pedir um convite",
-      "detail": "Sem cartão · Onboarding humano · Cancele quando quiser"
-    },
     "testimonial": {
       "quote": "Mudar para o Booklia me fez ganhar duas horas por dia. Minhas clientes adoram poder agendar online sem ligar.",
       "author": "Camille",
@@ -1017,5 +1024,26 @@
         "bullet3": "Zero configuração necessária"
       }
     }
+  },
+  "requestInvite": {
+    "title": "Pedir um convite",
+    "subtitle": "Booklia esta em acesso fechado. Deixe seus dados e entraremos em contato em 24h para configurar seu salao juntos.",
+    "firstName": "Nome",
+    "lastName": "Sobrenome",
+    "email": "Endereco de email",
+    "phone": "Telefone",
+    "submit": "Enviar minha solicitacao",
+    "cancel": "Cancelar",
+    "success": "Solicitacao enviada. Entraremos em contato em 24h!",
+    "error": "Ocorreu um erro, tente novamente.",
+    "rateLimit": "Voce ja enviou varias solicitacoes. Entraremos em contato em breve.",
+    "placeholderFirstName": "Sophie",
+    "placeholderLastName": "Martin",
+    "placeholderEmail": "sophie@meusalao.com",
+    "placeholderPhone": "+55 11 91234 5678",
+    "noSpam": "Sem spam. Seus dados nao sao compartilhados.",
+    "thanksTitle": "Obrigado pela sua solicitacao!",
+    "thanksSubtitle": "Entraremos em contato em 24h por email ou telefone para configurar seu salao com voce.",
+    "backToHome": "Voltar a inicial"
   }
 }

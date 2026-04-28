@@ -1113,6 +1113,50 @@ class ApiClient {
     return this.request<{ count: number }>(`/admin/referrals/pending-count${qs}`);
   }
 
+  // ============================================
+  // Invite requests
+  // ============================================
+
+  async createInviteRequest(data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  }) {
+    return this.request<{ id: string; success: boolean }>('/invite-requests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Admin
+  async adminListInviteRequests() {
+    return this.request<import('@/types').InviteRequest[]>('/admin/invite-requests');
+  }
+
+  async adminGetInviteRequestsPendingCount(since?: string) {
+    const qs = since ? `?since=${encodeURIComponent(since)}` : '';
+    return this.request<{ count: number }>(
+      `/admin/invite-requests/pending-count${qs}`,
+    );
+  }
+
+  async adminDeleteInviteRequest(id: string) {
+    return this.request<{ success: boolean }>(`/admin/invite-requests/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async adminUpdateInviteRequestNotes(id: string, notes: string | null) {
+    return this.request<import('@/types').InviteRequest>(
+      `/admin/invite-requests/${id}/notes`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ notes }),
+      },
+    );
+  }
+
   async adminGetReferralsForBusiness(businessId: string) {
     return this.request<import('@/types').AdminReferralBusinessDetail>(
       `/admin/referrals/business/${businessId}`,

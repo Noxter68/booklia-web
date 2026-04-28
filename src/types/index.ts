@@ -514,3 +514,14 @@ export interface AdminReferralBusinessDetail {
   };
   referrals: Referral[];
 }
+
+// Invite requests (closed-beta lead capture)
+export interface InviteRequest {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  notes?: string | null;
+  createdAt: string;
+}

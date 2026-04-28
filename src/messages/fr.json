@@ -737,7 +737,8 @@
       "businesses": "Établissements",
       "users": "Utilisateurs",
       "logout": "Déconnexion",
-      "referrals": "Parrainages"
+      "referrals": "Parrainages",
+      "inviteRequests": "Demandes"
     },
     "businesses": {
       "title": "Établissements",
@@ -777,6 +778,20 @@
       "statusPending": "En attente",
       "statusValidated": "Validé",
       "statusRejected": "Rejeté"
+    },
+    "inviteRequests": {
+      "title": "Demandes d'invitation",
+      "subtitle": "Personnes intéressées par Booklia, à recontacter.",
+      "empty": "Aucune demande pour le moment.",
+      "columnName": "Nom",
+      "columnEmail": "Email",
+      "columnPhone": "Téléphone",
+      "columnDate": "Date",
+      "delete": "Supprimer",
+      "deleteConfirm": "Supprimer cette demande ?",
+      "deletedToast": "Demande supprimée",
+      "errorToast": "Erreur",
+      "columnTelephone": "Telephone"
     }
   },
   "notifications": {
@@ -944,13 +959,6 @@
       },
       "badge": "Pourquoi Booklia"
     },
-    "pricing": {
-      "badge": "Accès anticipé",
-      "title": "Essayez gratuitement, sans engagement",
-      "subtitle": "Booklia est en accès fermé pendant le lancement. Demandez votre invitation, on vous configure votre salon en 24h.",
-      "cta": "Demander une invitation",
-      "detail": "Pas de carte bancaire · Mise en route avec un humain · Annulation à tout moment"
-    },
     "testimonial": {
       "quote": "En passant à Booklia, j'ai gagné deux heures par jour. Mes clientes adorent pouvoir réserver en ligne sans nous appeler.",
       "author": "Camille",
@@ -1017,5 +1025,26 @@
         "bullet3": "Aucune configuration requise"
       }
     }
+  },
+  "requestInvite": {
+    "title": "Demander une invitation",
+    "subtitle": "Booklia est en accès fermé. Laissez-nous vos coordonnées, on vous recontacte sous 24h pour configurer votre salon ensemble.",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Adresse email",
+    "phone": "Téléphone",
+    "submit": "Envoyer ma demande",
+    "cancel": "Annuler",
+    "success": "Demande envoyée. On vous recontacte sous 24h !",
+    "error": "Une erreur est survenue, réessayez.",
+    "rateLimit": "Vous avez déjà envoyé plusieurs demandes. On vous recontacte très vite.",
+    "placeholderFirstName": "Sophie",
+    "placeholderLastName": "Martin",
+    "placeholderEmail": "sophie@monsalon.com",
+    "placeholderPhone": "06 12 34 56 78",
+    "noSpam": "Pas de spam. Vos données ne sont jamais partagées.",
+    "thanksTitle": "Merci pour votre demande !",
+    "thanksSubtitle": "On vous recontacte sous 24h par email ou par téléphone pour configurer votre salon avec vous.",
+    "backToHome": "Retour à l'accueil"
   }
 }

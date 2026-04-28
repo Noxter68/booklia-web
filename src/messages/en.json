@@ -737,7 +737,8 @@
       "businesses": "Businesses",
       "users": "Users",
       "logout": "Log out",
-      "referrals": "Referrals"
+      "referrals": "Referrals",
+      "inviteRequests": "Requests"
     },
     "businesses": {
       "title": "Businesses",
@@ -777,6 +778,19 @@
       "statusPending": "Pending",
       "statusValidated": "Validated",
       "statusRejected": "Rejected"
+    },
+    "inviteRequests": {
+      "title": "Invite requests",
+      "subtitle": "People interested in Booklia, to follow up with.",
+      "empty": "No requests yet.",
+      "columnName": "Name",
+      "columnEmail": "Email",
+      "columnPhone": "Phone",
+      "columnDate": "Date",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this request?",
+      "deletedToast": "Request deleted",
+      "errorToast": "Error"
     }
   },
   "notifications": {
@@ -944,13 +958,6 @@
       },
       "badge": "Why Booklia"
     },
-    "pricing": {
-      "badge": "Early access",
-      "title": "Try it free, no commitment",
-      "subtitle": "Booklia is in closed beta during launch. Request an invite, we onboard your salon in 24h.",
-      "cta": "Request an invite",
-      "detail": "No credit card · Human onboarding · Cancel anytime"
-    },
     "testimonial": {
       "quote": "Switching to Booklia saved me two hours a day. My clients love being able to book online without calling us.",
       "author": "Camille",
@@ -1017,5 +1024,26 @@
         "bullet3": "Zero setup required"
       }
     }
+  },
+  "requestInvite": {
+    "title": "Request an invite",
+    "subtitle": "Booklia is invite-only. Drop us your details and we'll reach out within 24h to set up your salon with you.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email address",
+    "phone": "Phone",
+    "submit": "Send my request",
+    "cancel": "Cancel",
+    "success": "Request sent. We'll reach out within 24h!",
+    "error": "Something went wrong, please try again.",
+    "rateLimit": "You already sent several requests. We'll be in touch shortly.",
+    "placeholderFirstName": "Sophie",
+    "placeholderLastName": "Martin",
+    "placeholderEmail": "sophie@mysalon.com",
+    "placeholderPhone": "+33 6 12 34 56 78",
+    "noSpam": "No spam. Your data is never shared.",
+    "thanksTitle": "Thanks for your request!",
+    "thanksSubtitle": "We'll reach out within 24h by email or phone to set up your salon with you.",
+    "backToHome": "Back to home"
   }
 }
