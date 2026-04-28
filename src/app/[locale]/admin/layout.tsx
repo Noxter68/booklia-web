@@ -35,6 +35,19 @@ export default function AdminLayout({
   // Allow login page without auth (pathname includes locale prefix, e.g. /fr/admin/login)
   const isLoginPage = pathname.endsWith('/admin/login');
 
+  // All hooks must run on every render (Rules of Hooks). lastSeenAt + the
+  // two badge queries used to live below the early returns, which broke
+  // the hook order whenever this component switched between login and
+  // authenticated views.
+  const [referralsLastSeenAt, setReferralsLastSeenAt] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(REFERRALS_LAST_SEEN_KEY);
+  });
+  const [invitesLastSeenAt, setInvitesLastSeenAt] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(INVITE_REQUESTS_LAST_SEEN_KEY);
+  });
+
   useEffect(() => {
     // Reset redirect flag when on login page
     if (isLoginPage) {
@@ -53,6 +66,41 @@ export default function AdminLayout({
       }
     }
   }, [user, isLoading, isLoginPage, router]);
+
+  // Reset the relevant badge when the admin navigates to its page.
+  useEffect(() => {
+    if (pathname.endsWith('/admin/referrals')) {
+      const now = new Date().toISOString();
+      window.localStorage.setItem(REFERRALS_LAST_SEEN_KEY, now);
+      setReferralsLastSeenAt(now);
+    }
+    if (pathname.endsWith('/admin/invite-requests')) {
+      const now = new Date().toISOString();
+      window.localStorage.setItem(INVITE_REQUESTS_LAST_SEEN_KEY, now);
+      setInvitesLastSeenAt(now);
+    }
+  }, [pathname]);
+
+  // Badge queries: gated by `enabled` so they don't fire on the login page.
+  const { data: referralsBadge } = useQuery({
+    queryKey: ['admin-referrals-pending-count', referralsLastSeenAt],
+    queryFn: () =>
+      api.adminGetReferralsPendingCount(referralsLastSeenAt ?? undefined),
+    enabled: !!user?.isAdmin && !isLoginPage,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
+  });
+
+  const { data: invitesBadge } = useQuery({
+    queryKey: ['admin-invite-requests-pending-count', invitesLastSeenAt],
+    queryFn: () =>
+      api.adminGetInviteRequestsPendingCount(invitesLastSeenAt ?? undefined),
+    enabled: !!user?.isAdmin && !isLoginPage,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
+  });
 
   // Show loader while checking auth (except on login page)
   if (isLoading && !isLoginPage) {
@@ -76,51 +124,6 @@ export default function AdminLayout({
       </div>
     );
   }
-
-  // Track lastSeenAt per badge channel so each sidebar item only shows
-  // new items received after the admin last opened that page.
-  const [referralsLastSeenAt, setReferralsLastSeenAt] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return window.localStorage.getItem(REFERRALS_LAST_SEEN_KEY);
-  });
-  const [invitesLastSeenAt, setInvitesLastSeenAt] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return window.localStorage.getItem(INVITE_REQUESTS_LAST_SEEN_KEY);
-  });
-
-  // Reset the relevant badge when the admin navigates to its page.
-  useEffect(() => {
-    if (pathname.endsWith('/admin/referrals')) {
-      const now = new Date().toISOString();
-      window.localStorage.setItem(REFERRALS_LAST_SEEN_KEY, now);
-      setReferralsLastSeenAt(now);
-    }
-    if (pathname.endsWith('/admin/invite-requests')) {
-      const now = new Date().toISOString();
-      window.localStorage.setItem(INVITE_REQUESTS_LAST_SEEN_KEY, now);
-      setInvitesLastSeenAt(now);
-    }
-  }, [pathname]);
-
-  const { data: referralsBadge } = useQuery({
-    queryKey: ['admin-referrals-pending-count', referralsLastSeenAt],
-    queryFn: () =>
-      api.adminGetReferralsPendingCount(referralsLastSeenAt ?? undefined),
-    enabled: !!user?.isAdmin,
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
-    staleTime: 15_000,
-  });
-
-  const { data: invitesBadge } = useQuery({
-    queryKey: ['admin-invite-requests-pending-count', invitesLastSeenAt],
-    queryFn: () =>
-      api.adminGetInviteRequestsPendingCount(invitesLastSeenAt ?? undefined),
-    enabled: !!user?.isAdmin,
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
-    staleTime: 15_000,
-  });
 
   const referralsBadgeCount = referralsBadge?.count ?? 0;
   const invitesBadgeCount = invitesBadge?.count ?? 0;
