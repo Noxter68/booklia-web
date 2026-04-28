@@ -1108,6 +1108,11 @@ class ApiClient {
     return this.request<import('@/types').AdminReferralBusinessRow[]>('/admin/referrals');
   }
 
+  async adminGetReferralsPendingCount(since?: string) {
+    const qs = since ? `?since=${encodeURIComponent(since)}` : '';
+    return this.request<{ count: number }>(`/admin/referrals/pending-count${qs}`);
+  }
+
   async adminGetReferralsForBusiness(businessId: string) {
     return this.request<import('@/types').AdminReferralBusinessDetail>(
       `/admin/referrals/business/${businessId}`,

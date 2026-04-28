@@ -851,5 +851,136 @@
     "statusRejected": "Rejected",
     "rewardedBadge": "Month credited",
     "submittedAt": "Submitted on"
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "how": "How it works",
+      "whyBooklia": "Why Booklia",
+      "getStarted": "Get started"
+    },
+    "hero": {
+      "badge": "Built for independent salons",
+      "title1": "The system that grows",
+      "titleAccent": "your salon",
+      "subtitle": "Calendar, clients, invoicing, online booking. Everything your salon needs, in one app designed for you.",
+      "ctaPrimary": "Start for free",
+      "ctaSecondary": "See a demo",
+      "noCard": "No credit card required"
+    },
+    "trustBar": {
+      "title": "Made for every wellness profession",
+      "categories": {
+        "hair": "Hair",
+        "barber": "Barbers",
+        "nails": "Nails",
+        "beauty": "Beauty",
+        "massage": "Massage",
+        "spa": "Spa"
+      }
+    },
+    "features": {
+      "title": "Everything you need to run your salon",
+      "subtitle": "Six integrated tools that replace your notebook, your spreadsheet, and your scattered apps.",
+      "agenda": {
+        "title": "Smart calendar",
+        "desc": "Multi-employee scheduling, conflict detection, flexible hours with exceptions and time-off."
+      },
+      "crm": {
+        "title": "Client CRM",
+        "desc": "Full history, private notes, loyalty stats, trust level for every client."
+      },
+      "invoicing": {
+        "title": "Automated invoicing",
+        "desc": "Compliant PDF generation, email delivery, monthly batch generation in one click."
+      },
+      "booking": {
+        "title": "Online booking",
+        "desc": "A public page for your clients. They book in 30 seconds, you confirm in one click."
+      },
+      "referral": {
+        "title": "Referrals",
+        "desc": "Refer two salons, earn a free month. Stack rewards with no limit."
+      },
+      "team": {
+        "title": "Multi-employee",
+        "desc": "Individual schedules, custom services per employee, time-off management in a few clicks."
+      }
+    },
+    "how": {
+      "title": "Get started in 10 minutes",
+      "subtitle": "Three simple steps to bring your salon online.",
+      "step1": {
+        "title": "Create your account",
+        "desc": "Free sign-up, no credit card. Add your salon details."
+      },
+      "step2": {
+        "title": "Set up your services",
+        "desc": "Add services, hours, employees. Our interface guides you step by step."
+      },
+      "step3": {
+        "title": "Receive your first bookings",
+        "desc": "Share your Booklia link. Clients book online, you manage from the dashboard."
+      }
+    },
+    "why": {
+      "title": "Why choose Booklia",
+      "subtitle": "We built Booklia with and for wellness professionals. No compromise.",
+      "allInOne": {
+        "title": "All-in-one",
+        "desc": "No more juggling 3 tools. Calendar, clients, invoices: all in one place."
+      },
+      "noFees": {
+        "title": "No hidden fees",
+        "desc": "No commission on bookings. No SMS fees. One transparent price."
+      },
+      "french": {
+        "title": "Made in France",
+        "desc": "Data hosted in Europe. GDPR compliant. Support in French, English and Portuguese."
+      },
+      "fast": {
+        "title": "Fast to learn",
+        "desc": "Designed for speed. Your team gets trained in 15 minutes."
+      }
+    },
+    "pricing": {
+      "badge": "Early access",
+      "title": "Try it free, no commitment",
+      "subtitle": "Booklia is in closed beta during launch. Request an invite, we onboard your salon in 24h.",
+      "cta": "Request an invite",
+      "detail": "No credit card · Human onboarding · Cancel anytime"
+    },
+    "testimonial": {
+      "quote": "Switching to Booklia saved me two hours a day. My clients love being able to book online without calling us.",
+      "author": "Camille",
+      "role": "EM Institut, Paris"
+    },
+    "finalCta": {
+      "title": "Ready to take it to the next level?",
+      "subtitle": "Join the salons that simplify their daily life with Booklia.",
+      "cta": "Get started now"
+    },
+    "clientFooter": {
+      "label": "Looking to book an appointment?",
+      "cta": "Find a salon"
+    },
+    "mockup": {
+      "todayTitle": "Today",
+      "bookingsCount": "8 bookings",
+      "revenue": "Today's revenue",
+      "liveBadge": "Live",
+      "sample1Service": "Cut & color",
+      "sample1Client": "Sophie M.",
+      "sample1Time": "10:00",
+      "sample2Service": "Blowout",
+      "sample2Client": "Lea B.",
+      "sample2Time": "11:30",
+      "sample3Service": "Coloring",
+      "sample3Client": "Karine P.",
+      "sample3Time": "14:00",
+      "statsTitle": "This week",
+      "newClients": "New clients",
+      "completionRate": "Completion rate"
+    }
   }
 }

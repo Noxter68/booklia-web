@@ -821,19 +821,19 @@
   "referrals": {
     "tabReferrals": "Parrainage",
     "title": "Parrainage",
-    "subtitle": "Recommandez deux clientes et gagnez un mois gratuit",
+    "subtitle": "Recommandez deux clients et gagnez un mois gratuit",
     "howItWorksTitle": "Comment ça marche",
-    "howItWorksStep1": "Proposez une cliente intéressée par Booklia.",
-    "howItWorksStep2": "Nous la contactons pour l'onboarder.",
+    "howItWorksStep1": "Proposez un client ou une cliente intéressé(e) par Booklia.",
+    "howItWorksStep2": "Nous le ou la contactons pour l'onboarder.",
     "howItWorksStep3": "Une fois confirmée, votre proposition est validée.",
     "howItWorksStep4": "Au 2ᵉ parrainage validé, un mois gratuit est crédité.",
     "progressTitle": "Progression",
     "progressOneMore": "Plus que 1 parrainage validé pour obtenir votre prochain mois gratuit.",
     "progressZero": "Proposez votre premier parrainage pour démarrer.",
-    "progressReady": "Vous êtes prête à valider la paire suivante !",
+    "progressReady": "Vous êtes prêt(e) à valider la paire suivante !",
     "freeMonthsLabel": "Mois gratuits gagnés",
-    "submitButton": "Proposer une cliente",
-    "modalTitle": "Proposer une cliente",
+    "submitButton": "Proposer un client",
+    "modalTitle": "Proposer un client",
     "modalSubtitle": "Renseignez les coordonnées de la personne à contacter.",
     "firstName": "Prénom",
     "lastName": "Nom",
@@ -851,5 +851,136 @@
     "statusRejected": "Rejeté",
     "rewardedBadge": "Mois crédité",
     "submittedAt": "Soumis le"
+  },
+  "landing": {
+    "nav": {
+      "features": "Fonctionnalités",
+      "how": "Comment ça marche",
+      "whyBooklia": "Pourquoi Booklia",
+      "getStarted": "Démarrer"
+    },
+    "hero": {
+      "badge": "Conçu pour les salons indépendants",
+      "title1": "Le système qui fait",
+      "titleAccent": "grandir votre salon",
+      "subtitle": "Agenda, clients, factures, réservations en ligne. Tout ce dont votre salon a besoin, dans une seule application pensée pour vous.",
+      "ctaPrimary": "Démarrer gratuitement",
+      "ctaSecondary": "Voir une démonstration",
+      "noCard": "Pas de carte bancaire requise"
+    },
+    "trustBar": {
+      "title": "Pensé pour tous les métiers du soin",
+      "categories": {
+        "hair": "Coiffeurs",
+        "barber": "Barbiers",
+        "nails": "Manucure",
+        "beauty": "Esthétique",
+        "massage": "Massage",
+        "spa": "Spa"
+      }
+    },
+    "features": {
+      "title": "Tout ce qu'il faut pour gérer votre salon",
+      "subtitle": "Six outils intégrés qui remplacent votre cahier, votre Excel et vos applications éparpillées.",
+      "agenda": {
+        "title": "Agenda intelligent",
+        "desc": "Planning multi-employés, gestion des conflits, horaires flexibles avec exceptions et congés."
+      },
+      "crm": {
+        "title": "CRM clients",
+        "desc": "Historique complet, notes privées, statistiques de fidélité, niveau de confiance par client."
+      },
+      "invoicing": {
+        "title": "Facturation automatique",
+        "desc": "Génération PDF conforme, envoi par email, génération en lot pour la fin du mois."
+      },
+      "booking": {
+        "title": "Réservation en ligne",
+        "desc": "Page publique pour vos clients. Ils réservent en 30 secondes, vous validez en un clic."
+      },
+      "referral": {
+        "title": "Parrainage",
+        "desc": "Recommandez deux salons, obtenez un mois gratuit. Cumulable sans limite."
+      },
+      "team": {
+        "title": "Multi-employés",
+        "desc": "Plannings individuels, services personnalisés par employé, gestion des absences en quelques clics."
+      }
+    },
+    "how": {
+      "title": "Démarrez en 10 minutes",
+      "subtitle": "Trois étapes simples pour mettre votre salon en ligne.",
+      "step1": {
+        "title": "Créez votre compte",
+        "desc": "Inscription gratuite, sans carte bancaire. Renseignez les informations de votre salon."
+      },
+      "step2": {
+        "title": "Configurez vos prestations",
+        "desc": "Ajoutez vos services, horaires et employés. Notre interface vous guide pas à pas."
+      },
+      "step3": {
+        "title": "Recevez vos premières réservations",
+        "desc": "Partagez votre lien Booklia. Vos clients réservent, vous gérez tout depuis le tableau de bord."
+      }
+    },
+    "why": {
+      "title": "Pourquoi choisir Booklia",
+      "subtitle": "On a conçu Booklia avec et pour des professionnels du soin. Sans compromis.",
+      "allInOne": {
+        "title": "Tout-en-un",
+        "desc": "Plus besoin de jongler entre 3 outils. Agenda, clients, factures : tout au même endroit."
+      },
+      "noFees": {
+        "title": "Sans frais cachés",
+        "desc": "Pas de commission sur vos rendez-vous. Pas de frais par SMS. Un seul prix, transparent."
+      },
+      "french": {
+        "title": "Made in France",
+        "desc": "Données hébergées en Europe. Conforme RGPD. Support en français, anglais et portugais."
+      },
+      "fast": {
+        "title": "Rapide à prendre en main",
+        "desc": "Interface pensée pour aller vite. Vos employés se forment en 15 minutes."
+      }
+    },
+    "pricing": {
+      "badge": "Accès anticipé",
+      "title": "Essayez gratuitement, sans engagement",
+      "subtitle": "Booklia est en accès fermé pendant le lancement. Demandez votre invitation, on vous configure votre salon en 24h.",
+      "cta": "Demander une invitation",
+      "detail": "Pas de carte bancaire · Mise en route avec un humain · Annulation à tout moment"
+    },
+    "testimonial": {
+      "quote": "En passant à Booklia, j'ai gagné deux heures par jour. Mes clientes adorent pouvoir réserver en ligne sans nous appeler.",
+      "author": "Camille",
+      "role": "EM Institut, Paris"
+    },
+    "finalCta": {
+      "title": "Prête à passer au niveau supérieur ?",
+      "subtitle": "Rejoignez les salons qui simplifient leur quotidien avec Booklia.",
+      "cta": "Démarrer maintenant"
+    },
+    "clientFooter": {
+      "label": "Vous cherchez à réserver un rendez-vous ?",
+      "cta": "Trouvez un salon"
+    },
+    "mockup": {
+      "todayTitle": "Aujourd'hui",
+      "bookingsCount": "8 rendez-vous",
+      "revenue": "CA du jour",
+      "liveBadge": "En direct",
+      "sample1Service": "Coupe & couleur",
+      "sample1Client": "Sophie M.",
+      "sample1Time": "10:00",
+      "sample2Service": "Brushing",
+      "sample2Client": "Léa B.",
+      "sample2Time": "11:30",
+      "sample3Service": "Coloration",
+      "sample3Client": "Karine P.",
+      "sample3Time": "14:00",
+      "statsTitle": "Cette semaine",
+      "newClients": "Nouveaux clients",
+      "completionRate": "Taux de complétion"
+    }
   }
 }

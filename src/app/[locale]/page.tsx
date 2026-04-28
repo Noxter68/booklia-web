@@ -1,629 +1,595 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
-import { useTranslations, useLocale } from 'next-intl';
+import { useRef } from 'react';
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 import {
-  Star,
-  BadgeCheck,
-  ArrowRight,
-  Search,
-  MapPin,
-  Building2,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Shield,
+  Calendar,
   Users,
-  Loader2,
+  FileText,
+  Globe,
+  Heart,
+  UsersRound,
+  ArrowRight,
+  Sparkles,
+  Check,
+  Quote,
+  Scissors,
+  Hand,
+  Flower2,
+  Search,
+  Shield,
+  Zap,
+  TrendingUp,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { api } from '@/lib/api';
-import { Business, Category } from '@/types';
-import { useGeolocation } from '@/hooks/useGeolocation';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
+import { Button } from '@/components/ui/button';
 
-// Category images (Unsplash)
-const CATEGORY_IMAGES: Record<string, string> = {
-  coiffeur: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=800&auto=format&fit=crop',
-  barbier: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=800&auto=format&fit=crop',
-  manucure: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=800&auto=format&fit=crop',
-  'institut-de-beaute': 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=800&auto=format&fit=crop',
-  'bien-etre': 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=800&auto=format&fit=crop',
-};
+export default function LandingPage() {
+  const t = useTranslations('landing');
+  const heroRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
 
-// Horizontal Slider component with navigation arrows
-function HorizontalSlider({
-  children,
-  title,
-  subtitle,
-  viewAllLink,
-  viewAllLabel,
-}: {
-  children: React.ReactNode;
-  title: string;
-  subtitle: string;
-  viewAllLink: string;
-  viewAllLabel: string;
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-
-  const checkScrollability = useCallback(() => {
-    if (scrollRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-    }
-  }, []);
-
-  useEffect(() => {
-    checkScrollability();
-    const ref = scrollRef.current;
-    if (ref) {
-      ref.addEventListener('scroll', checkScrollability);
-      window.addEventListener('resize', checkScrollability);
-      return () => {
-        ref.removeEventListener('scroll', checkScrollability);
-        window.removeEventListener('resize', checkScrollability);
-      };
-    }
-  }, [checkScrollability]);
-
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollRef.current) {
-      const scrollAmount = scrollRef.current.clientWidth * 0.8;
-      scrollRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth',
-      });
-    }
-  };
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  });
+  const heroParallax = useTransform(scrollYProgress, [0, 1], [0, reduceMotion ? 0 : 80]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.4]);
 
   return (
-    <div>
-      <div className="flex items-end justify-between mb-8">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold mb-2">{title}</h2>
-          <p className="text-muted-foreground">{subtitle}</p>
+    <div className="bg-background">
+      {/* ======================================================
+          HERO
+          ====================================================== */}
+      <section
+        ref={heroRef}
+        className="relative overflow-hidden border-b border-border/50"
+      >
+        {/* Soft gradient background */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-linear-to-br from-rose-50 via-amber-50 to-white" />
+          <div className="absolute -top-40 -right-40 w-150 h-150 bg-rose-200/40 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-150 h-150 bg-amber-200/40 rounded-full blur-3xl" />
         </div>
-        <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-2">
-            <button
-              onClick={() => scroll('left')}
-              disabled={!canScrollLeft}
-              className={`w-10 h-10 rounded-full border border-border flex items-center justify-center transition-all ${
-                canScrollLeft
-                  ? 'hover:bg-muted hover:border-primary/30 cursor-pointer'
-                  : 'opacity-30 cursor-not-allowed'
-              }`}
+
+        <div className="container mx-auto px-4 pt-24 pb-16 sm:pt-32 sm:pb-24 lg:pt-40 lg:pb-32">
+          <div className="grid lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-16 items-center">
+            {/* Text column */}
+            <motion.div
+              style={{ y: heroParallax, opacity: heroOpacity }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center lg:text-left"
             >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => scroll('right')}
-              disabled={!canScrollRight}
-              className={`w-10 h-10 rounded-full border border-border flex items-center justify-center transition-all ${
-                canScrollRight
-                  ? 'hover:bg-muted hover:border-primary/30 cursor-pointer'
-                  : 'opacity-30 cursor-not-allowed'
-              }`}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 mb-6 rounded-full bg-white/80 backdrop-blur border border-border/50 text-xs font-medium text-foreground/80"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                {t('hero.badge')}
+              </motion.div>
+
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-foreground"
+              >
+                {t('hero.title1')}{' '}
+                <span className="relative inline-block">
+                  <span className="relative z-10">{t('hero.titleAccent')}</span>
+                  <motion.span
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: 0.7, delay: 0.5, ease: 'easeOut' }}
+                    className="absolute left-0 bottom-1 h-3 sm:h-4 w-full bg-amber-200/70 z-0 origin-left rounded-sm"
+                  />
+                </span>
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="mt-6 text-base sm:text-lg text-muted-foreground max-w-xl lg:max-w-none"
+              >
+                {t('hero.subtitle')}
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="mt-8 flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start"
+              >
+                <Link href="/auth/register">
+                  <Button size="lg" className="rounded-full px-7 h-12 text-base">
+                    {t('hero.ctaPrimary')}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+                <Link href="#features">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="rounded-full px-7 h-12 text-base bg-white/80 backdrop-blur"
+                  >
+                    {t('hero.ctaSecondary')}
+                  </Button>
+                </Link>
+              </motion.div>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                className="mt-4 text-xs text-muted-foreground flex items-center gap-1.5 justify-center lg:justify-start"
+              >
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                {t('hero.noCard')}
+              </motion.p>
+            </motion.div>
+
+            {/* Visual column: dashboard mockup */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.3, ease: 'easeOut' }}
+              className="relative"
             >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+              <DashboardMockup />
+            </motion.div>
           </div>
-          <Link href={viewAllLink} className="hidden md:block">
-            <Button variant="outline" className="rounded-full">
-              {viewAllLabel}
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+        </div>
+      </section>
+
+      {/* ======================================================
+          TRUST BAR — categories
+          ====================================================== */}
+      <section className="py-12 sm:py-16 border-b border-border/50">
+        <div className="container mx-auto px-4">
+          <p className="text-center text-xs uppercase tracking-widest text-muted-foreground mb-8">
+            {t('trustBar.title')}
+          </p>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 max-w-3xl mx-auto">
+            {[
+              { key: 'hair', icon: Scissors },
+              { key: 'barber', icon: Scissors },
+              { key: 'nails', icon: Hand },
+              { key: 'beauty', icon: Sparkles },
+              { key: 'massage', icon: Heart },
+              { key: 'spa', icon: Flower2 },
+            ].map((cat, i) => (
+              <motion.div
+                key={cat.key}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.5 }}
+                transition={{ duration: 0.3, delay: i * 0.05 }}
+                className="flex flex-col items-center gap-2 text-center"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center">
+                  <cat.icon className="w-5 h-5 text-rose-500" />
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-foreground/80">
+                  {t(`trustBar.categories.${cat.key}` as 'trustBar.categories.hair')}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================
+          FEATURES
+          ====================================================== */}
+      <section id="features" className="py-20 sm:py-28">
+        <div className="container mx-auto px-4">
+          <SectionHeader
+            title={t('features.title')}
+            subtitle={t('features.subtitle')}
+          />
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-12 max-w-6xl mx-auto">
+            {[
+              {
+                key: 'agenda',
+                icon: Calendar,
+                color: 'text-blue-600',
+                bg: 'bg-blue-50',
+                border: 'border-blue-100',
+              },
+              {
+                key: 'crm',
+                icon: Users,
+                color: 'text-emerald-600',
+                bg: 'bg-emerald-50',
+                border: 'border-emerald-100',
+              },
+              {
+                key: 'invoicing',
+                icon: FileText,
+                color: 'text-amber-600',
+                bg: 'bg-amber-50',
+                border: 'border-amber-100',
+              },
+              {
+                key: 'booking',
+                icon: Globe,
+                color: 'text-rose-600',
+                bg: 'bg-rose-50',
+                border: 'border-rose-100',
+              },
+              {
+                key: 'referral',
+                icon: Heart,
+                color: 'text-pink-600',
+                bg: 'bg-pink-50',
+                border: 'border-pink-100',
+              },
+              {
+                key: 'team',
+                icon: UsersRound,
+                color: 'text-indigo-600',
+                bg: 'bg-indigo-50',
+                border: 'border-indigo-100',
+              },
+            ].map((f, i) => (
+              <motion.div
+                key={f.key}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.4, delay: i * 0.06 }}
+                whileHover={{ y: -4 }}
+                className="group relative bg-surface border border-border rounded-2xl p-6 hover:shadow-lg transition-shadow"
+              >
+                <div
+                  className={`w-12 h-12 rounded-xl ${f.bg} ${f.border} border flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
+                >
+                  <f.icon className={`w-5 h-5 ${f.color}`} />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">
+                  {t(`features.${f.key}.title` as 'features.agenda.title')}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t(`features.${f.key}.desc` as 'features.agenda.desc')}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================
+          HOW IT WORKS
+          ====================================================== */}
+      <section id="how" className="py-20 sm:py-28 bg-linear-to-b from-rose-50/40 to-transparent border-y border-border/50">
+        <div className="container mx-auto px-4">
+          <SectionHeader title={t('how.title')} subtitle={t('how.subtitle')} />
+
+          <div className="grid md:grid-cols-3 gap-6 mt-12 max-w-5xl mx-auto">
+            {[1, 2, 3].map((step, i) => (
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.4 }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="relative bg-surface border border-border rounded-2xl p-6"
+              >
+                <div className="absolute -top-4 left-6 w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold">
+                  {step}
+                </div>
+                <h3 className="text-lg font-semibold mb-2 mt-2">
+                  {t(`how.step${step}.title` as 'how.step1.title')}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t(`how.step${step}.desc` as 'how.step1.desc')}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================
+          WHY BOOKLIA
+          ====================================================== */}
+      <section id="why" className="py-20 sm:py-28">
+        <div className="container mx-auto px-4">
+          <SectionHeader title={t('why.title')} subtitle={t('why.subtitle')} />
+
+          <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 mt-12 max-w-4xl mx-auto">
+            {[
+              { key: 'allInOne', icon: Sparkles },
+              { key: 'noFees', icon: TrendingUp },
+              { key: 'french', icon: Shield },
+              { key: 'fast', icon: Zap },
+            ].map((item, i) => (
+              <motion.div
+                key={item.key}
+                initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.4, delay: i * 0.05 }}
+                className="flex gap-4 p-6 bg-surface border border-border rounded-2xl"
+              >
+                <div className="shrink-0 w-10 h-10 rounded-xl bg-foreground/5 flex items-center justify-center">
+                  <item.icon className="w-5 h-5 text-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">
+                    {t(`why.${item.key}.title` as 'why.allInOne.title')}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {t(`why.${item.key}.desc` as 'why.allInOne.desc')}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================
+          PRICING TEASER
+          ====================================================== */}
+      <section className="py-20 sm:py-28 bg-foreground text-background">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: 0.5 }}
+            className="max-w-2xl mx-auto text-center"
+          >
+            <span className="inline-block px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-medium mb-6">
+              {t('pricing.badge')}
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              {t('pricing.title')}
+            </h2>
+            <p className="text-base sm:text-lg text-background/70 mb-8">
+              {t('pricing.subtitle')}
+            </p>
+            <Link href="/auth/register">
+              <Button
+                size="lg"
+                className="rounded-full px-8 h-12 text-base bg-background text-foreground hover:bg-background/90"
+              >
+                {t('pricing.cta')}
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+            <p className="mt-4 text-xs text-background/60">{t('pricing.detail')}</p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ======================================================
+          TESTIMONIAL
+          ====================================================== */}
+      <section className="py-20 sm:py-28">
+        <div className="container mx-auto px-4">
+          <motion.figure
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.5 }}
+            className="max-w-3xl mx-auto bg-surface border border-border rounded-3xl p-8 sm:p-12 text-center relative"
+          >
+            <Quote className="absolute top-6 left-6 w-8 h-8 text-rose-200" />
+            <blockquote className="text-xl sm:text-2xl font-medium text-foreground leading-relaxed">
+              “{t('testimonial.quote')}”
+            </blockquote>
+            <figcaption className="mt-6 flex flex-col items-center gap-1">
+              <div className="w-12 h-12 rounded-full bg-linear-to-br from-rose-200 to-amber-200 flex items-center justify-center font-semibold text-foreground">
+                {t('testimonial.author')[0]}
+              </div>
+              <span className="text-sm font-semibold mt-2">
+                {t('testimonial.author')}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {t('testimonial.role')}
+              </span>
+            </figcaption>
+          </motion.figure>
+        </div>
+      </section>
+
+      {/* ======================================================
+          FINAL CTA
+          ====================================================== */}
+      <section className="py-20 sm:py-28 border-t border-border/50">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: 0.5 }}
+            className="max-w-2xl mx-auto text-center"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              {t('finalCta.title')}
+            </h2>
+            <p className="text-base sm:text-lg text-muted-foreground mb-8">
+              {t('finalCta.subtitle')}
+            </p>
+            <Link href="/auth/register">
+              <Button size="lg" className="rounded-full px-8 h-12 text-base">
+                {t('finalCta.cta')}
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ======================================================
+          CLIENT FOOTER LINK
+          ====================================================== */}
+      <section className="py-8 border-t border-border/50 bg-muted/30">
+        <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm">
+          <span className="text-muted-foreground">
+            {t('clientFooter.label')}
+          </span>
+          <Link
+            href="/search"
+            className="inline-flex items-center gap-1 font-medium text-foreground hover:underline"
+          >
+            <Search className="w-4 h-4" />
+            {t('clientFooter.cta')}
           </Link>
         </div>
-      </div>
-
-      <div
-        ref={scrollRef}
-        className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        {children}
-      </div>
-
-      <div className="md:hidden mt-6 text-center">
-        <Link href={viewAllLink}>
-          <Button variant="outline" className="rounded-full">
-            {viewAllLabel}
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </Link>
-      </div>
+      </section>
     </div>
   );
 }
 
-// Business Card
-function HomeBusinessCard({ business, t }: { business: Business; t: (key: string) => string }) {
-  const serviceCount = business._count?.services || business.services?.length || 0;
+// ======================================================
+// SHARED SUBCOMPONENTS
+// ======================================================
 
+function SectionHeader({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
   return (
-    <Link href={`/business/${business.slug}`} className="block snap-start">
-      <motion.div
-        whileHover={{ y: -4 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-        className="w-72 sm:w-80 bg-surface border border-border rounded-2xl overflow-hidden hover:border-primary/30 hover:shadow-lg transition-all duration-300"
-      >
-        <div className="h-36 relative">
-          {business.coverUrl ? (
-            <img src={business.coverUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full bg-linear-to-br from-primary/20 via-primary/10 to-primary/5" />
-          )}
-          <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
-
-          {business.isVerified && (
-            <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
-              <BadgeCheck className="w-4 h-4 text-foreground" />
-              <span className="text-xs font-semibold text-foreground">{t('verified')}</span>
-            </div>
-          )}
-
-          <div className="absolute -bottom-5 left-4">
-            <div className="w-14 h-14 bg-surface border-[3px] border-surface rounded-xl shadow-md flex items-center justify-center overflow-hidden">
-              {business.logoUrl ? (
-                <img src={business.logoUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-primary/10 flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-primary" />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 pt-7">
-          <h3 className="font-semibold text-base mb-1 truncate">{business.name}</h3>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
-            {business.city && (
-              <span className="flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5" />
-                {business.city}
-              </span>
-            )}
-            {serviceCount > 0 && (
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                {serviceCount} {serviceCount > 1 ? t('prestations') : t('prestation')}
-              </span>
-            )}
-          </div>
-          {business.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">{business.description}</p>
-          )}
-        </div>
-      </motion.div>
-    </Link>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.5 }}
+      transition={{ duration: 0.4 }}
+      className="text-center max-w-2xl mx-auto"
+    >
+      <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{title}</h2>
+      <p className="mt-3 text-base sm:text-lg text-muted-foreground">{subtitle}</p>
+    </motion.div>
   );
 }
 
-export default function HomePage() {
-  const [query, setQuery] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
-  const [suggestions, setSuggestions] = useState<Business[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const router = useRouter();
-  const { latitude, longitude, hasPosition } = useGeolocation();
-  const t = useTranslations('home');
-  const tc = useTranslations('common');
-  const locale = useLocale();
+function DashboardMockup() {
+  const t = useTranslations('landing.mockup');
 
-  const searchBusinesses = useCallback(async (q: string) => {
-    if (q.length < 2) {
-      setSuggestions([]);
-      return;
-    }
-    setIsSearching(true);
-    try {
-      const result = await api.searchBusinesses({ q, limit: 5 });
-      setSuggestions(result.data);
-      setSelectedIndex(-1);
-    } catch {
-      setSuggestions([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, []);
-
-  const handleQueryChange = (value: string) => {
-    setQuery(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => searchBusinesses(value), 300);
-  };
-
-  const handleSelectBusiness = (business: Business) => {
-    setIsFocused(false);
-    setSuggestions([]);
-    router.push(`/business/${business.slug}`);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!suggestions.length) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
-    } else if (e.key === 'Enter' && selectedIndex >= 0) {
-      e.preventDefault();
-      handleSelectBusiness(suggestions[selectedIndex]);
-    } else if (e.key === 'Escape') {
-      setSuggestions([]);
-      setSelectedIndex(-1);
-    }
-  };
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        setSuggestions([]);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const { scrollY } = useScroll();
-  const heroY = useTransform(scrollY, [0, 600], [0, 200]);
-  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
-
-  const { data: latestBusinesses } = useQuery({
-    queryKey: ['latestBusinesses'],
-    queryFn: () => api.searchBusinesses({ limit: 10, sortBy: 'recent' }),
-  });
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsFocused(false);
-    const params = new URLSearchParams();
-    if (query.trim()) params.set('q', query);
-    if (hasPosition) {
-      params.set('lat', String(latitude));
-      params.set('lng', String(longitude));
-    }
-    router.push(`/search?${params.toString()}`);
-  };
-
-  const { data: dbCategories } = useQuery({
-    queryKey: ['categories', locale],
-    queryFn: () => api.getCategories(),
-  });
-
-  const benefits = [
-    { title: t('benefits.instantBooking'), description: t('benefits.instantBookingDesc') },
-    { title: t('benefits.verifiedPros'), description: t('benefits.verifiedProsDesc') },
-    { title: t('benefits.authenticReviews'), description: t('benefits.authenticReviewsDesc') },
-    { title: t('benefits.instantConfirmation'), description: t('benefits.instantConfirmationDesc') },
-  ];
-
-  const stats = [
-    { value: t('stats.onlineBooking'), label: t('stats.onlineBookingLabel') },
-    { value: t('stats.reminders'), label: t('stats.remindersLabel') },
-    { value: t('stats.offHours'), label: t('stats.offHoursLabel') },
+  const bookings = [
+    {
+      service: t('sample1Service'),
+      client: t('sample1Client'),
+      time: t('sample1Time'),
+      color: 'bg-rose-100 border-rose-200 text-rose-700',
+    },
+    {
+      service: t('sample2Service'),
+      client: t('sample2Client'),
+      time: t('sample2Time'),
+      color: 'bg-amber-100 border-amber-200 text-amber-700',
+    },
+    {
+      service: t('sample3Service'),
+      client: t('sample3Client'),
+      time: t('sample3Time'),
+      color: 'bg-blue-100 border-blue-200 text-blue-700',
+    },
   ];
 
   return (
-    <div className="flex flex-col">
-      {/* ==================== HERO ==================== */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden -mt-20">
-        <motion.div style={{ y: heroY }} className="absolute inset-0">
-          <div
-            className={`absolute inset-0 bg-cover bg-center bg-no-repeat scale-110 transition-all duration-700 ${isFocused ? 'blur-sm' : ''}`}
-            style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?q=80&w=2574&auto=format&fit=crop)' }}
-          />
-        </motion.div>
-        <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/30 to-black/60" />
-
-        <motion.div style={{ opacity: heroOpacity }} className="relative z-10 container mx-auto px-4 text-center text-white pt-20">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-6">
-            <span className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-sm font-medium">
-              {t('badge')}
+    <div className="relative">
+      {/* Main dashboard card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, delay: 0.4 }}
+        className="bg-white rounded-3xl shadow-2xl shadow-rose-900/10 border border-border/40 overflow-hidden"
+      >
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold">{t('todayTitle')}</p>
+            <p className="text-xs text-muted-foreground">{t('bookingsCount')}</p>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
-          </motion.div>
-
-          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }} className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-            {t('title')}
-            <br />
-            <span className="bg-linear-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent">
-              {t('titleHighlight')}
+            <span className="text-xs font-medium text-emerald-700">
+              {t('liveBadge')}
             </span>
-          </motion.h1>
+          </div>
+        </div>
 
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="text-lg md:text-xl text-white/70 mb-10 max-w-2xl mx-auto leading-relaxed">
-            {t('subtitle')}
-            <br className="hidden md:block" />
-            {t('subtitleCta')}
-          </motion.p>
-
-          {/* Search bar */}
-          <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }} onSubmit={handleSearch} className="max-w-xl mx-auto mb-12">
-            <div ref={searchContainerRef} className="relative">
-              <div className={`bg-white rounded-2xl shadow-2xl transition-all duration-300 ${isFocused ? 'shadow-white/10 ring-2 ring-white/20' : ''}`}>
-                <div className="flex items-center gap-3 px-5 py-3.5">
-                  {isSearching ? (
-                    <Loader2 className="w-5 h-5 text-gray-400 shrink-0 animate-spin" />
-                  ) : (
-                    <Search className="w-5 h-5 text-gray-400 shrink-0" />
-                  )}
-                  <input
-                    type="text"
-                    placeholder={t('searchPlaceholder')}
-                    value={query}
-                    onChange={(e) => handleQueryChange(e.target.value)}
-                    onFocus={() => setIsFocused(true)}
-                    onKeyDown={handleKeyDown}
-                    className="flex-1 text-gray-900 placeholder:text-gray-400 outline-none text-base bg-transparent"
-                  />
-                  <button type="submit" className="h-11 px-6 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary-hover transition-all cursor-pointer shrink-0">
-                    {t('searchButton')}
-                  </button>
-                </div>
+        {/* Bookings list */}
+        <div className="p-4 space-y-2">
+          {bookings.map((b, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.7 + i * 0.1 }}
+              className={`flex items-center gap-3 p-3 rounded-xl border ${b.color}`}
+            >
+              <span className="font-semibold text-sm w-12">{b.time}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate text-foreground">
+                  {b.service}
+                </p>
+                <p className="text-xs opacity-70 truncate">{b.client}</p>
               </div>
-
-              {suggestions.length > 0 && isFocused && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50">
-                  {suggestions.map((business, index) => (
-                    <button
-                      key={business.id}
-                      type="button"
-                      onMouseDown={() => handleSelectBusiness(business)}
-                      onMouseEnter={() => setSelectedIndex(index)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors cursor-pointer ${index === selectedIndex ? 'bg-gray-50' : 'hover:bg-gray-50'}`}
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-                        {business.logoUrl ? (
-                          <img src={business.logoUrl} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <Building2 className="w-5 h-5 text-gray-400" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium text-gray-900 truncate">{business.name}</span>
-                          {business.isVerified && <BadgeCheck className="w-3.5 h-3.5 text-foreground shrink-0" />}
-                        </div>
-                        {business.city && (
-                          <span className="text-xs text-gray-500 flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {business.city}
-                          </span>
-                        )}
-                      </div>
-                      {business._count?.services ? (
-                        <span className="text-xs text-gray-400 shrink-0">{business._count.services} {business._count.services > 1 ? tc('services') : tc('service')}</span>
-                      ) : null}
-                    </button>
-                  ))}
-                  <button type="submit" className="w-full px-4 py-2.5 text-sm text-primary font-medium bg-gray-50 hover:bg-gray-100 transition-colors text-center cursor-pointer">
-                    {t('seeAllResults', { query })}
-                  </button>
-                </div>
-              )}
-            </div>
-          </motion.form>
-
-          {dbCategories && dbCategories.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.4 }} className="flex flex-wrap justify-center gap-2">
-              {dbCategories.filter(c => !c.parentId).map((category) => (
-                <Link key={category.id} href={`/search?category=${category.slug}`} className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 rounded-full text-sm text-white/80 hover:text-white transition-all">
-                  {category.name}
-                </Link>
-              ))}
+              <Check className="w-4 h-4 shrink-0" />
             </motion.div>
-          )}
-        </motion.div>
+          ))}
+        </div>
 
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-linear-to-t from-background to-transparent" />
-      </section>
-
-      {/* ==================== STATS ==================== */}
-      <section className="relative z-10 -mt-12">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {stats.map((stat, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} whileHover={{ scale: 1.04 }} className="bg-surface border border-border rounded-2xl p-8 shadow-lg cursor-default transition-shadow hover:shadow-xl hover:border-primary/20">
-                <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">{stat.value}</div>
-                <div className="text-sm text-muted-foreground leading-relaxed">{stat.label}</div>
-              </motion.div>
-            ))}
+        {/* Stats footer */}
+        <div className="px-6 py-4 border-t border-border/50 grid grid-cols-2 gap-4 bg-muted/30">
+          <div>
+            <p className="text-xs text-muted-foreground">{t('newClients')}</p>
+            <p className="text-lg font-bold mt-0.5">+12</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">{t('completionRate')}</p>
+            <p className="text-lg font-bold mt-0.5">94%</p>
           </div>
         </div>
-      </section>
+      </motion.div>
 
-      {/* ==================== CATEGORIES ==================== */}
-      {dbCategories && dbCategories.filter(c => !c.parentId).length > 0 && (
-        <section className="py-20 md:py-28">
-          <div className="container mx-auto px-4">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('categories.title')}</h2>
-              <p className="text-muted-foreground text-lg max-w-xl mx-auto">{t('categories.subtitle')}</p>
-            </motion.div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
-              {dbCategories.filter(c => !c.parentId).map((category, index) => {
-                const image = CATEGORY_IMAGES[category.slug];
-                return (
-                  <motion.div key={category.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.06 }}>
-                    <Link href={`/search?category=${category.slug}`} className="group block relative h-52 md:h-64 rounded-2xl overflow-hidden">
-                      <img src={image} alt={category.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                      <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <span className="font-semibold text-white text-base">{category.name}</span>
-                        {category.children && category.children.length > 0 && (
-                          <p className="text-white/70 text-xs mt-0.5">
-                            {category.children.length} {category.children.length > 1 ? tc('specialities') : tc('speciality')}
-                          </p>
-                        )}
-                      </div>
-                    </Link>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ==================== BENEFITS ==================== */}
-      <section className="py-20 md:py-28 bg-muted/30">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('benefits.title')}</h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">{t('benefits.subtitle')}</p>
-          </motion.div>
-
-          <div className="grid sm:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden">
-            {benefits.map((benefit, index) => (
-              <motion.div key={benefit.title} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }} className="bg-surface p-8 md:p-10 group hover:bg-muted/30 transition-colors">
-                <span className="text-5xl md:text-6xl font-bold text-primary/10 block mb-4 leading-none">0{index + 1}</span>
-                <h3 className="font-semibold text-lg mb-2">{benefit.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{benefit.description}</p>
-              </motion.div>
-            ))}
-          </div>
+      {/* Floating revenue card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20, rotate: -8 }}
+        animate={{ opacity: 1, y: 0, rotate: -6 }}
+        transition={{ duration: 0.6, delay: 0.9 }}
+        className="absolute -bottom-6 -left-6 sm:-left-10 bg-white rounded-2xl shadow-xl shadow-rose-900/10 border border-border/40 p-4 hidden sm:block"
+      >
+        <p className="text-xs text-muted-foreground">{t('revenue')}</p>
+        <p className="text-2xl font-bold mt-1">€842</p>
+        <div className="flex items-center gap-1 mt-1 text-xs text-emerald-600 font-medium">
+          <TrendingUp className="w-3.5 h-3.5" />
+          +18%
         </div>
-      </section>
+      </motion.div>
 
-      {/* ==================== HOW IT WORKS ==================== */}
-      <section className="py-20 md:py-28">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('howItWorks.title')}</h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">{t('howItWorks.subtitle')}</p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6 md:gap-0">
-            {[
-              { step: '01', title: t('howItWorks.step1Title'), description: t('howItWorks.step1Desc') },
-              { step: '02', title: t('howItWorks.step2Title'), description: t('howItWorks.step2Desc') },
-              { step: '03', title: t('howItWorks.step3Title'), description: t('howItWorks.step3Desc') },
-            ].map((item, index) => (
-              <motion.div key={item.step} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.12 }} className={`relative p-8 ${index < 2 ? 'md:border-r md:border-border' : ''}`}>
-                <span className="text-5xl md:text-6xl font-bold text-primary/10 block mb-4 leading-none">{item.step}</span>
-                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
-              </motion.div>
-            ))}
-          </div>
+      {/* Floating notification bubble */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 1.1 }}
+        className="absolute -top-4 -right-4 sm:-right-8 bg-white rounded-2xl shadow-xl shadow-rose-900/10 border border-border/40 p-3 hidden sm:flex items-center gap-2"
+      >
+        <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center">
+          <Heart className="w-4 h-4 text-rose-500" />
         </div>
-      </section>
-
-      {/* ==================== FEATURED BUSINESSES ==================== */}
-      <section className="py-20 md:py-28 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }}>
-            {latestBusinesses?.data && latestBusinesses.data.length > 0 ? (
-              <HorizontalSlider title={t('featured.title')} subtitle={t('featured.subtitle')} viewAllLink="/search" viewAllLabel={tc('seeAll')}>
-                {latestBusinesses.data.map((business) => (
-                  <HomeBusinessCard key={business.id} business={business} t={tc} />
-                ))}
-              </HorizontalSlider>
-            ) : (
-              <div className="text-center py-16 bg-surface rounded-3xl border border-border">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Building2 className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">{t('featured.comingSoon')}</h3>
-                <p className="text-muted-foreground">{t('featured.comingSoonDesc')}</p>
-              </div>
-            )}
-          </motion.div>
+        <div>
+          <p className="text-xs font-semibold">Karine P.</p>
+          <p className="text-[10px] text-muted-foreground">+1 nouveau RDV</p>
         </div>
-      </section>
-
-      {/* ==================== SOCIAL PROOF ==================== */}
-      <section className="py-20 md:py-28">
-        <div className="container mx-auto px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} className="max-w-4xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div>
-                <span className="inline-block px-4 py-1.5 bg-green-500/10 text-green-600 dark:text-green-400 text-sm font-medium rounded-full mb-4">
-                  {t('socialProof.badge')}
-                </span>
-                <h2 className="text-3xl md:text-4xl font-bold mb-6">{t('socialProof.title')}</h2>
-                <p className="text-muted-foreground text-lg mb-8 leading-relaxed">{t('socialProof.description')}</p>
-
-                <div className="space-y-4">
-                  {[
-                    { icon: BadgeCheck, text: t('socialProof.realReviews') },
-                    { icon: Shield, text: t('socialProof.verifiedPros') },
-                    { icon: Users, text: t('socialProof.trustedCommunity') },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-green-50 dark:bg-green-500/10 rounded-lg flex items-center justify-center shrink-0">
-                        <item.icon className="w-4 h-4 text-green-600 dark:text-green-400" />
-                      </div>
-                      <span className="text-sm font-medium">{item.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="relative">
-                <div className="bg-surface border border-border rounded-2xl p-6 shadow-lg">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-bold text-primary">M</span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">{t('socialProof.reviewerName')}</p>
-                      <p className="text-xs text-muted-foreground">{t('socialProof.reviewDate')}</p>
-                    </div>
-                    <div className="ml-auto flex gap-0.5">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{t('socialProof.reviewText')}</p>
-                  <div className="mt-4 pt-4 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
-                    <BadgeCheck className="w-3.5 h-3.5 text-green-500" />
-                    {tc('verifiedService')}
-                  </div>
-                </div>
-                <div className="absolute -bottom-4 -right-4 -z-10 w-full h-full bg-muted/50 rounded-2xl border border-border" />
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ==================== CTA ==================== */}
-      <section className="py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="relative overflow-hidden rounded-3xl bg-primary text-primary-foreground p-10 md:p-16 text-center">
-            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-            <div className="relative z-10">
-              <h2 className="text-2xl md:text-4xl font-bold mb-4">{t('cta.title')}</h2>
-              <p className="text-lg text-primary-foreground/70 mb-8 max-w-xl mx-auto">{t('cta.subtitle')}</p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <Button size="lg" variant="outline" className="rounded-full px-8 bg-white text-primary hover:bg-white/90 border-white" onClick={() => router.push('/search')}>
-                  {t('cta.explorePros')}
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-                <Button size="lg" variant="ghost" className="rounded-full px-8 text-primary-foreground hover:bg-white/10" onClick={() => router.push('/auth/register')}>
-                  {t('cta.createAccount')}
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+      </motion.div>
     </div>
   );
 }

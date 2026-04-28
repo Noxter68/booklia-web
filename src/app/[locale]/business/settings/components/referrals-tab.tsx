@@ -25,6 +25,21 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import type { Referral, ReferralStatus } from '@/types';
 
+/**
+ * Format a phone number as the user types. Keeps a leading '+' if present
+ * (international), then groups digits in pairs (FR style: "06 12 34 56 78").
+ * Works the same on backspace / paste because we re-derive from raw digits
+ * on every keystroke.
+ */
+function formatPhone(input: string): string {
+  const trimmed = input.trim();
+  const hasPlus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/\D/g, '').slice(0, 15);
+  if (digits.length === 0) return hasPlus ? '+' : '';
+  const pairs = digits.match(/.{1,2}/g) ?? [];
+  return (hasPlus ? '+' : '') + pairs.join(' ');
+}
+
 const statusBadgeClass: Record<ReferralStatus, string> = {
   PENDING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   VALIDATED:
@@ -330,10 +345,12 @@ function ReferralModal({
             <Field
               label={t('phone')}
               value={phone}
-              onChange={setPhone}
+              onChange={(v) => setPhone(formatPhone(v))}
               icon={<Phone className="w-4 h-4 text-muted-foreground" />}
-              placeholder="+33 6 12 34 56 78"
+              placeholder="06 12 34 56 78"
               type="tel"
+              inputMode="tel"
+              maxLength={20}
             />
 
             <div className="flex justify-end gap-2 pt-2">
@@ -374,6 +391,8 @@ function Field({
   placeholder,
   type = 'text',
   autoFocus,
+  inputMode,
+  maxLength,
 }: {
   label: string;
   value: string;
@@ -383,6 +402,8 @@ function Field({
   placeholder?: string;
   type?: string;
   autoFocus?: boolean;
+  inputMode?: 'text' | 'tel' | 'email' | 'numeric';
+  maxLength?: number;
 }) {
   return (
     <div>
@@ -404,6 +425,8 @@ function Field({
           onChange={(e) => onChange(e.target.value)}
           autoFocus={autoFocus}
           placeholder={placeholder}
+          inputMode={inputMode}
+          maxLength={maxLength}
           className={`w-full ${icon || prefix ? 'pl-9' : 'px-3'} pr-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20`}
         />
       </div>

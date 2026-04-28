@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import {
   Shield,
   Building2,
@@ -14,6 +15,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { PageLoader } from '@/components/ui/spinner';
+import { api } from '@/lib/api';
+
+const REFERRALS_LAST_SEEN_KEY = 'admin:referrals:lastSeenAt';
 
 export default function AdminLayout({
   children,
@@ -71,10 +75,42 @@ export default function AdminLayout({
     );
   }
 
+  // Track when the admin last opened the referrals page so we can highlight
+  // only newly submitted ones in the sidebar badge.
+  const [lastSeenAt, setLastSeenAt] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(REFERRALS_LAST_SEEN_KEY);
+  });
+
+  // Reset the badge when the admin navigates to the referrals page.
+  useEffect(() => {
+    if (pathname.endsWith('/admin/referrals')) {
+      const now = new Date().toISOString();
+      window.localStorage.setItem(REFERRALS_LAST_SEEN_KEY, now);
+      setLastSeenAt(now);
+    }
+  }, [pathname]);
+
+  const { data: referralsBadge } = useQuery({
+    queryKey: ['admin-referrals-pending-count', lastSeenAt],
+    queryFn: () => api.adminGetReferralsPendingCount(lastSeenAt ?? undefined),
+    enabled: !!user?.isAdmin,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
+  });
+
+  const referralsBadgeCount = referralsBadge?.count ?? 0;
+
   const navItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/businesses', icon: Building2, label: 'Business' },
-    { href: '/admin/referrals', icon: Heart, label: 'Parrainages' },
+    {
+      href: '/admin/referrals',
+      icon: Heart,
+      label: 'Parrainages',
+      badge: referralsBadgeCount,
+    },
   ];
 
   const handleLogout = () => {
@@ -124,6 +160,7 @@ export default function AdminLayout({
         <nav className="p-4 space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
+            const badgeCount = item.badge ?? 0;
             return (
               <Link
                 key={item.href}
@@ -138,7 +175,12 @@ export default function AdminLayout({
                 `}
               >
                 <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium flex-1">{item.label}</span>
+                {badgeCount > 0 && !isActive && (
+                  <span className="min-w-5 h-5 px-1.5 inline-flex items-center justify-center text-xs font-semibold text-white bg-red-500 rounded-full ring-2 ring-white">
+                    {badgeCount > 99 ? '99+' : badgeCount}
+                  </span>
+                )}
               </Link>
             );
           })}
