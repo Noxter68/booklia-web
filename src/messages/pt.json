@@ -721,7 +721,18 @@
     "recapNoCategory": "Nenhuma",
     "recapNoOptions": "Nenhuma opção",
     "remove": "Remover",
-    "inheritedFromCategory": "Herdadas da categoria — edite-as pela gestão de categorias."
+    "inheritedFromCategory": "Herdadas da categoria — edite-as pela gestão de categorias.",
+    "pricingTiersTitle": "Preço por fidelidade",
+    "pricingTiersToggle": "Aplicar acréscimo quando o cliente volta mais tarde",
+    "pricingTiersHint": "Defina um acréscimo aplicado ao preço base quando o cliente ultrapassar um número de semanas desde o último agendamento concluído.",
+    "tierThreshold": "Depois de (semanas)",
+    "tierThresholdPlaceholder": "Ex: 4",
+    "tierSurcharge": "Acréscimo (€)",
+    "tierAdd": "Adicionar um nível",
+    "tierRemove": "Remover este nível",
+    "tierPreview": "Após {weeks} semanas: {total} €",
+    "tierDuplicateWeeks": "Dois níveis não podem ter a mesma duração.",
+    "recapPricingTiers": "Níveis de fidelidade"
   },
   "admin": {
     "title": "Administração",

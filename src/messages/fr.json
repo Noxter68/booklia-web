@@ -721,7 +721,18 @@
     "recapNoCategory": "Aucune",
     "recapNoOptions": "Aucune option",
     "remove": "Retirer",
-    "inheritedFromCategory": "Héritées de la catégorie — éditables depuis la gestion des catégories."
+    "inheritedFromCategory": "Héritées de la catégorie — éditables depuis la gestion des catégories.",
+    "pricingTiersTitle": "Tarification fidélité",
+    "pricingTiersToggle": "Activer la majoration si le client revient tard",
+    "pricingTiersHint": "Définissez une majoration appliquée au prix de base si le client dépasse un certain nombre de semaines depuis sa dernière prestation terminée.",
+    "tierThreshold": "Après (semaines)",
+    "tierThresholdPlaceholder": "Ex : 4",
+    "tierSurcharge": "Majoration (€)",
+    "tierAdd": "Ajouter un palier",
+    "tierRemove": "Supprimer ce palier",
+    "tierPreview": "Au-delà de {weeks} semaines : {total} €",
+    "tierDuplicateWeeks": "Deux paliers ne peuvent pas avoir la même durée.",
+    "recapPricingTiers": "Paliers de fidélité"
   },
   "admin": {
     "title": "Administration",

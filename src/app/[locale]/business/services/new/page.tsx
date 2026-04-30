@@ -22,6 +22,12 @@ import { Input } from '@/components/ui/input';
 import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import {
+  PricingTiersEditor,
+  PricingTierDraft,
+  tiersToPayload,
+  tiersHaveDuplicates,
+} from '@/components/business/pricing-tiers-editor';
 import { BusinessCategory } from '@/types';
 import { useTranslations } from 'next-intl';
 
@@ -34,6 +40,7 @@ interface FormData {
   priceCents: number | null;
   durationMinutes: number | null;
   businessCategoryId: string | null;
+  pricingTiers: PricingTierDraft[];
 }
 
 const steps = [
@@ -59,6 +66,7 @@ export default function NewBusinessServicePage() {
     priceCents: null,
     durationMinutes: null,
     businessCategoryId: searchParams.get('category') || null,
+    pricingTiers: [],
   });
 
   const { data: business, isLoading: businessLoading } = useQuery({
@@ -68,15 +76,18 @@ export default function NewBusinessServicePage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: () =>
-      api.createBusinessService({
+    mutationFn: () => {
+      const tiers = tiersToPayload(formData.pricingTiers);
+      return api.createBusinessService({
         name: formData.name,
         description: formData.description || undefined,
         detailedDescription: formData.detailedDescription || undefined,
         priceCents: formData.priceCents || 0,
         durationMinutes: formData.durationMinutes || 30,
         businessCategoryId: formData.businessCategoryId || undefined,
-      }),
+        pricingTiers: tiers.length > 0 ? tiers : undefined,
+      });
+    },
     onSuccess: () => {
       success(t('success'));
       queryClient.invalidateQueries({ queryKey: ['my-business'] });
@@ -100,7 +111,8 @@ export default function NewBusinessServicePage() {
           formData.priceCents !== null &&
           formData.priceCents >= 0 &&
           formData.durationMinutes !== null &&
-          formData.durationMinutes > 0
+          formData.durationMinutes > 0 &&
+          !tiersHaveDuplicates(formData.pricingTiers)
         );
       case 3:
         return true;
@@ -209,6 +221,7 @@ export default function NewBusinessServicePage() {
               <StepPricing
                 priceCents={formData.priceCents}
                 durationMinutes={formData.durationMinutes}
+                pricingTiers={formData.pricingTiers}
                 onChange={updateForm}
               />
             )}
@@ -344,10 +357,12 @@ function StepInfo({
 function StepPricing({
   priceCents,
   durationMinutes,
+  pricingTiers,
   onChange,
 }: {
   priceCents: number | null;
   durationMinutes: number | null;
+  pricingTiers: PricingTierDraft[];
   onChange: (updates: Partial<FormData>) => void;
 }) {
   const t = useTranslations('serviceForm');
@@ -418,6 +433,15 @@ function StepPricing({
           />
         </div>
       </div>
+
+      <div className="pt-4 border-t border-border">
+        <h3 className="text-sm font-semibold mb-3">{t('pricingTiersTitle')}</h3>
+        <PricingTiersEditor
+          basePriceCents={priceCents}
+          tiers={pricingTiers}
+          onChange={(next) => onChange({ pricingTiers: next })}
+        />
+      </div>
     </div>
   );
 }
@@ -469,6 +493,37 @@ function StepRecap({
           label={t('duration')}
           value={`${formData.durationMinutes ?? 0} min`}
         />
+
+        {tiersToPayload(formData.pricingTiers).length > 0 && (
+          <div className="p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+              {t('recapPricingTiers')}
+            </p>
+            <ul className="space-y-1.5">
+              {tiersToPayload(formData.pricingTiers)
+                .sort((a, b) => a.thresholdWeeks - b.thresholdWeeks)
+                .map((tier, i) => (
+                  <li
+                    key={i}
+                    className="flex justify-between items-center text-sm"
+                  >
+                    <span>
+                      {t('tierPreview', {
+                        weeks: tier.thresholdWeeks,
+                        total: (
+                          ((formData.priceCents ?? 0) + tier.surchargeCents) /
+                          100
+                        ).toFixed(2),
+                      })}
+                    </span>
+                    <span className="text-primary font-medium">
+                      +{(tier.surchargeCents / 100).toFixed(2)} €
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
 
         {selectedCategory && (
           <div className="p-4">

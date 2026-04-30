@@ -721,7 +721,18 @@
     "recapNoCategory": "None",
     "recapNoOptions": "No option",
     "remove": "Remove",
-    "inheritedFromCategory": "Inherited from the category — edit them from category management."
+    "inheritedFromCategory": "Inherited from the category — edit them from category management.",
+    "pricingTiersTitle": "Loyalty pricing",
+    "pricingTiersToggle": "Add a surcharge when the client comes back later",
+    "pricingTiersHint": "Define a surcharge applied on top of the base price when the client exceeds a number of weeks since their last completed booking.",
+    "tierThreshold": "After (weeks)",
+    "tierThresholdPlaceholder": "e.g. 4",
+    "tierSurcharge": "Surcharge (€)",
+    "tierAdd": "Add a tier",
+    "tierRemove": "Remove this tier",
+    "tierPreview": "Past {weeks} weeks: {total} €",
+    "tierDuplicateWeeks": "Two tiers cannot share the same duration.",
+    "recapPricingTiers": "Loyalty tiers"
   },
   "admin": {
     "title": "Administration",

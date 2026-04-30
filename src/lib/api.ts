@@ -378,6 +378,7 @@ class ApiClient {
     durationMinutes: number;
     categoryId?: string;
     businessCategoryId?: string;
+    pricingTiers?: { thresholdWeeks: number; surchargeCents: number }[];
   }) {
     return this.request<import('@/types').BusinessService>('/business/services', {
       method: 'POST',
@@ -387,7 +388,9 @@ class ApiClient {
 
   async updateBusinessService(
     id: string,
-    data: Partial<import('@/types').BusinessService>,
+    data: Omit<Partial<import('@/types').BusinessService>, 'pricingTiers'> & {
+      pricingTiers?: { thresholdWeeks: number; surchargeCents: number }[];
+    },
   ) {
     return this.request<import('@/types').BusinessService>(`/business/services/${id}`, {
       method: 'PUT',
@@ -484,9 +487,13 @@ class ApiClient {
       businessServiceId,
       date,
     });
-    return this.request<{ slots: { time: string; available: boolean }[] }>(
-      `/employees/slots?${params}`
-    );
+    return this.request<{
+      slots: { time: string; available: boolean }[];
+      loyalty: {
+        lastCompletedAt: string | null;
+        pricingTiers: { thresholdWeeks: number; surchargeCents: number }[];
+      } | null;
+    }>(`/employees/slots?${params}`);
   }
 
   async getAvailableSlotsMultipleDays(

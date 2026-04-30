@@ -160,6 +160,12 @@ export interface Business {
   distance?: number;
 }
 
+export interface ServicePricingTier {
+  id: string;
+  thresholdWeeks: number;
+  surchargeCents: number;
+}
+
 export interface BusinessService {
   id: string;
   businessId: string;
@@ -177,6 +183,7 @@ export interface BusinessService {
   createdAt: string;
   updatedAt: string;
   employees?: { employee: Employee }[];
+  pricingTiers?: ServicePricingTier[];
 }
 
 export interface Employee {

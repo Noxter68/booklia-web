@@ -36,6 +36,12 @@ import { Input } from '@/components/ui/input';
 import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import {
+  PricingTiersEditor,
+  PricingTierDraft,
+  tiersToPayload,
+  tiersHaveDuplicates,
+} from '@/components/business/pricing-tiers-editor';
 import { formatPrice } from '@/lib/utils';
 import { createPortal } from 'react-dom';
 import { Business, Employee, BusinessService, Booking, BookingStatus, BusinessHours, BusinessCategory, BusinessImage } from '@/types';
@@ -1815,6 +1821,7 @@ function EditServiceModal({
   const [isMounted, setIsMounted] = useState(false);
   const t = useTranslations('dashboard');
   const tc = useTranslations('common');
+  const tForm = useTranslations('serviceForm');
 
   const [formData, setFormData] = useState({
     name: service.name,
@@ -1824,11 +1831,17 @@ function EditServiceModal({
     durationMinutes: service.durationMinutes,
     businessCategoryId: service.businessCategoryId || null,
     isActive: service.isActive,
+    pricingTiers: (service.pricingTiers ?? []).map<PricingTierDraft>((tier) => ({
+      thresholdWeeks: tier.thresholdWeeks,
+      surchargeCents: tier.surchargeCents,
+    })),
   });
 
   useState(() => {
     setIsMounted(true);
   });
+
+  const tiersInvalid = tiersHaveDuplicates(formData.pricingTiers);
 
   const updateMutation = useMutation({
     mutationFn: () =>
@@ -1840,6 +1853,7 @@ function EditServiceModal({
         durationMinutes: formData.durationMinutes,
         businessCategoryId: formData.businessCategoryId || undefined,
         isActive: formData.isActive,
+        pricingTiers: tiersToPayload(formData.pricingTiers),
       }),
     onSuccess: () => {
       success(t('serviceUpdated'));
@@ -2040,6 +2054,18 @@ function EditServiceModal({
               )}
             </div>
 
+            {/* Loyalty pricing tiers */}
+            <div className="pt-4 border-t border-border">
+              <h3 className="text-sm font-semibold mb-3">
+                {tForm('pricingTiersTitle')}
+              </h3>
+              <PricingTiersEditor
+                basePriceCents={formData.priceCents}
+                tiers={formData.pricingTiers}
+                onChange={(next) => setFormData({ ...formData, pricingTiers: next })}
+              />
+            </div>
+
             {/* Active toggle */}
             <div className="flex items-center justify-between p-3 rounded-xl bg-background">
               <div>
@@ -2067,7 +2093,9 @@ function EditServiceModal({
             </Button>
             <Button
               onClick={() => updateMutation.mutate()}
-              disabled={!formData.name.trim() || updateMutation.isPending}
+              disabled={
+                !formData.name.trim() || updateMutation.isPending || tiersInvalid
+              }
               isLoading={updateMutation.isPending}
               className="rounded-full"
             >
