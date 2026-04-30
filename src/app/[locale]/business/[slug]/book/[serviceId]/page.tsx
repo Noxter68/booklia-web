@@ -161,7 +161,8 @@ export default function BookingPage() {
     return dates;
   }, [calendarWeekOffset]);
 
-  // Fetch slots for the week
+  // Fetch slots for the week. Cache for 30s so navigating back and forth
+  // between weeks doesn't re-fire the 7 parallel requests every time.
   const { data: weekSlotsData, isLoading: slotsLoading } = useQuery({
     queryKey: ['weekSlots', selectedEmployee, serviceId, calendarWeekOffset],
     queryFn: () =>
@@ -171,6 +172,7 @@ export default function BookingPage() {
         calendarDates
       ),
     enabled: !!selectedEmployee && !!serviceId,
+    staleTime: 30_000,
   });
 
   // Loyalty info comes from any day in the week response (it's per service+user,
