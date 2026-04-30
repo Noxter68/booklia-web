@@ -386,6 +386,7 @@ class ApiClient {
     name: string;
     description?: string;
     detailedDescription?: string;
+    priceMode?: import('@/types').ServicePriceMode;
     priceCents: number;
     durationMinutes: number;
     categoryId?: string;

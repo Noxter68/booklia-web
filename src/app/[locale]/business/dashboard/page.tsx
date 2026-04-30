@@ -1865,6 +1865,7 @@ function EditServiceModal({
     name: service.name,
     description: service.description || '',
     detailedDescription: service.detailedDescription || '',
+    priceMode: service.priceMode,
     priceCents: service.priceCents,
     durationMinutes: service.durationMinutes,
     businessCategoryId: service.businessCategoryId || null,
@@ -1879,6 +1880,7 @@ function EditServiceModal({
     setIsMounted(true);
   });
 
+  const isFixedPrice = formData.priceMode === 'FIXED';
   const tiersInvalid = tiersHaveDuplicates(formData.pricingTiers);
 
   const updateMutation = useMutation({
@@ -1887,11 +1889,12 @@ function EditServiceModal({
         name: formData.name,
         description: formData.description || undefined,
         detailedDescription: formData.detailedDescription || undefined,
-        priceCents: formData.priceCents,
+        priceMode: formData.priceMode,
+        priceCents: isFixedPrice ? formData.priceCents : 0,
         durationMinutes: formData.durationMinutes,
         businessCategoryId: formData.businessCategoryId || undefined,
         isActive: formData.isActive,
-        pricingTiers: tiersToPayload(formData.pricingTiers),
+        pricingTiers: isFixedPrice ? tiersToPayload(formData.pricingTiers) : [],
       }),
     onSuccess: () => {
       success(t('serviceUpdated'));
@@ -1981,29 +1984,69 @@ function EditServiceModal({
               />
             </div>
 
-            {/* Price */}
+            {/* Price mode */}
             <div>
               <label className="text-sm font-medium mb-2 block">
-                {t('price')}
+                {tForm('priceMode')}
               </label>
-              <div className="relative">
-                <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="number"
-                  value={formData.priceCents / 100}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      priceCents: Math.round(parseFloat(e.target.value || '0') * 100),
-                    })
-                  }
-                  placeholder="0.00"
-                  min={0}
-                  step={0.5}
-                  className="pl-10"
-                />
+              <div className="grid grid-cols-3 gap-2">
+                {(['FIXED', 'QUOTE', 'FREE'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, priceMode: m })}
+                    className={`p-2.5 rounded-lg border text-sm font-medium transition-colors cursor-pointer ${
+                      formData.priceMode === m
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    {tForm(
+                      m === 'FIXED'
+                        ? 'priceModeFixed'
+                        : m === 'QUOTE'
+                        ? 'priceModeQuote'
+                        : 'priceModeFree',
+                    )}
+                  </button>
+                ))}
               </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {tForm(
+                  formData.priceMode === 'FIXED'
+                    ? 'priceModeFixedHint'
+                    : formData.priceMode === 'QUOTE'
+                    ? 'priceModeQuoteHint'
+                    : 'priceModeFreeHint',
+                )}
+              </p>
             </div>
+
+            {/* Price (only for FIXED mode) */}
+            {isFixedPrice && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  {t('price')}
+                </label>
+                <div className="relative">
+                  <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="number"
+                    value={formData.priceCents / 100}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        priceCents: Math.round(parseFloat(e.target.value || '0') * 100),
+                      })
+                    }
+                    placeholder="0.00"
+                    min={0}
+                    step={0.5}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Duration */}
             <div>
@@ -2092,17 +2135,19 @@ function EditServiceModal({
               )}
             </div>
 
-            {/* Loyalty pricing tiers */}
-            <div className="pt-4 border-t border-border">
-              <h3 className="text-sm font-semibold mb-3">
-                {tForm('pricingTiersTitle')}
-              </h3>
-              <PricingTiersEditor
-                basePriceCents={formData.priceCents}
-                tiers={formData.pricingTiers}
-                onChange={(next) => setFormData({ ...formData, pricingTiers: next })}
-              />
-            </div>
+            {/* Loyalty pricing tiers (FIXED only) */}
+            {isFixedPrice && (
+              <div className="pt-4 border-t border-border">
+                <h3 className="text-sm font-semibold mb-3">
+                  {tForm('pricingTiersTitle')}
+                </h3>
+                <PricingTiersEditor
+                  basePriceCents={formData.priceCents}
+                  tiers={formData.pricingTiers}
+                  onChange={(next) => setFormData({ ...formData, pricingTiers: next })}
+                />
+              </div>
+            )}
 
             {/* Active toggle */}
             <div className="flex items-center justify-between p-3 rounded-xl bg-background">

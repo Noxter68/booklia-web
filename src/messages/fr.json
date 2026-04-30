@@ -236,6 +236,8 @@
     "date": "Date",
     "time": "Heure",
     "total": "Total",
+    "priceQuote": "Sur devis",
+    "priceFree": "Gratuit",
     "today": "Aujourd'hui",
     "tomorrow": "Demain",
     "loginToBook": "Se connecter",
@@ -733,7 +735,14 @@
     "tierRemove": "Supprimer ce palier",
     "tierPreview": "Au-delà de {weeks} semaines : {total} €",
     "tierDuplicateWeeks": "Deux paliers ne peuvent pas avoir la même durée.",
-    "recapPricingTiers": "Paliers de fidélité"
+    "recapPricingTiers": "Paliers de fidélité",
+    "priceMode": "Mode de tarification",
+    "priceModeFixed": "Prix fixe",
+    "priceModeQuote": "Sur devis",
+    "priceModeFree": "Gratuit",
+    "priceModeFixedHint": "Prix affiché aux clients et facturé automatiquement.",
+    "priceModeQuoteHint": "Aucun prix affiché. Vous fixerez le tarif après le rendez-vous (rdv découverte, prestation à devis…).",
+    "priceModeFreeHint": "Prestation gratuite — aucun prix ni facture automatique."
   },
   "loyaltyModal": {
     "title": "Tarif fidélité",

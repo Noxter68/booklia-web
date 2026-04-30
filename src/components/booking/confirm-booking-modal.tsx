@@ -28,6 +28,9 @@ interface ConfirmBookingModalProps {
   time: string;
   durationMinutes: number;
   priceCents: number;
+  /** When set, replaces the formatted priceCents with this label
+   *  (e.g. "Sur devis" / "Gratuit" for non-FIXED services). */
+  priceLabel?: string;
   /** Pre-surcharge total — when set, displayed struck-through next to priceCents. */
   originalPriceCents?: number;
   /** Threshold (in weeks) of the loyalty tier that triggered the surcharge. */
@@ -49,6 +52,7 @@ export function ConfirmBookingModal({
   time,
   durationMinutes,
   priceCents,
+  priceLabel,
   originalPriceCents,
   loyaltySurchargeNote,
   selectedOptions,
@@ -161,7 +165,7 @@ export function ConfirmBookingModal({
                     </span>
                   )}
                   <span className="text-lg font-bold text-primary">
-                    {formatPrice(priceCents)}
+                    {priceLabel ?? formatPrice(priceCents)}
                   </span>
                 </div>
               </div>

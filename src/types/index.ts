@@ -167,12 +167,15 @@ export interface ServicePricingTier {
   surchargeCents: number;
 }
 
+export type ServicePriceMode = 'FIXED' | 'QUOTE' | 'FREE';
+
 export interface BusinessService {
   id: string;
   businessId: string;
   name: string;
   description?: string;
   detailedDescription?: string;
+  priceMode: ServicePriceMode;
   priceCents: number;
   currency: string;
   durationMinutes: number;

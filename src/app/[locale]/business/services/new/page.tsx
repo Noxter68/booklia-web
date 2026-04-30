@@ -28,7 +28,7 @@ import {
   tiersToPayload,
   tiersHaveDuplicates,
 } from '@/components/business/pricing-tiers-editor';
-import { BusinessCategory } from '@/types';
+import { BusinessCategory, ServicePriceMode } from '@/types';
 import { useTranslations } from 'next-intl';
 
 type Step = 1 | 2 | 3;
@@ -37,6 +37,7 @@ interface FormData {
   name: string;
   description: string;
   detailedDescription: string;
+  priceMode: ServicePriceMode;
   priceCents: number | null;
   durationMinutes: number | null;
   businessCategoryId: string | null;
@@ -63,6 +64,7 @@ export default function NewBusinessServicePage() {
     name: '',
     description: '',
     detailedDescription: '',
+    priceMode: 'FIXED',
     priceCents: null,
     durationMinutes: null,
     businessCategoryId: searchParams.get('category') || null,
@@ -77,12 +79,14 @@ export default function NewBusinessServicePage() {
 
   const createMutation = useMutation({
     mutationFn: () => {
-      const tiers = tiersToPayload(formData.pricingTiers);
+      const isFixed = formData.priceMode === 'FIXED';
+      const tiers = isFixed ? tiersToPayload(formData.pricingTiers) : [];
       return api.createBusinessService({
         name: formData.name,
         description: formData.description || undefined,
         detailedDescription: formData.detailedDescription || undefined,
-        priceCents: formData.priceCents || 0,
+        priceMode: formData.priceMode,
+        priceCents: isFixed ? formData.priceCents || 0 : 0,
         durationMinutes: formData.durationMinutes || 30,
         businessCategoryId: formData.businessCategoryId || undefined,
         pricingTiers: tiers.length > 0 ? tiers : undefined,
@@ -106,14 +110,17 @@ export default function NewBusinessServicePage() {
     switch (step) {
       case 1:
         return formData.name.trim().length >= 2;
-      case 2:
+      case 2: {
+        const priceOk =
+          formData.priceMode !== 'FIXED' ||
+          (formData.priceCents !== null && formData.priceCents >= 0);
         return (
-          formData.priceCents !== null &&
-          formData.priceCents >= 0 &&
+          priceOk &&
           formData.durationMinutes !== null &&
           formData.durationMinutes > 0 &&
           !tiersHaveDuplicates(formData.pricingTiers)
         );
+      }
       case 3:
         return true;
       default:
@@ -219,6 +226,7 @@ export default function NewBusinessServicePage() {
             )}
             {step === 2 && (
               <StepPricing
+                priceMode={formData.priceMode}
                 priceCents={formData.priceCents}
                 durationMinutes={formData.durationMinutes}
                 pricingTiers={formData.pricingTiers}
@@ -355,11 +363,13 @@ function StepInfo({
 // STEP 2 — Pricing & Duration
 // ============================================
 function StepPricing({
+  priceMode,
   priceCents,
   durationMinutes,
   pricingTiers,
   onChange,
 }: {
+  priceMode: ServicePriceMode;
   priceCents: number | null;
   durationMinutes: number | null;
   pricingTiers: PricingTierDraft[];
@@ -367,6 +377,13 @@ function StepPricing({
 }) {
   const t = useTranslations('serviceForm');
   const durationOptions = [15, 30, 45, 60, 90, 120];
+  const isFixed = priceMode === 'FIXED';
+
+  const modes: { value: ServicePriceMode; labelKey: string; hintKey: string }[] = [
+    { value: 'FIXED', labelKey: 'priceModeFixed', hintKey: 'priceModeFixedHint' },
+    { value: 'QUOTE', labelKey: 'priceModeQuote', hintKey: 'priceModeQuoteHint' },
+    { value: 'FREE', labelKey: 'priceModeFree', hintKey: 'priceModeFreeHint' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -379,24 +396,49 @@ function StepPricing({
       </div>
 
       <div>
-        <label className="text-sm font-medium mb-2 block">{t('price')} *</label>
-        <div className="relative">
-          <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            type="number"
-            value={priceCents !== null ? priceCents / 100 : ''}
-            onChange={(e) =>
-              onChange({
-                priceCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null,
-              })
-            }
-            placeholder={t('pricePlaceholder')}
-            min={0}
-            step={0.5}
-            className="pl-10"
-          />
+        <label className="text-sm font-medium mb-2 block">{t('priceMode')}</label>
+        <div className="grid grid-cols-3 gap-2">
+          {modes.map((m) => (
+            <button
+              key={m.value}
+              type="button"
+              onClick={() => onChange({ priceMode: m.value })}
+              className={`p-3 rounded-xl border text-sm font-medium transition-colors cursor-pointer ${
+                priceMode === m.value
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border hover:border-primary/50'
+              }`}
+            >
+              {t(m.labelKey)}
+            </button>
+          ))}
         </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          {t(modes.find((m) => m.value === priceMode)!.hintKey)}
+        </p>
       </div>
+
+      {isFixed && (
+        <div>
+          <label className="text-sm font-medium mb-2 block">{t('price')} *</label>
+          <div className="relative">
+            <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="number"
+              value={priceCents !== null ? priceCents / 100 : ''}
+              onChange={(e) =>
+                onChange({
+                  priceCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null,
+                })
+              }
+              placeholder={t('pricePlaceholder')}
+              min={0}
+              step={0.5}
+              className="pl-10"
+            />
+          </div>
+        </div>
+      )}
 
       <div>
         <label className="text-sm font-medium mb-3 block">
@@ -434,14 +476,16 @@ function StepPricing({
         </div>
       </div>
 
-      <div className="pt-4 border-t border-border">
-        <h3 className="text-sm font-semibold mb-3">{t('pricingTiersTitle')}</h3>
-        <PricingTiersEditor
-          basePriceCents={priceCents}
-          tiers={pricingTiers}
-          onChange={(next) => onChange({ pricingTiers: next })}
-        />
-      </div>
+      {isFixed && (
+        <div className="pt-4 border-t border-border">
+          <h3 className="text-sm font-semibold mb-3">{t('pricingTiersTitle')}</h3>
+          <PricingTiersEditor
+            basePriceCents={priceCents}
+            tiers={pricingTiers}
+            onChange={(next) => onChange({ pricingTiers: next })}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -487,14 +531,22 @@ function StepRecap({
         />
         <RecapRow
           label={t('price')}
-          value={`${((formData.priceCents ?? 0) / 100).toFixed(2)} €`}
+          value={
+            formData.priceMode === 'FIXED'
+              ? `${((formData.priceCents ?? 0) / 100).toFixed(2)} €`
+              : t(
+                  formData.priceMode === 'QUOTE'
+                    ? 'priceModeQuote'
+                    : 'priceModeFree',
+                )
+          }
         />
         <RecapRow
           label={t('duration')}
           value={`${formData.durationMinutes ?? 0} min`}
         />
 
-        {tiersToPayload(formData.pricingTiers).length > 0 && (
+        {formData.priceMode === 'FIXED' && tiersToPayload(formData.pricingTiers).length > 0 && (
           <div className="p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
               {t('recapPricingTiers')}

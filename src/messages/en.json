@@ -236,6 +236,8 @@
     "date": "Date",
     "time": "Time",
     "total": "Total",
+    "priceQuote": "On quote",
+    "priceFree": "Free",
     "today": "Today",
     "tomorrow": "Tomorrow",
     "loginToBook": "Log in",
@@ -733,7 +735,14 @@
     "tierRemove": "Remove this tier",
     "tierPreview": "Past {weeks} weeks: {total} €",
     "tierDuplicateWeeks": "Two tiers cannot share the same duration.",
-    "recapPricingTiers": "Loyalty tiers"
+    "recapPricingTiers": "Loyalty tiers",
+    "priceMode": "Pricing mode",
+    "priceModeFixed": "Fixed price",
+    "priceModeQuote": "On quote",
+    "priceModeFree": "Free",
+    "priceModeFixedHint": "Price shown to clients and billed automatically.",
+    "priceModeQuoteHint": "No price displayed. You'll set the amount after the appointment (discovery session, custom quote…).",
+    "priceModeFreeHint": "Free service — no price, no automatic invoice."
   },
   "loyaltyModal": {
     "title": "Loyalty pricing",

@@ -236,6 +236,8 @@
     "date": "Data",
     "time": "Horário",
     "total": "Total",
+    "priceQuote": "Sob orçamento",
+    "priceFree": "Gratuito",
     "today": "Hoje",
     "tomorrow": "Amanhã",
     "loginToBook": "Entrar",
@@ -733,7 +735,14 @@
     "tierRemove": "Remover este nível",
     "tierPreview": "Após {weeks} semanas: {total} €",
     "tierDuplicateWeeks": "Dois níveis não podem ter a mesma duração.",
-    "recapPricingTiers": "Níveis de fidelidade"
+    "recapPricingTiers": "Níveis de fidelidade",
+    "priceMode": "Modo de preço",
+    "priceModeFixed": "Preço fixo",
+    "priceModeQuote": "Sob orçamento",
+    "priceModeFree": "Gratuito",
+    "priceModeFixedHint": "Preço exibido aos clientes e cobrado automaticamente.",
+    "priceModeQuoteHint": "Nenhum preço exibido. Você define o valor após o agendamento (sessão de descoberta, orçamento personalizado…).",
+    "priceModeFreeHint": "Serviço gratuito — sem preço nem fatura automática."
   },
   "loyaltyModal": {
     "title": "Preço de fidelidade",

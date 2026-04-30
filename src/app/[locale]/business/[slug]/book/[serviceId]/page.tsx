@@ -197,11 +197,20 @@ export default function BookingPage() {
     );
   }, [loyalty, selectedDate, selectedTime]);
 
-  const baseServiceCents = selectedService?.priceCents ?? 0;
+  const priceMode = selectedService?.priceMode ?? 'FIXED';
+  const isFixedPrice = priceMode === 'FIXED';
+  const baseServiceCents = isFixedPrice ? selectedService?.priceCents ?? 0 : 0;
   const totalPriceCents =
     baseServiceCents + optionsExtraCents + loyaltyResult.surchargeCents;
   const totalWithoutSurchargeCents = baseServiceCents + optionsExtraCents;
-  const hasSurcharge = loyaltyResult.surchargeCents > 0;
+  const hasSurcharge = isFixedPrice && loyaltyResult.surchargeCents > 0;
+  // Formatted price label that adapts to the service's pricing mode.
+  const priceLabel =
+    priceMode === 'QUOTE'
+      ? t('priceQuote')
+      : priceMode === 'FREE'
+        ? t('priceFree')
+        : formatPrice(totalPriceCents);
 
   // Show the loyalty modal once per (date, time) selection so it doesn't
   // re-trigger on every re-render. Cleared when the selection changes.
@@ -439,7 +448,7 @@ export default function BookingPage() {
               </div>
               <div className="flex justify-between pt-2 border-t border-border">
                 <span className="font-medium">{t('total')}</span>
-                <span className="font-bold text-primary">{formatPrice(totalPriceCents)}</span>
+                <span className="font-bold text-primary">{priceLabel}</span>
               </div>
             </div>
 
@@ -490,9 +499,7 @@ export default function BookingPage() {
                   <Clock className="w-4 h-4" />
                   {t('duration', { minutes: selectedService.durationMinutes })}
                 </span>
-                <span className="font-semibold text-primary">
-                  {formatPrice(totalPriceCents)}
-                </span>
+                <span className="font-semibold text-primary">{priceLabel}</span>
               </div>
             </div>
 
@@ -1014,6 +1021,7 @@ export default function BookingPage() {
         time={selectedTime}
         durationMinutes={selectedService.durationMinutes}
         priceCents={totalPriceCents}
+        priceLabel={isFixedPrice ? undefined : priceLabel}
         originalPriceCents={hasSurcharge ? totalWithoutSurchargeCents : undefined}
         loyaltySurchargeNote={
           hasSurcharge && loyaltyResult.appliedTierWeeks
@@ -1059,9 +1067,7 @@ export default function BookingPage() {
                       {formatPrice(totalWithoutSurchargeCents)}
                     </span>
                   )}
-                  <span className="font-bold text-primary">
-                    {formatPrice(totalPriceCents)}
-                  </span>
+                  <span className="font-bold text-primary">{priceLabel}</span>
                 </div>
               </div>
 
