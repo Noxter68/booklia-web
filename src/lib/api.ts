@@ -339,7 +339,9 @@ class ApiClient {
   }
 
   async getMyBusiness() {
-    return this.request<import('@/types').Business>('/business/mine');
+    // Returns null when the current user has no business (i.e. is a client,
+    // not a pro). Used as a "is current user a pro?" probe on public pages.
+    return this.request<import('@/types').Business | null>('/business/mine');
   }
 
   async updateBusiness(data: Partial<import('@/types').Business>) {
