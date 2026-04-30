@@ -315,20 +315,6 @@ class ApiClient {
     return this.request<import('@/types').Category[]>('/categories');
   }
 
-  // Stripe
-  async createSubscription(priceId: string) {
-    return this.request<{ url: string }>('/stripe/subscribe', {
-      method: 'POST',
-      body: JSON.stringify({ priceId }),
-    });
-  }
-
-  async createBillingPortal() {
-    return this.request<{ url: string }>('/stripe/portal', {
-      method: 'POST',
-    });
-  }
-
   // Business
   async createBusiness(data: {
     name: string;
