@@ -413,32 +413,50 @@ function StepPricing({
             </button>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          {t(modes.find((m) => m.value === priceMode)!.hintKey)}
-        </p>
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={priceMode}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="text-xs text-muted-foreground mt-2"
+          >
+            {t(modes.find((m) => m.value === priceMode)!.hintKey)}
+          </motion.p>
+        </AnimatePresence>
       </div>
 
-      {isFixed && (
-        <div>
-          <label className="text-sm font-medium mb-2 block">{t('price')} *</label>
-          <div className="relative">
-            <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              type="number"
-              value={priceCents !== null ? priceCents / 100 : ''}
-              onChange={(e) =>
-                onChange({
-                  priceCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null,
-                })
-              }
-              placeholder={t('pricePlaceholder')}
-              min={0}
-              step={0.5}
-              className="pl-10"
-            />
-          </div>
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {isFixed && (
+          <motion.div
+            key="price-input"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <label className="text-sm font-medium mb-2 block">{t('price')} *</label>
+            <div className="relative">
+              <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="number"
+                value={priceCents !== null ? priceCents / 100 : ''}
+                onChange={(e) =>
+                  onChange({
+                    priceCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null,
+                  })
+                }
+                placeholder={t('pricePlaceholder')}
+                min={0}
+                step={0.5}
+                className="pl-10"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div>
         <label className="text-sm font-medium mb-3 block">
@@ -476,16 +494,27 @@ function StepPricing({
         </div>
       </div>
 
-      {isFixed && (
-        <div className="pt-4 border-t border-border">
-          <h3 className="text-sm font-semibold mb-3">{t('pricingTiersTitle')}</h3>
-          <PricingTiersEditor
-            basePriceCents={priceCents}
-            tiers={pricingTiers}
-            onChange={(next) => onChange({ pricingTiers: next })}
-          />
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {isFixed && (
+          <motion.div
+            key="pricing-tiers"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="pt-4 border-t border-border">
+              <h3 className="text-sm font-semibold mb-3">{t('pricingTiersTitle')}</h3>
+              <PricingTiersEditor
+                basePriceCents={priceCents}
+                tiers={pricingTiers}
+                onChange={(next) => onChange({ pricingTiers: next })}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

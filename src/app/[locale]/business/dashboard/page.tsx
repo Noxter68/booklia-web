@@ -2011,42 +2011,60 @@ function EditServiceModal({
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                {tForm(
-                  formData.priceMode === 'FIXED'
-                    ? 'priceModeFixedHint'
-                    : formData.priceMode === 'QUOTE'
-                    ? 'priceModeQuoteHint'
-                    : 'priceModeFreeHint',
-                )}
-              </p>
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={formData.priceMode}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="text-xs text-muted-foreground mt-2"
+                >
+                  {tForm(
+                    formData.priceMode === 'FIXED'
+                      ? 'priceModeFixedHint'
+                      : formData.priceMode === 'QUOTE'
+                      ? 'priceModeQuoteHint'
+                      : 'priceModeFreeHint',
+                  )}
+                </motion.p>
+              </AnimatePresence>
             </div>
 
             {/* Price (only for FIXED mode) */}
-            {isFixedPrice && (
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  {t('price')}
-                </label>
-                <div className="relative">
-                  <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="number"
-                    value={formData.priceCents / 100}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        priceCents: Math.round(parseFloat(e.target.value || '0') * 100),
-                      })
-                    }
-                    placeholder="0.00"
-                    min={0}
-                    step={0.5}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-            )}
+            <AnimatePresence initial={false}>
+              {isFixedPrice && (
+                <motion.div
+                  key="edit-price-input"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="overflow-hidden"
+                >
+                  <label className="text-sm font-medium mb-2 block">
+                    {t('price')}
+                  </label>
+                  <div className="relative">
+                    <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="number"
+                      value={formData.priceCents / 100}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          priceCents: Math.round(parseFloat(e.target.value || '0') * 100),
+                        })
+                      }
+                      placeholder="0.00"
+                      min={0}
+                      step={0.5}
+                      className="pl-10"
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Duration */}
             <div>
@@ -2136,18 +2154,29 @@ function EditServiceModal({
             </div>
 
             {/* Loyalty pricing tiers (FIXED only) */}
-            {isFixedPrice && (
-              <div className="pt-4 border-t border-border">
-                <h3 className="text-sm font-semibold mb-3">
-                  {tForm('pricingTiersTitle')}
-                </h3>
-                <PricingTiersEditor
-                  basePriceCents={formData.priceCents}
-                  tiers={formData.pricingTiers}
-                  onChange={(next) => setFormData({ ...formData, pricingTiers: next })}
-                />
-              </div>
-            )}
+            <AnimatePresence initial={false}>
+              {isFixedPrice && (
+                <motion.div
+                  key="edit-pricing-tiers"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-4 border-t border-border">
+                    <h3 className="text-sm font-semibold mb-3">
+                      {tForm('pricingTiersTitle')}
+                    </h3>
+                    <PricingTiersEditor
+                      basePriceCents={formData.priceCents}
+                      tiers={formData.pricingTiers}
+                      onChange={(next) => setFormData({ ...formData, pricingTiers: next })}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Active toggle */}
             <div className="flex items-center justify-between p-3 rounded-xl bg-background">
