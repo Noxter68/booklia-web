@@ -28,6 +28,10 @@ interface ConfirmBookingModalProps {
   time: string;
   durationMinutes: number;
   priceCents: number;
+  /** Pre-surcharge total — when set, displayed struck-through next to priceCents. */
+  originalPriceCents?: number;
+  /** Threshold (in weeks) of the loyalty tier that triggered the surcharge. */
+  loyaltySurchargeNote?: number;
   selectedOptions?: { name: string; priceCents: number }[];
 }
 
@@ -45,6 +49,8 @@ export function ConfirmBookingModal({
   time,
   durationMinutes,
   priceCents,
+  originalPriceCents,
+  loyaltySurchargeNote,
   selectedOptions,
 }: ConfirmBookingModalProps) {
   if (!isOpen) return null;
@@ -145,11 +151,25 @@ export function ConfirmBookingModal({
             )}
 
             {/* Price */}
-            <div className="flex items-center justify-between bg-primary/5 rounded-xl px-4 py-3">
-              <span className="font-medium">Total</span>
-              <span className="text-lg font-bold text-primary">
-                {formatPrice(priceCents)}
-              </span>
+            <div className="bg-primary/5 rounded-xl px-4 py-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Total</span>
+                <div className="flex items-center gap-2">
+                  {originalPriceCents !== undefined && (
+                    <span className="text-sm text-muted-foreground line-through">
+                      {formatPrice(originalPriceCents)}
+                    </span>
+                  )}
+                  <span className="text-lg font-bold text-primary">
+                    {formatPrice(priceCents)}
+                  </span>
+                </div>
+              </div>
+              {loyaltySurchargeNote !== undefined && (
+                <p className="text-xs text-muted-foreground">
+                  Tarif majoré : plus de {loyaltySurchargeNote} semaines depuis votre dernier rendez-vous.
+                </p>
+              )}
             </div>
           </div>
 

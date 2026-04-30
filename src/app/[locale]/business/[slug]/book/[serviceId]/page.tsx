@@ -24,7 +24,9 @@ import { Button } from '@/components/ui/button';
 import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { ConfirmBookingModal } from '@/components/booking/confirm-booking-modal';
+import { LoyaltySurchargeModal } from '@/components/booking/loyalty-surcharge-modal';
 import { formatPrice } from '@/lib/utils';
+import { computeLoyaltySurcharge } from '@/lib/loyalty';
 import { Link } from '@/i18n/routing';
 import { useTranslations, useLocale } from 'next-intl';
 
@@ -121,8 +123,6 @@ export default function BookingPage() {
     [selectedOptions],
   );
 
-  const totalPriceCents = (selectedService?.priceCents ?? 0) + optionsExtraCents;
-
   const toggleOption = (optionId: string, groupName: string | null | undefined) => {
     setSelectedOptionIds((prev) => {
       if (prev.includes(optionId)) {
@@ -172,6 +172,41 @@ export default function BookingPage() {
       ),
     enabled: !!selectedEmployee && !!serviceId,
   });
+
+  // Loyalty info comes from any day in the week response (it's per service+user,
+  // not per day). Pick the first non-null payload.
+  const loyalty = useMemo(() => {
+    if (!weekSlotsData) return null;
+    const found = weekSlotsData.find((d) => d.loyalty);
+    return found?.loyalty ?? null;
+  }, [weekSlotsData]);
+
+  // Surcharge applies on the service base price only — options are unchanged.
+  const loyaltyResult = useMemo(() => {
+    if (!loyalty || !selectedDate || !selectedTime) {
+      return { surchargeCents: 0, appliedTierWeeks: null, weeksSinceLast: null };
+    }
+    return computeLoyaltySurcharge(
+      loyalty.pricingTiers,
+      loyalty.lastCompletedAt ? new Date(loyalty.lastCompletedAt) : null,
+      new Date(`${selectedDate}T${selectedTime}:00`),
+    );
+  }, [loyalty, selectedDate, selectedTime]);
+
+  const baseServiceCents = selectedService?.priceCents ?? 0;
+  const totalPriceCents =
+    baseServiceCents + optionsExtraCents + loyaltyResult.surchargeCents;
+  const totalWithoutSurchargeCents = baseServiceCents + optionsExtraCents;
+  const hasSurcharge = loyaltyResult.surchargeCents > 0;
+
+  // Show the loyalty modal once per (date, time) selection so it doesn't
+  // re-trigger on every re-render. Cleared when the selection changes.
+  const [loyaltyAcknowledgedKey, setLoyaltyAcknowledgedKey] = useState<string | null>(
+    null,
+  );
+  const selectionKey = `${selectedDate}|${selectedTime}`;
+  const shouldShowLoyaltyModal =
+    hasSurcharge && loyaltyAcknowledgedKey !== selectionKey;
 
   // Auto-expand first available day on mobile, allow user override
   const autoExpandDay = useMemo(() => {
@@ -943,6 +978,16 @@ export default function BookingPage() {
         )}
       </div>
 
+      {/* Loyalty surcharge modal — fired once per slot selection when applicable */}
+      <LoyaltySurchargeModal
+        isOpen={shouldShowLoyaltyModal}
+        onClose={() => setLoyaltyAcknowledgedKey(selectionKey)}
+        weeksSinceLast={loyaltyResult.weeksSinceLast ?? 0}
+        appliedTierWeeks={loyaltyResult.appliedTierWeeks ?? 0}
+        basePriceCents={totalWithoutSurchargeCents}
+        totalPriceCents={totalPriceCents}
+      />
+
       {/* Confirmation Modal */}
       <ConfirmBookingModal
         isOpen={showConfirmModal}
@@ -965,6 +1010,12 @@ export default function BookingPage() {
         time={selectedTime}
         durationMinutes={selectedService.durationMinutes}
         priceCents={totalPriceCents}
+        originalPriceCents={hasSurcharge ? totalWithoutSurchargeCents : undefined}
+        loyaltySurchargeNote={
+          hasSurcharge && loyaltyResult.appliedTierWeeks
+            ? loyaltyResult.appliedTierWeeks
+            : undefined
+        }
         selectedOptions={selectedOptions.map((o) => ({ name: o.name, priceCents: o.priceCents }))}
       />
 
@@ -998,9 +1049,16 @@ export default function BookingPage() {
                     <span>{selectedEmployeeData.firstName}</span>
                   </div>
                 )}
-                <span className="font-bold text-primary">
-                  {formatPrice(totalPriceCents)}
-                </span>
+                <div className="flex items-center gap-2">
+                  {hasSurcharge && (
+                    <span className="text-sm text-muted-foreground line-through">
+                      {formatPrice(totalWithoutSurchargeCents)}
+                    </span>
+                  )}
+                  <span className="font-bold text-primary">
+                    {formatPrice(totalPriceCents)}
+                  </span>
+                </div>
               </div>
 
               {!user ? (

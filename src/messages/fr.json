@@ -734,6 +734,15 @@
     "tierDuplicateWeeks": "Deux paliers ne peuvent pas avoir la même durée.",
     "recapPricingTiers": "Paliers de fidélité"
   },
+  "loyaltyModal": {
+    "title": "Tarif fidélité",
+    "body": "Cela fait environ {weeks} semaines depuis votre dernier rendez-vous (au-delà de {threshold} semaines). Le prix de cette prestation est ajusté en conséquence.",
+    "basePrice": "Prix habituel",
+    "newPrice": "Prix appliqué",
+    "confirm": "J'ai compris",
+    "surchargeBadge": "+{amount}",
+    "surchargeNote": "Tarif majoré : vous dépassez {threshold} semaines depuis votre dernier rendez-vous."
+  },
   "admin": {
     "title": "Administration",
     "login": {

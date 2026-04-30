@@ -506,9 +506,13 @@ class ApiClient {
       dates.map(async (date) => {
         try {
           const result = await this.getAvailableSlots(employeeId, businessServiceId, date);
-          return { date, slots: result.slots };
+          return { date, slots: result.slots, loyalty: result.loyalty };
         } catch {
-          return { date, slots: [] };
+          return {
+            date,
+            slots: [] as { time: string; available: boolean }[],
+            loyalty: null,
+          };
         }
       })
     );

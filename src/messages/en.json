@@ -734,6 +734,15 @@
     "tierDuplicateWeeks": "Two tiers cannot share the same duration.",
     "recapPricingTiers": "Loyalty tiers"
   },
+  "loyaltyModal": {
+    "title": "Loyalty pricing",
+    "body": "It's been about {weeks} weeks since your last appointment (past {threshold} weeks). The price has been adjusted accordingly.",
+    "basePrice": "Usual price",
+    "newPrice": "Applied price",
+    "confirm": "Got it",
+    "surchargeBadge": "+{amount}",
+    "surchargeNote": "Adjusted price: more than {threshold} weeks since your last appointment."
+  },
   "admin": {
     "title": "Administration",
     "login": {

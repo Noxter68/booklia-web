@@ -734,6 +734,15 @@
     "tierDuplicateWeeks": "Dois níveis não podem ter a mesma duração.",
     "recapPricingTiers": "Níveis de fidelidade"
   },
+  "loyaltyModal": {
+    "title": "Preço de fidelidade",
+    "body": "Já se passaram cerca de {weeks} semanas desde seu último agendamento (acima de {threshold} semanas). O preço foi ajustado.",
+    "basePrice": "Preço habitual",
+    "newPrice": "Preço aplicado",
+    "confirm": "Entendi",
+    "surchargeBadge": "+{amount}",
+    "surchargeNote": "Preço ajustado: mais de {threshold} semanas desde seu último agendamento."
+  },
   "admin": {
     "title": "Administração",
     "login": {
