@@ -496,27 +496,29 @@ class ApiClient {
     }>(`/employees/slots?${params}`);
   }
 
-  async getAvailableSlotsMultipleDays(
+  /**
+   * Bulk fetch: one HTTP call for the whole [dateFrom, dateTo] range. Backed
+   * by /employees/slots-range — 5 DB queries total instead of 5 per day.
+   */
+  async getAvailableSlotsRange(
     employeeId: string,
     businessServiceId: string,
-    dates: string[]
+    dateFrom: string,
+    dateTo: string,
   ) {
-    // Fetch slots for multiple dates in parallel
-    const results = await Promise.all(
-      dates.map(async (date) => {
-        try {
-          const result = await this.getAvailableSlots(employeeId, businessServiceId, date);
-          return { date, slots: result.slots, loyalty: result.loyalty };
-        } catch {
-          return {
-            date,
-            slots: [] as { time: string; available: boolean }[],
-            loyalty: null,
-          };
-        }
-      })
-    );
-    return results;
+    const params = new URLSearchParams({
+      employeeId,
+      businessServiceId,
+      dateFrom,
+      dateTo,
+    });
+    return this.request<{
+      days: { date: string; slots: { time: string; available: boolean }[] }[];
+      loyalty: {
+        lastCompletedAt: string | null;
+        pricingTiers: { thresholdWeeks: number; surchargeCents: number }[];
+      } | null;
+    }>(`/employees/slots-range?${params}`);
   }
 
   // Business Booking
