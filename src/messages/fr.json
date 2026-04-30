@@ -6,6 +6,7 @@
   "common": {
     "loading": "Chargement...",
     "error": "Une erreur est survenue",
+    "rateLimitToast": "Trop de requêtes — patientez {seconds, plural, one {# seconde} other {# secondes}} avant de réessayer.",
     "save": "Enregistrer",
     "cancel": "Annuler",
     "delete": "Supprimer",

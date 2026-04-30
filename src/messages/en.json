@@ -6,6 +6,7 @@
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",
+    "rateLimitToast": "Too many requests — please wait {seconds, plural, one {# second} other {# seconds}} before trying again.",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",

@@ -122,6 +122,16 @@ class ApiClient {
       }
     }
 
+    // On 429, broadcast a window event so a global listener can toast the
+    // user with the remaining cooldown. Throttler returns a Retry-After
+    // header in seconds (NestJS @nestjs/throttler default behavior).
+    if (response.status === 429 && typeof window !== 'undefined') {
+      const retryAfter = Number(response.headers.get('Retry-After')) || 30;
+      window.dispatchEvent(
+        new CustomEvent('api:rate-limit', { detail: { retryAfter } }),
+      );
+    }
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       const message = error.message || 'An error occurred';
@@ -479,21 +489,6 @@ class ApiClient {
 
   async getEmployeesByBusiness(businessId: string) {
     return this.request<import('@/types').Employee[]>(`/employees/business/${businessId}`);
-  }
-
-  async getAvailableSlots(employeeId: string, businessServiceId: string, date: string) {
-    const params = new URLSearchParams({
-      employeeId,
-      businessServiceId,
-      date,
-    });
-    return this.request<{
-      slots: { time: string; available: boolean }[];
-      loyalty: {
-        lastCompletedAt: string | null;
-        pricingTiers: { thresholdWeeks: number; surchargeCents: number }[];
-      } | null;
-    }>(`/employees/slots?${params}`);
   }
 
   /**

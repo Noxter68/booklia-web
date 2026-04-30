@@ -7,6 +7,7 @@ import { useLocale } from 'next-intl';
 import { ToastProvider } from '@/components/ui/toast';
 import { AuthProvider } from '@/contexts/auth-context';
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
+import { RateLimitListener } from '@/components/rate-limit-listener';
 import { api } from '@/lib/api';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -53,7 +54,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       >
         <AuthProvider>
           <WebSocketProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              <RateLimitListener />
+              {children}
+            </ToastProvider>
           </WebSocketProvider>
         </AuthProvider>
       </ThemeProvider>

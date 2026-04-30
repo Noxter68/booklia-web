@@ -6,6 +6,7 @@
   "common": {
     "loading": "Carregando...",
     "error": "Ocorreu um erro",
+    "rateLimitToast": "Muitas requisições — aguarde {seconds, plural, one {# segundo} other {# segundos}} antes de tentar novamente.",
     "save": "Salvar",
     "cancel": "Cancelar",
     "delete": "Excluir",
