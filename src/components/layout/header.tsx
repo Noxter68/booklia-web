@@ -36,10 +36,13 @@ export function Header() {
     setIsMounted(true);
   }, []);
 
-  // Fetch categories for nav links
+  // Fetch categories for nav links — quasi-static, cache aggressively to avoid
+  // refetching on every navigation.
   const { data: categories } = useQuery({
     queryKey: ['categories', locale],
     queryFn: () => api.getCategories(),
+    staleTime: 60 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
   // Detect if user owns a business (to show "Mon entreprise" vs "Mes reservations")

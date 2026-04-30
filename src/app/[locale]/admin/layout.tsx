@@ -82,14 +82,16 @@ export default function AdminLayout({
   }, [pathname]);
 
   // Badge queries: gated by `enabled` so they don't fire on the login page.
+  // Polled every 2 min, no refetch on window focus — the badge counts don't
+  // need to be real-time and tab focus events were causing a refetch storm.
   const { data: referralsBadge } = useQuery({
     queryKey: ['admin-referrals-pending-count', referralsLastSeenAt],
     queryFn: () =>
       api.adminGetReferralsPendingCount(referralsLastSeenAt ?? undefined),
     enabled: !!user?.isAdmin && !isLoginPage,
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
-    staleTime: 15_000,
+    refetchInterval: 120_000,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
   });
 
   const { data: invitesBadge } = useQuery({
@@ -97,9 +99,9 @@ export default function AdminLayout({
     queryFn: () =>
       api.adminGetInviteRequestsPendingCount(invitesLastSeenAt ?? undefined),
     enabled: !!user?.isAdmin && !isLoginPage,
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
-    staleTime: 15_000,
+    refetchInterval: 120_000,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
   });
 
   // Show loader while checking auth (except on login page)

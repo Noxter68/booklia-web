@@ -77,7 +77,7 @@ export default function BookingPage() {
 
   // Check if current user owns a business (business accounts cannot book)
   const { data: myBusiness, isLoading: myBusinessLoading } = useQuery({
-    queryKey: ['myBusiness'],
+    queryKey: ['my-business'],
     queryFn: () => api.getMyBusiness(),
     enabled: !!user,
     retry: false,

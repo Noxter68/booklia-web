@@ -556,15 +556,14 @@ export default function BusinessDetailClient() {
     enabled: !!business?.id,
   });
 
-  const { data: images } = useQuery({
-    queryKey: ['business-images', slug],
-    queryFn: () => api.getBusinessImages(slug as string),
-    enabled: !!slug,
-  });
+  // Images are already included in the business payload (findBySlug includes
+  // images). No need for a separate request — derive directly.
+  const images = business?.images;
 
-  // Get user's completed bookings with this business (to check if they can leave a review)
+  // Reuse the same queryKey as the dedicated reservations page so both screens
+  // share a single cache entry instead of fetching /bookings/me twice.
   const { data: myBookings } = useQuery({
-    queryKey: ['my-bookings-for-review', business?.id],
+    queryKey: ['my-reservations'],
     queryFn: () => api.getMyBookings('requester'),
     enabled: !!user && !!business?.id,
   });
@@ -592,7 +591,7 @@ export default function BusinessDetailClient() {
 
   // Check if user owns any business (business accounts cannot book)
   const { data: myBusiness } = useQuery({
-    queryKey: ['myBusiness'],
+    queryKey: ['my-business'],
     queryFn: () => api.getMyBusiness(),
     enabled: !!user,
     retry: false,

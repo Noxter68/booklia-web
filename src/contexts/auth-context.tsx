@@ -2,8 +2,29 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { authClient, AuthUser } from '@/lib/auth';
+
+// QueryKey roots that depend on the authenticated user. We refetch these on
+// login/register/logout instead of blasting the entire cache.
+const AUTH_SCOPED_QUERY_KEYS = [
+  'my-business',
+  'my-business-images',
+  'my-business-hours',
+  'my-business-promotions',
+  'my-reservations',
+  'business-bookings',
+  'notifications',
+  'my-referrals',
+  'admin-referrals-pending-count',
+  'admin-invite-requests-pending-count',
+];
+
+function invalidateAuthScopedQueries(client: QueryClient) {
+  for (const root of AUTH_SCOPED_QUERY_KEYS) {
+    client.invalidateQueries({ queryKey: [root] });
+  }
+}
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -83,8 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedToken = localStorage.getItem('accessToken');
     setToken(storedToken);
     setIsLoading(false);
-    // Refetch all queries now that we're authenticated (e.g. my-business)
-    queryClient.invalidateQueries();
+    // Only invalidate user-scoped queries that depend on auth state. A blanket
+    // invalidateQueries() refetches every cached query (categories, public
+    // business pages, etc.) and floods the network on login.
+    invalidateAuthScopedQueries(queryClient);
     return result;
   };
 
@@ -100,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedToken = localStorage.getItem('accessToken');
     setToken(storedToken);
     setIsLoading(false);
-    queryClient.invalidateQueries();
+    invalidateAuthScopedQueries(queryClient);
     return result;
   };
 

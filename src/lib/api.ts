@@ -273,6 +273,15 @@ class ApiClient {
     return this.request<import('@/types').Booking[]>(`/bookings/me${queryString ? `?${queryString}` : ''}`);
   }
 
+  /** Returns a completed-but-unreviewed booking with the given business, if any. */
+  async getReviewableBooking(businessId: string) {
+    return this.request<{
+      id: string;
+      completedAt: string | null;
+      businessService: { id: string; name: string };
+    } | null>(`/bookings/can-review?businessId=${encodeURIComponent(businessId)}`);
+  }
+
   // Reviews
   async createReview(data: {
     bookingId: string;
