@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Trash2, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, BanknoteArrowUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,7 +46,7 @@ export function PricingTiersEditor({ basePriceCents, tiers, onChange }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex items-start gap-2">
-        <TrendingUp className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+        <BanknoteArrowUp className="w-4 h-4 text-orange-600 mt-0.5 shrink-0" />
         <div className="text-xs text-muted-foreground leading-relaxed">
           {t('pricingTiersHint')}
         </div>
