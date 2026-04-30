@@ -427,7 +427,11 @@ function ServiceRow({
           </span>
           <span className="hidden sm:inline text-muted-foreground/40">·</span>
           <span className="text-sm font-semibold">
-            {formatPrice(service.priceCents)}
+            {service.priceMode === 'QUOTE'
+              ? t('priceQuote')
+              : service.priceMode === 'FREE'
+                ? t('priceFree')
+                : formatPrice(service.priceCents)}
           </span>
           {!hideBookButton && (
             <button
@@ -806,11 +810,15 @@ export default function BusinessDetailClient() {
                         )}
                         <span>·</span>
                         <span>
-                          {booking.agreedPriceCents
-                            ? formatPrice(booking.agreedPriceCents)
-                            : booking.businessService
-                            ? formatPrice(booking.businessService.priceCents)
-                            : ''}
+                          {booking.businessService?.priceMode === 'QUOTE'
+                            ? t('priceQuote')
+                            : booking.businessService?.priceMode === 'FREE'
+                              ? t('priceFree')
+                              : booking.agreedPriceCents
+                                ? formatPrice(booking.agreedPriceCents)
+                                : booking.businessService
+                                  ? formatPrice(booking.businessService.priceCents)
+                                  : ''}
                         </span>
                         {booking.employee && (
                           <>
