@@ -27,6 +27,7 @@ import {
   FileText,
   CalendarDays,
   CornerDownRight,
+  TrendingUp,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -552,7 +553,15 @@ function BusinessDashboardContent() {
                           )}
                         </div>
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span className="truncate mr-2">{booking.businessService?.name || t('prestation')}</span>
+                          <span className="truncate mr-2 flex items-center gap-1.5 min-w-0">
+                            <span className="truncate">{booking.businessService?.name || t('prestation')}</span>
+                            {booking.appliedTierWeeks != null && (
+                              <TrendingUp
+                                className="w-3 h-3 text-primary shrink-0"
+                                aria-label={`Tarif fidélité : client revenu après plus de ${booking.appliedTierWeeks} semaines`}
+                              />
+                            )}
+                          </span>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {booking.scheduledAt && (
                               <>
@@ -580,7 +589,17 @@ function BusinessDashboardContent() {
                           </button>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{booking.businessService?.name || t('prestation')}</p>
+                          <p className="font-medium text-sm truncate flex items-center gap-1.5">
+                            <span className="truncate">
+                              {booking.businessService?.name || t('prestation')}
+                            </span>
+                            {booking.appliedTierWeeks != null && (
+                              <TrendingUp
+                                className="w-3.5 h-3.5 text-primary shrink-0"
+                                aria-label={`Tarif fidélité : client revenu après plus de ${booking.appliedTierWeeks} semaines`}
+                              />
+                            )}
+                          </p>
                         </div>
                         <div className="shrink-0">
                           {booking.scheduledAt ? (
@@ -622,7 +641,17 @@ function BusinessDashboardContent() {
                           </button>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{booking.businessService?.name || t('prestation')}</p>
+                          <p className="font-medium text-sm truncate flex items-center gap-1.5">
+                            <span className="truncate">
+                              {booking.businessService?.name || t('prestation')}
+                            </span>
+                            {booking.appliedTierWeeks != null && (
+                              <TrendingUp
+                                className="w-3.5 h-3.5 text-primary shrink-0"
+                                aria-label={`Tarif fidélité : client revenu après plus de ${booking.appliedTierWeeks} semaines`}
+                              />
+                            )}
+                          </p>
                         </div>
                         <div className="w-45 shrink-0">
                           {booking.scheduledAt ? (

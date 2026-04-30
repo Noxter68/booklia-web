@@ -48,6 +48,7 @@ export interface Booking {
   };
   status: BookingStatus;
   agreedPriceCents?: number;
+  appliedTierWeeks?: number | null;
   scheduledAt?: string;
   scheduledEndAt?: string;
   completedAt?: string;
