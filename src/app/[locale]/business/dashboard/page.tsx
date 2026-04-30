@@ -27,7 +27,7 @@ import {
   FileText,
   CalendarDays,
   CornerDownRight,
-  TrendingUp,
+  BanknoteArrowUp,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -556,10 +556,13 @@ function BusinessDashboardContent() {
                           <span className="truncate mr-2 flex items-center gap-1.5 min-w-0">
                             <span className="truncate">{booking.businessService?.name || t('prestation')}</span>
                             {booking.appliedTierWeeks != null && (
-                              <TrendingUp
-                                className="w-3 h-3 text-primary shrink-0"
-                                aria-label={`Tarif fidélité : client revenu après plus de ${booking.appliedTierWeeks} semaines`}
-                              />
+                              <span
+                                title={`Prix majoré (tarif fidélité, +${booking.appliedTierWeeks} semaines)`}
+                                aria-label={`Prix majoré : client revenu après plus de ${booking.appliedTierWeeks} semaines`}
+                                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-500/10 text-orange-600 shrink-0"
+                              >
+                                <BanknoteArrowUp className="w-3 h-3" />
+                              </span>
                             )}
                           </span>
                           <div className="flex items-center gap-1.5 shrink-0">
@@ -594,10 +597,13 @@ function BusinessDashboardContent() {
                               {booking.businessService?.name || t('prestation')}
                             </span>
                             {booking.appliedTierWeeks != null && (
-                              <TrendingUp
-                                className="w-3.5 h-3.5 text-primary shrink-0"
-                                aria-label={`Tarif fidélité : client revenu après plus de ${booking.appliedTierWeeks} semaines`}
-                              />
+                              <span
+                                title={`Prix majoré (tarif fidélité, +${booking.appliedTierWeeks} semaines)`}
+                                aria-label={`Prix majoré : client revenu après plus de ${booking.appliedTierWeeks} semaines`}
+                                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-500/10 text-orange-600 shrink-0"
+                              >
+                                <BanknoteArrowUp className="w-3 h-3" />
+                              </span>
                             )}
                           </p>
                         </div>
@@ -646,10 +652,13 @@ function BusinessDashboardContent() {
                               {booking.businessService?.name || t('prestation')}
                             </span>
                             {booking.appliedTierWeeks != null && (
-                              <TrendingUp
-                                className="w-3.5 h-3.5 text-primary shrink-0"
-                                aria-label={`Tarif fidélité : client revenu après plus de ${booking.appliedTierWeeks} semaines`}
-                              />
+                              <span
+                                title={`Prix majoré (tarif fidélité, +${booking.appliedTierWeeks} semaines)`}
+                                aria-label={`Prix majoré : client revenu après plus de ${booking.appliedTierWeeks} semaines`}
+                                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-500/10 text-orange-600 shrink-0"
+                              >
+                                <BanknoteArrowUp className="w-3 h-3" />
+                              </span>
                             )}
                           </p>
                         </div>

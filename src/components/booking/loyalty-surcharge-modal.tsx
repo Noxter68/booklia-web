@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, TrendingUp } from 'lucide-react';
+import { X, BanknoteArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
@@ -9,7 +9,7 @@ import { useTranslations } from 'next-intl';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  weeksSinceLast: number;
+  daysSinceLast: number;
   appliedTierWeeks: number;
   basePriceCents: number;
   totalPriceCents: number;
@@ -18,7 +18,7 @@ interface Props {
 export function LoyaltySurchargeModal({
   isOpen,
   onClose,
-  weeksSinceLast,
+  daysSinceLast,
   appliedTierWeeks,
   basePriceCents,
   totalPriceCents,
@@ -26,8 +26,6 @@ export function LoyaltySurchargeModal({
   const t = useTranslations('loyaltyModal');
 
   if (!isOpen) return null;
-
-  const roundedWeeks = Math.floor(weeksSinceLast);
 
   return (
     <AnimatePresence>
@@ -47,8 +45,8 @@ export function LoyaltySurchargeModal({
         >
           <div className="flex items-center justify-between p-5 border-b border-border">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 text-primary" />
+              <div className="w-9 h-9 rounded-full bg-orange-500/10 flex items-center justify-center">
+                <BanknoteArrowUp className="w-4 h-4 text-orange-600" />
               </div>
               <h2 className="text-base font-semibold">{t('title')}</h2>
             </div>
@@ -63,7 +61,7 @@ export function LoyaltySurchargeModal({
 
           <div className="p-5 space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {t('body', { weeks: roundedWeeks, threshold: appliedTierWeeks })}
+              {t('body', { days: daysSinceLast, threshold: appliedTierWeeks })}
             </p>
 
             <div className="rounded-xl bg-background border border-border p-4 space-y-2">

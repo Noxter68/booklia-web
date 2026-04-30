@@ -736,12 +736,13 @@
   },
   "loyaltyModal": {
     "title": "Preço de fidelidade",
-    "body": "Já se passaram cerca de {weeks} semanas desde seu último agendamento (acima de {threshold} semanas). O preço foi ajustado.",
+    "body": "Passaram-se {days, plural, one {# dia} other {# dias}} desde seu último agendamento (acima de {threshold, plural, one {# semana} other {# semanas}}). O preço foi ajustado.",
     "basePrice": "Preço habitual",
     "newPrice": "Preço aplicado",
     "confirm": "Entendi",
+    "badgeTooltip": "Preço aumentado (preço de fidelidade)",
     "surchargeBadge": "+{amount}",
-    "surchargeNote": "Preço ajustado: mais de {threshold} semanas desde seu último agendamento."
+    "surchargeNote": "Preço ajustado: mais de {threshold, plural, one {# semana} other {# semanas}} desde seu último agendamento."
   },
   "admin": {
     "title": "Administração",

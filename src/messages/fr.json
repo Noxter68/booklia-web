@@ -736,12 +736,13 @@
   },
   "loyaltyModal": {
     "title": "Tarif fidélité",
-    "body": "Cela fait environ {weeks} semaines depuis votre dernier rendez-vous (au-delà de {threshold} semaines). Le prix de cette prestation est ajusté en conséquence.",
+    "body": "Cela fait {days, plural, one {# jour} other {# jours}} depuis votre dernier rendez-vous (au-delà de {threshold, plural, one {# semaine} other {# semaines}}). Le prix de cette prestation est ajusté en conséquence.",
     "basePrice": "Prix habituel",
     "newPrice": "Prix appliqué",
     "confirm": "J'ai compris",
+    "badgeTooltip": "Prix majoré (tarif fidélité)",
     "surchargeBadge": "+{amount}",
-    "surchargeNote": "Tarif majoré : vous dépassez {threshold} semaines depuis votre dernier rendez-vous."
+    "surchargeNote": "Tarif majoré : vous dépassez {threshold, plural, one {# semaine} other {# semaines}} depuis votre dernier rendez-vous."
   },
   "admin": {
     "title": "Administration",

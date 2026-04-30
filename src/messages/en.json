@@ -736,12 +736,13 @@
   },
   "loyaltyModal": {
     "title": "Loyalty pricing",
-    "body": "It's been about {weeks} weeks since your last appointment (past {threshold} weeks). The price has been adjusted accordingly.",
+    "body": "It's been {days, plural, one {# day} other {# days}} since your last appointment (past {threshold, plural, one {# week} other {# weeks}}). The price has been adjusted accordingly.",
     "basePrice": "Usual price",
     "newPrice": "Applied price",
     "confirm": "Got it",
+    "badgeTooltip": "Increased price (loyalty pricing)",
     "surchargeBadge": "+{amount}",
-    "surchargeNote": "Adjusted price: more than {threshold} weeks since your last appointment."
+    "surchargeNote": "Adjusted price: more than {threshold, plural, one {# week} other {# weeks}} since your last appointment."
   },
   "admin": {
     "title": "Administration",

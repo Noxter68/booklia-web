@@ -184,7 +184,12 @@ export default function BookingPage() {
   // Surcharge applies on the service base price only — options are unchanged.
   const loyaltyResult = useMemo(() => {
     if (!loyalty || !selectedDate || !selectedTime) {
-      return { surchargeCents: 0, appliedTierWeeks: null, weeksSinceLast: null };
+      return {
+        surchargeCents: 0,
+        appliedTierWeeks: null,
+        weeksSinceLast: null,
+        daysSinceLast: null,
+      };
     }
     return computeLoyaltySurcharge(
       loyalty.pricingTiers,
@@ -982,7 +987,7 @@ export default function BookingPage() {
       <LoyaltySurchargeModal
         isOpen={shouldShowLoyaltyModal}
         onClose={() => setLoyaltyAcknowledgedKey(selectionKey)}
-        weeksSinceLast={loyaltyResult.weeksSinceLast ?? 0}
+        daysSinceLast={loyaltyResult.daysSinceLast ?? 0}
         appliedTierWeeks={loyaltyResult.appliedTierWeeks ?? 0}
         basePriceCents={totalWithoutSurchargeCents}
         totalPriceCents={totalPriceCents}
