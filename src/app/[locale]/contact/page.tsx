@@ -1,213 +1,157 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Mail, MessageSquare, MapPin, Send, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState, type ReactNode } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mail, MapPin, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0 },
 };
 
+interface FaqItem {
+  q: string;
+  a: ReactNode;
+}
+
 export default function ContactPage() {
   const t = useTranslations('contact');
+  const [openIdx, setOpenIdx] = useState<number | null>(0);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  // Rich-text answers can embed <invite> for /auth/request-invite links.
+  const richAnswer = (key: string) =>
+    t.rich(key, {
+      invite: (chunks) => (
+        <Link href="/auth/request-invite" className="text-primary underline hover:opacity-80">
+          {chunks}
+        </Link>
+      ),
+    });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    // Simulation d'envoi (front-only pour le moment)
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    setIsSubmitting(false);
-    setIsSubmitted(true);
-    setFormData({ name: '', email: '', subject: '', message: '' });
-  };
-
-  const contactInfo = [
-    {
-      icon: Mail,
-      title: t('email'),
-      value: 'contact@sidey.fr',
-      description: t('emailDesc'),
-    },
-    {
-      icon: MessageSquare,
-      title: t('support'),
-      value: 'support@sidey.fr',
-      description: t('supportDesc'),
-    },
-    {
-      icon: MapPin,
-      title: t('location'),
-      value: t('locationValue'),
-      description: t('locationDesc'),
-    },
+  const faq: FaqItem[] = [
+    { q: t('faq1Q'), a: richAnswer('faq1A') },
+    { q: t('faq2Q'), a: t('faq2A') },
+    { q: t('faq3Q'), a: t('faq3A') },
+    { q: t('faq4Q'), a: t('faq4A') },
+    { q: t('faq5Q'), a: richAnswer('faq5A') },
+    { q: t('faq6Q'), a: t('faq6A') },
+    { q: t('faq7Q'), a: t('faq7A') },
   ];
 
   return (
-    <div className="min-h-screen pt-24">
-      {/* Hero Section */}
-      <section className="relative py-24 bg-muted/30">
+    <div className="min-h-screen pt-24 pb-16">
+      {/* Hero */}
+      <section className="py-16 sm:py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <motion.div
             initial="hidden"
             animate="visible"
             variants={fadeInUp}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
             className="max-w-3xl mx-auto text-center"
           >
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              {t('title')}
-            </h1>
-            <p className="text-xl text-muted-foreground leading-relaxed">
+            <h1 className="text-3xl sm:text-5xl font-bold mb-4">{t('title')}</h1>
+            <p className="text-base sm:text-xl text-muted-foreground leading-relaxed">
               {t('subtitle')}
             </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Contact Content */}
-      <section className="py-24">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-16 max-w-6xl mx-auto">
-            {/* Contact Info */}
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+      {/* Contact info */}
+      <section className="py-12 sm:py-16">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="grid sm:grid-cols-2 gap-4 mb-12">
+            <a
+              href="mailto:contact@booklia.org"
+              className="flex items-start gap-4 p-5 bg-surface border border-border rounded-2xl hover:border-primary/40 hover:bg-muted/30 transition-colors"
             >
-              <h2 className="text-2xl font-bold mb-8">{t('stayInTouch')}</h2>
-
-              <div className="space-y-6 mb-12">
-                {contactInfo.map((item) => (
-                  <div
-                    key={item.title}
-                    className="flex items-start gap-4 p-4 bg-surface border border-border rounded-xl"
-                  >
-                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <item.icon className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <div className="font-medium">{item.title}</div>
-                      <div className="text-primary font-medium">{item.value}</div>
-                      <div className="text-sm text-muted-foreground">{item.description}</div>
-                    </div>
-                  </div>
-                ))}
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                <Mail className="w-5 h-5 text-primary" />
               </div>
-
-              <div className="bg-muted/50 rounded-2xl p-6">
-                <h3 className="font-semibold mb-2">{t('faq')}</h3>
-                <p className="text-muted-foreground text-sm mb-4">
-                  {t('faqDesc')}
-                </p>
-                <Button variant="outline" size="sm">
-                  {t('viewFaq')}
-                </Button>
+              <div className="min-w-0">
+                <div className="font-medium">{t('email')}</div>
+                <div className="text-primary font-medium wrap-break-word">contact@booklia.org</div>
+                <div className="text-sm text-muted-foreground mt-1">{t('emailDesc')}</div>
               </div>
-            </motion.div>
-
-            {/* Contact Form */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <div className="bg-surface border border-border rounded-2xl p-8">
-                <h2 className="text-2xl font-bold mb-6">{t('sendMessage')}</h2>
-
-                {isSubmitted ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-center py-12"
-                  >
-                    <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold mb-2">{t('successTitle')}</h3>
-                    <p className="text-muted-foreground mb-6">
-                      {t('successMessage')}
-                    </p>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsSubmitted(false)}
-                    >
-                      {t('sendAnother')}
-                    </Button>
-                  </motion.div>
-                ) : (
-                  <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">{t('name')}</label>
-                        <Input
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          placeholder={t('namePlaceholder')}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">{t('email')}</label>
-                        <Input
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          placeholder={t('emailPlaceholder')}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">{t('subject')}</label>
-                      <Input
-                        value={formData.subject}
-                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                        placeholder={t('subjectPlaceholder')}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">{t('message')}</label>
-                      <textarea
-                        value={formData.message}
-                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                        placeholder={t('messagePlaceholder')}
-                        rows={5}
-                        required
-                        className="w-full px-3 py-2 bg-surface border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors resize-none"
-                      />
-                    </div>
-
-                    <Button type="submit" className="w-full" isLoading={isSubmitting}>
-                      <Send className="w-4 h-4 mr-2" />
-                      {t('send')}
-                    </Button>
-                  </form>
-                )}
+            </a>
+            <div className="flex items-start gap-4 p-5 bg-surface border border-border rounded-2xl">
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                <MapPin className="w-5 h-5 text-primary" />
               </div>
-            </motion.div>
+              <div className="min-w-0">
+                <div className="font-medium">{t('location')}</div>
+                <div className="text-primary font-medium">{t('locationValue')}</div>
+                <div className="text-sm text-muted-foreground mt-1">{t('locationDesc')}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* FAQ */}
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center">
+              {t('faqTitle')}
+            </h2>
+            <div className="space-y-3">
+              {faq.map((item, idx) => (
+                <FaqAccordion
+                  key={idx}
+                  question={item.q}
+                  answer={item.a}
+                  isOpen={openIdx === idx}
+                  onToggle={() => setOpenIdx(openIdx === idx ? null : idx)}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function FaqAccordion({
+  question,
+  answer,
+  isOpen,
+  onToggle,
+}: {
+  question: string;
+  answer: ReactNode;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-muted/30 transition-colors cursor-pointer"
+        aria-expanded={isOpen}
+      >
+        <span className="font-medium text-sm sm:text-base">{question}</span>
+        <ChevronDown
+          className={`w-5 h-5 text-muted-foreground shrink-0 transition-transform ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-5 text-sm sm:text-base text-muted-foreground leading-relaxed">
+              {answer}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
