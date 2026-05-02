@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   ReactNode,
@@ -25,21 +26,40 @@ const AmountsVisibilityContext = createContext<
   AmountsVisibilityContextType | undefined
 >(undefined);
 
+const STORAGE_KEY = 'booklia.amountsVisible';
+
 /**
- * Provides a dashboard-wide "hide amounts" toggle. Amounts are hidden by
- * default on every page load; revealing requires the user's password.
- * Hiding does not require re-auth. Session-scoped only (no persistence).
+ * Provides a dashboard-wide "hide amounts" toggle. Revealing requires the
+ * user's password. Once revealed, the visible state is persisted in
+ * localStorage so a refresh keeps the amounts shown until the user explicitly
+ * hides them again. Hiding does not require re-auth.
  */
 export function AmountsVisibilityProvider({ children }: { children: ReactNode }) {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisibleState] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Hydrate from localStorage on mount (client-only)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.localStorage.getItem(STORAGE_KEY) === '1') {
+      setVisibleState(true);
+    }
+  }, []);
+
+  const setVisible = useCallback((next: boolean) => {
+    setVisibleState(next);
+    if (typeof window !== 'undefined') {
+      if (next) window.localStorage.setItem(STORAGE_KEY, '1');
+      else window.localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
 
   const requestReveal = useCallback(() => {
     if (visible) return;
     setModalOpen(true);
   }, [visible]);
 
-  const hide = useCallback(() => setVisible(false), []);
+  const hide = useCallback(() => setVisible(false), [setVisible]);
 
   const toggle = useCallback(() => {
     if (visible) {
@@ -47,7 +67,7 @@ export function AmountsVisibilityProvider({ children }: { children: ReactNode })
     } else {
       setModalOpen(true);
     }
-  }, [visible]);
+  }, [visible, setVisible]);
 
   const value = useMemo(
     () => ({ visible, requestReveal, hide, toggle }),
@@ -65,6 +85,8 @@ export function AmountsVisibilityProvider({ children }: { children: ReactNode })
           setModalOpen(false);
         }}
       />
+      {/* Cross-tab sync: when another tab toggles, mirror it here */}
+      <StorageSync setVisible={setVisible} />
     </AmountsVisibilityContext.Provider>
   );
 }
@@ -118,6 +140,21 @@ export function AmountsVisibilityToggle({ className }: { className?: string }) {
       )}
     </button>
   );
+}
+
+function StorageSync({ setVisible }: { setVisible: (next: boolean) => void }) {
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY) return;
+      // Mirror without re-writing storage (use the raw setter via a fresh closure
+      // would re-write; we read current state via effect-only setter cycle).
+      // Calling setVisible here would persist again — that's idempotent so it's fine.
+      setVisible(e.newValue === '1');
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, [setVisible]);
+  return null;
 }
 
 function RevealPasswordModal({
