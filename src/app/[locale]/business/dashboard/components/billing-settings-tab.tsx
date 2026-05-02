@@ -8,11 +8,35 @@ import {
   FileText,
   Save,
   Info,
+  Calculator,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
-import { VatMode } from '@/types';
+import { VatMode, LegalForm } from '@/types';
+
+const legalFormLabels: Record<LegalForm, string> = {
+  AUTOENTREPRENEUR_BIC_SERVICE: 'Auto-entrepreneur (BIC services)',
+  AUTOENTREPRENEUR_BIC_VENTE: 'Auto-entrepreneur (BIC vente)',
+  AUTOENTREPRENEUR_BNC: 'Auto-entrepreneur (BNC)',
+  EI: 'Entreprise individuelle (EI)',
+  EURL: 'EURL',
+  SASU: 'SASU',
+  SARL: 'SARL',
+  OTHER: 'Autre',
+};
+
+// Indicative URSSAF rates (subject to change). User can override.
+const defaultUrssafRate: Record<LegalForm, number | null> = {
+  AUTOENTREPRENEUR_BIC_SERVICE: 0.212,
+  AUTOENTREPRENEUR_BIC_VENTE: 0.123,
+  AUTOENTREPRENEUR_BNC: 0.211,
+  EI: null,
+  EURL: null,
+  SASU: null,
+  SARL: null,
+  OTHER: null,
+};
 
 export function BillingSettingsTab() {
   const queryClient = useQueryClient();
@@ -28,6 +52,11 @@ export function BillingSettingsTab() {
   const [vatMode, setVatMode] = useState<VatMode>('FRANCHISE_293B');
   const [invoicePrefix, setInvoicePrefix] = useState('');
   const [paymentTerms, setPaymentTerms] = useState('');
+  const [legalForm, setLegalForm] = useState<LegalForm | ''>('');
+  const [urssafRatePct, setUrssafRatePct] = useState(''); // displayed as percent string
+  const [incomeTaxRatePct, setIncomeTaxRatePct] = useState('');
+  const [acreActive, setAcreActive] = useState(false);
+  const [acreEndDate, setAcreEndDate] = useState('');
 
   const { data: settings } = useQuery({
     queryKey: ['billing-settings'],
@@ -46,12 +75,27 @@ export function BillingSettingsTab() {
       setVatMode(settings.vatMode || 'FRANCHISE_293B');
       setInvoicePrefix(settings.invoicePrefix || '');
       setPaymentTerms(settings.paymentTerms || '');
+      setLegalForm(settings.legalForm || '');
+      setUrssafRatePct(
+        settings.urssafRate != null ? (settings.urssafRate * 100).toString() : '',
+      );
+      setIncomeTaxRatePct(
+        settings.incomeTaxRate != null ? (settings.incomeTaxRate * 100).toString() : '',
+      );
+      setAcreActive(settings.acreActive ?? false);
+      setAcreEndDate(settings.acreEndDate ? settings.acreEndDate.slice(0, 10) : '');
     }
   }, [settings]);
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      api.upsertBillingSettings({
+    mutationFn: () => {
+      const urssafRate = urssafRatePct.trim()
+        ? Math.max(0, Math.min(1, parseFloat(urssafRatePct.replace(',', '.')) / 100))
+        : null;
+      const incomeTaxRate = incomeTaxRatePct.trim()
+        ? Math.max(0, Math.min(1, parseFloat(incomeTaxRatePct.replace(',', '.')) / 100))
+        : null;
+      return api.upsertBillingSettings({
         legalName,
         addressLine1,
         addressLine2: addressLine2 || undefined,
@@ -62,13 +106,28 @@ export function BillingSettingsTab() {
         vatMode,
         invoicePrefix,
         paymentTerms: paymentTerms || undefined,
-      }),
+        legalForm: legalForm || null,
+        urssafRate: !isNaN(urssafRate as number) ? urssafRate : null,
+        incomeTaxRate: !isNaN(incomeTaxRate as number) ? incomeTaxRate : null,
+        acreActive,
+        acreEndDate: acreEndDate ? new Date(acreEndDate).toISOString() : null,
+      });
+    },
     onSuccess: () => {
       success('Paramètres de facturation enregistrés');
       queryClient.invalidateQueries({ queryKey: ['billing-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['accounting-summary'] });
     },
     onError: () => showError('Erreur lors de l\'enregistrement'),
   });
+
+  // When legalForm changes, suggest the matching default URSSAF rate (only if user hasn't typed one)
+  const handleLegalFormChange = (form: LegalForm | '') => {
+    setLegalForm(form);
+    if (form && !urssafRatePct.trim() && defaultUrssafRate[form] != null) {
+      setUrssafRatePct((defaultUrssafRate[form]! * 100).toString());
+    }
+  };
 
   const formatSiret = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 14);
@@ -257,6 +316,89 @@ export function BillingSettingsTab() {
                   rows={2}
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Paramètres comptables */}
+          <div className="bg-surface border border-border rounded-2xl p-5">
+            <h3 className="font-semibold flex items-center gap-2 mb-4">
+              <Calculator className="w-5 h-5" />
+              Paramètres comptables
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  Statut juridique
+                </label>
+                <select
+                  value={legalForm}
+                  onChange={(e) => handleLegalFormChange(e.target.value as LegalForm | '')}
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="">— Non défini —</option>
+                  {(Object.keys(legalFormLabels) as LegalForm[]).map((f) => (
+                    <option key={f} value={f}>{legalFormLabels[f]}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                    Taux URSSAF (%)
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={urssafRatePct}
+                    onChange={(e) => setUrssafRatePct(e.target.value)}
+                    placeholder="21,2"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                    Taux IR estimé (%)
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={incomeTaxRatePct}
+                    onChange={(e) => setIncomeTaxRatePct(e.target.value)}
+                    placeholder="0"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+                <input
+                  id="acre-active"
+                  type="checkbox"
+                  checked={acreActive}
+                  onChange={(e) => setAcreActive(e.target.checked)}
+                  className="mt-0.5 cursor-pointer"
+                />
+                <div className="flex-1">
+                  <label htmlFor="acre-active" className="text-sm font-medium cursor-pointer">
+                    ACRE active
+                  </label>
+                  <p className="text-xs text-muted-foreground">Réduction de cotisations URSSAF la 1ère année</p>
+                  {acreActive && (
+                    <input
+                      type="date"
+                      value={acreEndDate}
+                      onChange={(e) => setAcreEndDate(e.target.value)}
+                      className="mt-2 w-full px-3 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-xs text-blue-700 dark:text-blue-400">
+                <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>Ces paramètres sont utilisés pour estimer ton URSSAF et ton net dans l&apos;onglet Comptabilité.</span>
               </div>
             </div>
           </div>

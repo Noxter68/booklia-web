@@ -898,10 +898,61 @@ class ApiClient {
     invoicePrefix: string;
     logoKey?: string;
     paymentTerms?: string;
+    legalForm?: import('@/types').LegalForm | null;
+    urssafRate?: number | null;
+    incomeTaxRate?: number | null;
+    acreActive?: boolean;
+    acreEndDate?: string | null;
   }) {
     return this.request<import('@/types').BusinessBillingSettings>('/billing/settings', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  // ============================================
+  // Accounting
+  // ============================================
+
+  async getAccountingSummary(params: { period: 'month' | 'year'; value: string }) {
+    const qs = new URLSearchParams({ period: params.period, value: params.value });
+    return this.request<import('@/types').AccountingSummary>(
+      `/business/accounting/summary?${qs.toString()}`,
+    );
+  }
+
+  async createExpense(data: {
+    date: string;
+    category: import('@/types').ExpenseCategory;
+    description: string;
+    amountCents: number;
+    reference?: string;
+  }) {
+    return this.request<import('@/types').ExpenseItem>('/business/accounting/expenses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateExpense(
+    expenseId: string,
+    data: Partial<{
+      date: string;
+      category: import('@/types').ExpenseCategory;
+      description: string;
+      amountCents: number;
+      reference: string;
+    }>,
+  ) {
+    return this.request<import('@/types').ExpenseItem>(
+      `/business/accounting/expenses/${expenseId}`,
+      { method: 'PATCH', body: JSON.stringify(data) },
+    );
+  }
+
+  async deleteExpense(expenseId: string) {
+    return this.request<{ ok: true }>(`/business/accounting/expenses/${expenseId}`, {
+      method: 'DELETE',
     });
   }
 
