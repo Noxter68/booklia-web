@@ -725,6 +725,7 @@ class ApiClient {
     phone?: string;
     address?: string;
     notes?: string;
+    birthDate?: string | null;
   }) {
     return this.request<import('@/types').BusinessClient>('/business/clients', {
       method: 'POST',
@@ -752,6 +753,7 @@ class ApiClient {
     notes?: string;
     phone?: string;
     address?: string;
+    birthDate?: string | null;
   }) {
     return this.request<import('@/types').BusinessClient>(`/business/clients/${clientId}`, {
       method: 'PUT',

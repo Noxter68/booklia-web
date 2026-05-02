@@ -300,6 +300,7 @@ export interface BusinessClient {
     name?: string;
     email: string;
     image?: string;
+    birthDate?: string | null;
   };
   stats?: ClientStats;
 }

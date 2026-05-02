@@ -156,7 +156,9 @@
       "success": "Registration successful! Welcome to Booklia",
       "errorPasswordMismatch": "Passwords do not match",
       "errorPasswordLength": "Password must be at least 8 characters",
-      "errorGeneric": "An error occurred during registration"
+      "errorGeneric": "An error occurred during registration",
+      "birthDate": "Date of birth",
+      "errorBirthDate": "Please enter a valid date of birth"
     },
     "verifyEmail": {
       "verifying": "Verifying...",

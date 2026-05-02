@@ -37,6 +37,7 @@ interface AuthContextType {
     lastName: string;
     email: string;
     password: string;
+    birthDate: string;
   }) => Promise<{ user: AuthUser }>;
   logout: () => void;
   checkSession: () => Promise<void>;
@@ -116,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastName: string;
     email: string;
     password: string;
+    birthDate: string;
   }) => {
     const result = await authClient.register(data);
     authVersion.current++;

@@ -156,7 +156,9 @@
       "success": "Cadastro realizado! Bem-vindo ao Booklia",
       "errorPasswordMismatch": "As senhas não coincidem",
       "errorPasswordLength": "A senha deve ter pelo menos 8 caracteres",
-      "errorGeneric": "Ocorreu um erro durante o cadastro"
+      "errorGeneric": "Ocorreu um erro durante o cadastro",
+      "birthDate": "Data de nascimento",
+      "errorBirthDate": "Por favor, insira uma data de nascimento válida"
     },
     "verifyEmail": {
       "verifying": "Verificando...",

@@ -156,7 +156,9 @@
       "success": "Inscription réussie ! Bienvenue sur Booklia",
       "errorPasswordMismatch": "Les mots de passe ne correspondent pas",
       "errorPasswordLength": "Le mot de passe doit contenir au moins 8 caractères",
-      "errorGeneric": "Une erreur est survenue lors de l'inscription"
+      "errorGeneric": "Une erreur est survenue lors de l'inscription",
+      "birthDate": "Date de naissance",
+      "errorBirthDate": "Veuillez saisir une date de naissance valide"
     },
     "verifyEmail": {
       "verifying": "Vérification en cours...",
