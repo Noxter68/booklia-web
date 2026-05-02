@@ -28,6 +28,7 @@ import {
   CalendarDays,
   CornerDownRight,
   BanknoteArrowUp,
+  Calculator,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -62,6 +63,10 @@ const InvoicesTab = dynamic(
   () => import('./components/invoices-tab').then((m) => ({ default: m.InvoicesTab })),
   { ssr: false },
 );
+const AccountingTab = dynamic(
+  () => import('./components/accounting-tab').then((m) => ({ default: m.AccountingTab })),
+  { ssr: false },
+);
 const AgendaTab = dynamic(
   () =>
     import('./components/calendar/agenda-tab').then((m) => ({ default: m.AgendaTab })),
@@ -94,7 +99,7 @@ function BusinessDashboardContent() {
 
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const validTabs = ['overview', 'services', 'employees', 'bookings', 'clients', 'invoices', 'agenda'] as const;
+  const validTabs = ['overview', 'services', 'employees', 'bookings', 'clients', 'invoices', 'accounting', 'agenda'] as const;
   const initialTab = validTabs.includes(tabParam as any) ? (tabParam as typeof validTabs[number]) : 'overview';
 
   type TabId = typeof validTabs[number];
@@ -304,6 +309,7 @@ function BusinessDashboardContent() {
     { id: 'employees', label: t('team'), icon: Users },
     { id: 'clients', label: t('clients'), icon: UserCheck },
     { id: 'invoices', label: t('invoices'), icon: FileText },
+    { id: 'accounting', label: t('accounting'), icon: Calculator },
   ] as const;
 
   return (
@@ -1037,6 +1043,17 @@ function BusinessDashboardContent() {
             exit={{ opacity: 0 }}
           >
             <InvoicesTab businessId={business.id} />
+          </motion.div>
+        )}
+
+        {activeTab === 'accounting' && (
+          <motion.div
+            key="accounting"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <AccountingTab />
           </motion.div>
         )}
 

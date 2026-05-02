@@ -7,7 +7,6 @@ import {
   FileStack,
   Plus,
   Loader2,
-  Settings,
   Trash2,
   Search,
   X,
@@ -22,7 +21,6 @@ import { useToast } from '@/components/ui/toast';
 import { formatPrice } from '@/lib/utils';
 import { Invoice, InvoiceStatus } from '@/types';
 import { InvoiceEditor } from './invoice-editor';
-import { BillingSettingsTab } from './billing-settings-tab';
 import { BatchInvoiceModal } from './batch-invoice-modal';
 import { BatchHistory } from './batch-history';
 import { SendInvoiceButton } from './send-invoice-button';
@@ -40,7 +38,7 @@ const statusColors: Record<InvoiceStatus, string> = {
   CANCELLED: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
 };
 
-type InvoicesView = 'list' | 'editor' | 'settings';
+type InvoicesView = 'list' | 'editor';
 
 function useDebounce(value: string, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -142,23 +140,6 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
     ? availableMonths.find(([k]) => k === monthFilter)?.[1] || ''
     : 'Tous les mois';
 
-  if (view === 'settings') {
-    return (
-      <div>
-        <div className="mb-4">
-          <Button
-            variant="ghost"
-            onClick={() => setView('list')}
-            className="rounded-full"
-          >
-            ← Retour aux factures
-          </Button>
-        </div>
-        <BillingSettingsTab />
-      </div>
-    );
-  }
-
   if (view === 'editor') {
     return (
       <InvoiceEditor
@@ -188,14 +169,6 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
               Facturation groupée
             </Button>
           )}
-          <Button
-            variant="outline"
-            onClick={() => setView('settings')}
-            className="rounded-full"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Paramètres
-          </Button>
           {subTab === 'invoices' && (
             <Button
               onClick={() => {
