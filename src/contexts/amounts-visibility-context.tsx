@@ -122,6 +122,28 @@ export function MaskedAmount({
 }
 
 /**
+ * Eye toggle styled as an outline button (matches the bordered button row
+ * used in the dashboard mobile header).
+ */
+export function AmountsVisibilityButton({ className }: { className?: string }) {
+  const { visible, toggle } = useAmountsVisibility();
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      title={visible ? 'Masquer les montants' : 'Afficher les montants'}
+      className={`flex items-center justify-center h-10 rounded-full border border-border bg-background hover:bg-muted/40 transition-colors cursor-pointer ${className ?? ''}`}
+    >
+      {visible ? (
+        <Eye className="w-4 h-4" />
+      ) : (
+        <EyeOff className="w-4 h-4 text-muted-foreground" />
+      )}
+    </button>
+  );
+}
+
+/**
  * Eye toggle button for the dashboard header.
  */
 export function AmountsVisibilityToggle({ className }: { className?: string }) {

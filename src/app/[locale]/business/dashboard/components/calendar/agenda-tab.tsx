@@ -213,116 +213,123 @@ export function AgendaTab({
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Date navigation */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => navigateDay('prev')}
-            className="p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => navigateDay('today')}
-            className="px-3 py-1.5 text-sm font-medium rounded-lg hover:bg-muted transition-colors cursor-pointer"
-          >
-            Aujourd&apos;hui
-          </button>
-          <button
-            onClick={() => navigateDay('next')}
-            className="p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
+      {/* Toolbar
+          Mobile: stacked rows (nav+label / view+staff / actions grid 2 cols)
+          Desktop: single flex-wrap row */}
+      <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+        {/* Row 1: Date navigation + label */}
+        <div className="flex items-center justify-between sm:contents">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => navigateDay('prev')}
+              className="p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => navigateDay('today')}
+              className="px-3 py-1.5 text-sm font-medium rounded-lg hover:bg-muted transition-colors cursor-pointer"
+            >
+              Aujourd&apos;hui
+            </button>
+            <button
+              onClick={() => navigateDay('next')}
+              className="p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <span className="text-sm font-medium capitalize shrink-0 truncate ml-2 sm:ml-0">
+            {dateLabel}
+          </span>
         </div>
 
-        {/* Date label */}
-        <span className="text-sm font-medium capitalize shrink-0">
-          {dateLabel}
-        </span>
+        <div className="hidden sm:block sm:flex-1" />
 
-        <div className="flex-1" />
+        {/* Row 2: View toggle + staff filter
+            Toggle "Semaine" hidden on mobile (day view only) */}
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3">
+          <div className="hidden sm:flex bg-muted/50 rounded-lg p-0.5">
+            <button
+              onClick={() => setView('day')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+                view === 'day'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Jour
+            </button>
+            <button
+              onClick={() => setView('week')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+                view === 'week'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Semaine
+            </button>
+          </div>
 
-        {/* View toggle */}
-        <div className="flex bg-muted/50 rounded-lg p-0.5">
-          <button
-            onClick={() => setView('day')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
-              view === 'day'
-                ? 'bg-background shadow-sm text-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+          <select
+            value={staffFilter ?? ''}
+            onChange={(e) => setStaffFilter(e.target.value || null)}
+            className="col-span-2 h-10 sm:h-9 rounded-lg border border-border bg-surface px-3 text-sm"
           >
-            Jour
-          </button>
-          <button
-            onClick={() => setView('week')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
-              view === 'week'
-                ? 'bg-background shadow-sm text-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Semaine
-          </button>
+            <option value="">Tous les employés</option>
+            {employees
+              .filter((e) => e.isActive)
+              .map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.firstName} {e.lastName}
+                </option>
+              ))}
+          </select>
         </div>
 
-        {/* Staff filter */}
-        <select
-          value={staffFilter ?? ''}
-          onChange={(e) =>
-            setStaffFilter(e.target.value || null)
-          }
-          className="h-9 rounded-lg border border-border bg-surface px-3 text-sm"
-        >
-          <option value="">Tous les employés</option>
-          {employees
-            .filter((e) => e.isActive)
-            .map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.firstName} {e.lastName}
-              </option>
-            ))}
-        </select>
-
-        {/* Action buttons */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-lg"
-          onClick={() =>
-            setBlockModal({
-              employeeId: employees[0]?.id ?? '',
-              startAt: new Date(),
-            })
-          }
-        >
-          <Ban className="w-4 h-4 mr-1.5" />
-          Bloquer
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-lg"
-          onClick={() => setNextAvailableOpen(true)}
-        >
-          <Search className="w-4 h-4 mr-1.5" />
-          Trouver un créneau
-        </Button>
-        <Button
-          size="sm"
-          className="rounded-lg"
-          onClick={() =>
-            setCreateModal({
-              employeeId: employees[0]?.id ?? '',
-              startAt: new Date(),
-            })
-          }
-        >
-          <Plus className="w-4 h-4 mr-1.5" />
-          Nouveau RDV
-        </Button>
+        {/* Row 3: Action buttons
+            Mobile: grid 2 cols, Nouveau RDV full-width below
+            Desktop: inline */}
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-lg w-full sm:w-auto"
+            onClick={() =>
+              setBlockModal({
+                employeeId: employees[0]?.id ?? '',
+                startAt: new Date(),
+              })
+            }
+          >
+            <Ban className="w-4 h-4 mr-1.5" />
+            Bloquer
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-lg w-full sm:w-auto"
+            onClick={() => setNextAvailableOpen(true)}
+          >
+            <Search className="w-4 h-4 mr-1.5" />
+            Trouver un créneau
+          </Button>
+          <Button
+            size="sm"
+            className="rounded-lg col-span-2 w-full sm:w-auto sm:col-span-1"
+            onClick={() =>
+              setCreateModal({
+                employeeId: employees[0]?.id ?? '',
+                startAt: new Date(),
+              })
+            }
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            Nouveau RDV
+          </Button>
+        </div>
       </div>
 
       {/* Content */}
