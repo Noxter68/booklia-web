@@ -37,6 +37,7 @@ class AuthClient {
     lastName: string;
     email: string;
     password: string;
+    birthDate: string;
   }): Promise<AuthResponse> {
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/auth/register`,

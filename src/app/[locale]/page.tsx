@@ -1,629 +1,1229 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
-import { useTranslations, useLocale } from 'next-intl';
+import { useRef } from 'react';
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 import {
-  Star,
-  BadgeCheck,
-  ArrowRight,
-  Search,
-  MapPin,
-  Building2,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Shield,
+  Calendar,
   Users,
-  Loader2,
+  FileText,
+  Globe,
+  Heart,
+  UsersRound,
+  ArrowRight,
+  Sparkles,
+  Check,
+  Quote,
+  Search,
+  Shield,
+  Zap,
+  TrendingUp,
+  Mail,
+  Bell,
+  Clock,
+  MessageCircle,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { api } from '@/lib/api';
-import { Business, Category } from '@/types';
-import { useGeolocation } from '@/hooks/useGeolocation';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
+import { Button } from '@/components/ui/button';
 
-// Category images (Unsplash)
-const CATEGORY_IMAGES: Record<string, string> = {
-  coiffeur: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=800&auto=format&fit=crop',
-  barbier: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=800&auto=format&fit=crop',
-  manucure: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=800&auto=format&fit=crop',
-  'institut-de-beaute': 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=800&auto=format&fit=crop',
-  'bien-etre': 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=800&auto=format&fit=crop',
-};
+// Stock photography per category (Unsplash, license-free).
+// Kept as URLs (no next/image) to match the rest of the codebase.
+const CATEGORY_IMAGES = [
+  {
+    key: 'hair',
+    image:
+      'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    key: 'barber',
+    image:
+      'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    key: 'nails',
+    image:
+      'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    key: 'beauty',
+    image:
+      'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    key: 'wellness',
+    image:
+      'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=800&auto=format&fit=crop',
+  },
+];
 
-// Horizontal Slider component with navigation arrows
-function HorizontalSlider({
-  children,
-  title,
-  subtitle,
-  viewAllLink,
-  viewAllLabel,
-}: {
-  children: React.ReactNode;
-  title: string;
-  subtitle: string;
-  viewAllLink: string;
-  viewAllLabel: string;
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
+export default function LandingPage() {
+  const t = useTranslations('landing');
+  const heroRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
 
-  const checkScrollability = useCallback(() => {
-    if (scrollRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-    }
-  }, []);
-
-  useEffect(() => {
-    checkScrollability();
-    const ref = scrollRef.current;
-    if (ref) {
-      ref.addEventListener('scroll', checkScrollability);
-      window.addEventListener('resize', checkScrollability);
-      return () => {
-        ref.removeEventListener('scroll', checkScrollability);
-        window.removeEventListener('resize', checkScrollability);
-      };
-    }
-  }, [checkScrollability]);
-
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollRef.current) {
-      const scrollAmount = scrollRef.current.clientWidth * 0.8;
-      scrollRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth',
-      });
-    }
-  };
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  });
+  const heroParallax = useTransform(scrollYProgress, [0, 1], [0, reduceMotion ? 0 : 80]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.4]);
 
   return (
-    <div>
-      <div className="flex items-end justify-between mb-8">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold mb-2">{title}</h2>
-          <p className="text-muted-foreground">{subtitle}</p>
+    <div className="bg-background">
+      {/* ======================================================
+          HERO
+          ====================================================== */}
+      <section
+        ref={heroRef}
+        className="relative overflow-hidden border-b border-border/50"
+      >
+        {/* Soft gradient background */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-linear-to-br from-rose-50 via-amber-50 to-white" />
+          <div className="absolute -top-40 -right-40 w-150 h-150 bg-rose-200/40 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-150 h-150 bg-amber-200/40 rounded-full blur-3xl" />
         </div>
-        <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-2">
-            <button
-              onClick={() => scroll('left')}
-              disabled={!canScrollLeft}
-              className={`w-10 h-10 rounded-full border border-border flex items-center justify-center transition-all ${
-                canScrollLeft
-                  ? 'hover:bg-muted hover:border-primary/30 cursor-pointer'
-                  : 'opacity-30 cursor-not-allowed'
-              }`}
+
+        <div className="container mx-auto px-4 pt-24 pb-16 sm:pt-32 sm:pb-24 lg:pt-40 lg:pb-32">
+          <div className="grid lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-16 items-center">
+            {/* Text column */}
+            <motion.div
+              style={{ y: heroParallax, opacity: heroOpacity }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center lg:text-left"
             >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => scroll('right')}
-              disabled={!canScrollRight}
-              className={`w-10 h-10 rounded-full border border-border flex items-center justify-center transition-all ${
-                canScrollRight
-                  ? 'hover:bg-muted hover:border-primary/30 cursor-pointer'
-                  : 'opacity-30 cursor-not-allowed'
-              }`}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 mb-6 rounded-full bg-white/80 backdrop-blur border border-border/50 text-xs font-medium text-foreground/80"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                {t('hero.badge')}
+              </motion.div>
+
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-foreground"
+              >
+                {t('hero.title1')}{' '}
+                <span className="relative inline-block">
+                  <span className="relative z-10">{t('hero.titleAccent')}</span>
+                  <motion.span
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: 0.7, delay: 0.5, ease: 'easeOut' }}
+                    className="absolute left-0 bottom-1 h-3 sm:h-4 w-full bg-amber-200/70 z-0 origin-left rounded-sm"
+                  />
+                </span>
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="mt-6 text-base sm:text-lg text-muted-foreground max-w-xl lg:max-w-none"
+              >
+                {t('hero.subtitle')}
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="mt-8 flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start"
+              >
+                <Link href="/auth/request-invite">
+                  <Button size="lg" className="rounded-full px-7 h-12 text-base">
+                    {t('hero.ctaSecondary')}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+              </motion.div>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                className="mt-4 text-xs text-muted-foreground flex items-center gap-1.5 justify-center lg:justify-start"
+              >
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                {t('hero.heroNote')}
+              </motion.p>
+            </motion.div>
+
+            {/* Visual column: dashboard mockup */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.3, ease: 'easeOut' }}
+              className="relative"
             >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+              <DashboardMockup />
+            </motion.div>
           </div>
-          <Link href={viewAllLink} className="hidden md:block">
-            <Button variant="outline" className="rounded-full">
-              {viewAllLabel}
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+        </div>
+      </section>
+
+      {/* ======================================================
+          TRUST BAR — categories with images
+          ====================================================== */}
+      <section className="py-16 sm:py-20 border-b border-border/50">
+        <div className="container mx-auto px-4">
+          <SectionHeader
+            title={t('trustBar.title')}
+            subtitle={t('trustBar.subtitle')}
+          />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mt-10 max-w-6xl mx-auto">
+            {CATEGORY_IMAGES.map((cat, i) => (
+              <motion.div
+                key={cat.key}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.4, delay: i * 0.08 }}
+                whileHover={{ y: -4 }}
+                className="group relative aspect-4/5 rounded-2xl overflow-hidden cursor-default shadow-sm hover:shadow-xl transition-shadow"
+              >
+                <img
+                  src={cat.image}
+                  alt={t(`trustBar.categories.${cat.key}` as 'trustBar.categories.hair')}
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-4">
+                  <span className="text-white font-semibold text-sm sm:text-base drop-shadow-md">
+                    {t(`trustBar.categories.${cat.key}` as 'trustBar.categories.hair')}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================
+          SHOWCASE 1 — Booking 24/7
+          ====================================================== */}
+      <ShowcaseSection
+        id="booking247"
+        eyebrow={t('showcase.booking.eyebrow')}
+        title={t('showcase.booking.title')}
+        description={t('showcase.booking.description')}
+        bullets={[
+          t('showcase.booking.bullet1'),
+          t('showcase.booking.bullet2'),
+          t('showcase.booking.bullet3'),
+        ]}
+        accent="rose"
+        reverse={false}
+        visual={<Booking247Mockup />}
+      />
+
+      {/* ======================================================
+          SHOWCASE 2 — Client files
+          ====================================================== */}
+      <ShowcaseSection
+        id="client-files"
+        eyebrow={t('showcase.clients.eyebrow')}
+        title={t('showcase.clients.title')}
+        description={t('showcase.clients.description')}
+        bullets={[
+          t('showcase.clients.bullet1'),
+          t('showcase.clients.bullet2'),
+          t('showcase.clients.bullet3'),
+        ]}
+        accent="emerald"
+        reverse
+        visual={<ClientFileMockup />}
+      />
+
+      {/* ======================================================
+          SHOWCASE 3 — Multi-employee
+          ====================================================== */}
+      <ShowcaseSection
+        id="multi-employee"
+        eyebrow={t('showcase.team.eyebrow')}
+        title={t('showcase.team.title')}
+        description={t('showcase.team.description')}
+        bullets={[
+          t('showcase.team.bullet1'),
+          t('showcase.team.bullet2'),
+          t('showcase.team.bullet3'),
+        ]}
+        accent="indigo"
+        reverse={false}
+        visual={<MultiEmployeeMockup />}
+      />
+
+      {/* ======================================================
+          SHOWCASE 4 — Email reminders
+          ====================================================== */}
+      <ShowcaseSection
+        id="reminders"
+        eyebrow={t('showcase.reminders.eyebrow')}
+        title={t('showcase.reminders.title')}
+        description={t('showcase.reminders.description')}
+        bullets={[
+          t('showcase.reminders.bullet1'),
+          t('showcase.reminders.bullet2'),
+          t('showcase.reminders.bullet3'),
+        ]}
+        accent="amber"
+        reverse
+        visual={<RemindersMockup />}
+      />
+
+      {/* ======================================================
+          FEATURES
+          ====================================================== */}
+      <section id="features" className="py-20 sm:py-28">
+        <div className="container mx-auto px-4">
+          <SectionHeader
+            title={t('features.title')}
+            subtitle={t('features.subtitle')}
+          />
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-12 max-w-6xl mx-auto">
+            {[
+              {
+                key: 'agenda',
+                icon: Calendar,
+                color: 'text-blue-600',
+                bg: 'bg-blue-50',
+                border: 'border-blue-100',
+              },
+              {
+                key: 'crm',
+                icon: Users,
+                color: 'text-emerald-600',
+                bg: 'bg-emerald-50',
+                border: 'border-emerald-100',
+              },
+              {
+                key: 'invoicing',
+                icon: FileText,
+                color: 'text-amber-600',
+                bg: 'bg-amber-50',
+                border: 'border-amber-100',
+              },
+              {
+                key: 'booking',
+                icon: Globe,
+                color: 'text-rose-600',
+                bg: 'bg-rose-50',
+                border: 'border-rose-100',
+              },
+              {
+                key: 'referral',
+                icon: Heart,
+                color: 'text-pink-600',
+                bg: 'bg-pink-50',
+                border: 'border-pink-100',
+              },
+              {
+                key: 'team',
+                icon: UsersRound,
+                color: 'text-indigo-600',
+                bg: 'bg-indigo-50',
+                border: 'border-indigo-100',
+              },
+            ].map((f, i) => (
+              <motion.div
+                key={f.key}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.4, delay: i * 0.06 }}
+                whileHover={{ y: -4 }}
+                className="group relative bg-surface border border-border rounded-2xl p-6 hover:shadow-lg transition-shadow"
+              >
+                <div
+                  className={`w-12 h-12 rounded-xl ${f.bg} ${f.border} border flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
+                >
+                  <f.icon className={`w-5 h-5 ${f.color}`} />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">
+                  {t(`features.${f.key}.title` as 'features.agenda.title')}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t(`features.${f.key}.desc` as 'features.agenda.desc')}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================
+          HOW IT WORKS — closed-beta onboarding
+          ====================================================== */}
+      <section id="how" className="py-20 sm:py-28 bg-linear-to-b from-rose-50/40 to-transparent border-y border-border/50">
+        <div className="container mx-auto px-4">
+          <SectionHeader title={t('how.title')} subtitle={t('how.subtitle')} />
+
+          <div className="grid md:grid-cols-3 gap-6 mt-12 max-w-5xl mx-auto">
+            {(
+              [
+                { step: 1, icon: MessageCircle, color: 'text-rose-600', bg: 'bg-rose-100' },
+                { step: 2, icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-100' },
+                { step: 3, icon: Zap, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+              ] as const
+            ).map((s, i) => (
+              <motion.div
+                key={s.step}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.4 }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="relative bg-surface border border-border rounded-2xl p-6"
+              >
+                <div className="absolute -top-4 left-6 w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold">
+                  {s.step}
+                </div>
+                <div
+                  className={`w-12 h-12 rounded-xl ${s.bg} flex items-center justify-center mb-4 mt-2`}
+                >
+                  <s.icon className={`w-5 h-5 ${s.color}`} />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">
+                  {t(`how.step${s.step}.title` as 'how.step1.title')}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t(`how.step${s.step}.desc` as 'how.step1.desc')}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================
+          WHY BOOKLIA — split layout
+          ====================================================== */}
+      <section id="why" className="py-20 sm:py-28 relative overflow-hidden">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-150 h-150 bg-rose-100/40 rounded-full blur-3xl" />
+        </div>
+        <div className="container mx-auto px-4">
+          <div className="grid lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-16 items-center max-w-6xl mx-auto">
+            {/* Visual side */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.6 }}
+              className="order-2 lg:order-1"
+            >
+              <WhyBookliaVisual />
+            </motion.div>
+
+            {/* Text side */}
+            <div className="order-1 lg:order-2">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.4 }}
+                transition={{ duration: 0.4 }}
+              >
+                <span className="inline-block px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-medium mb-4">
+                  {t('why.badge')}
+                </span>
+                <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+                  {t('why.title')}
+                </h2>
+                <p className="text-base sm:text-lg text-muted-foreground mb-8">
+                  {t('why.subtitle')}
+                </p>
+              </motion.div>
+
+              <div className="space-y-3">
+                {(
+                  [
+                    { key: 'allInOne', icon: Sparkles, color: 'text-rose-600', bg: 'bg-rose-100' },
+                    { key: 'noFees', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+                    { key: 'french', icon: Shield, color: 'text-blue-600', bg: 'bg-blue-100' },
+                    { key: 'fast', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-100' },
+                  ] as const
+                ).map((item, i) => (
+                  <motion.div
+                    key={item.key}
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, amount: 0.4 }}
+                    transition={{ duration: 0.4, delay: 0.1 + i * 0.08 }}
+                    className="group flex gap-4 p-5 bg-white border border-border rounded-2xl hover:shadow-md transition-shadow"
+                  >
+                    <div
+                      className={`shrink-0 w-11 h-11 rounded-xl ${item.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}
+                    >
+                      <item.icon className={`w-5 h-5 ${item.color}`} />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold mb-1">
+                        {t(`why.${item.key}.title` as 'why.allInOne.title')}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {t(`why.${item.key}.desc` as 'why.allInOne.desc')}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================
+          TESTIMONIAL
+          ====================================================== */}
+      <section className="py-20 sm:py-28">
+        <div className="container mx-auto px-4">
+          <motion.figure
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.5 }}
+            className="max-w-3xl mx-auto bg-surface border border-border rounded-3xl p-8 sm:p-12 text-center relative"
+          >
+            <Quote className="absolute top-6 left-6 w-8 h-8 text-rose-200" />
+            <blockquote className="text-xl sm:text-2xl font-medium text-foreground leading-relaxed">
+              “{t('testimonial.quote')}”
+            </blockquote>
+            <figcaption className="mt-6 flex flex-col items-center gap-1">
+              <div className="w-12 h-12 rounded-full bg-linear-to-br from-rose-200 to-amber-200 flex items-center justify-center font-semibold text-foreground">
+                {t('testimonial.author')[0]}
+              </div>
+              <span className="text-sm font-semibold mt-2">
+                {t('testimonial.author')}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {t('testimonial.role')}
+              </span>
+            </figcaption>
+          </motion.figure>
+        </div>
+      </section>
+
+      {/* ======================================================
+          FINAL CTA — dark
+          ====================================================== */}
+      <section className="py-20 sm:py-28 bg-foreground text-background relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 bg-rose-500/10 rounded-full blur-3xl" />
+        </div>
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: 0.5 }}
+            className="max-w-2xl mx-auto text-center"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              {t('finalCta.title')}
+            </h2>
+            <p className="text-base sm:text-lg text-background/70 mb-8">
+              {t('finalCta.subtitle')}
+            </p>
+            <Link href="/auth/request-invite">
+              <Button
+                size="lg"
+                className="rounded-full px-8 h-12 text-base bg-background text-foreground hover:bg-background/90"
+              >
+                {t('finalCta.cta')}
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ======================================================
+          CLIENT FOOTER LINK
+          ====================================================== */}
+      <section className="py-8 border-t border-border/50 bg-muted/30">
+        <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm">
+          <span className="text-muted-foreground">
+            {t('clientFooter.label')}
+          </span>
+          <Link
+            href="/search"
+            className="inline-flex items-center gap-1 font-medium text-foreground hover:underline"
+          >
+            <Search className="w-4 h-4" />
+            {t('clientFooter.cta')}
           </Link>
         </div>
-      </div>
+      </section>
+    </div>
+  );
+}
 
-      <div
-        ref={scrollRef}
-        className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+// ======================================================
+// SHARED SUBCOMPONENTS
+// ======================================================
+
+function SectionHeader({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.5 }}
+      transition={{ duration: 0.4 }}
+      className="text-center max-w-2xl mx-auto"
+    >
+      <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{title}</h2>
+      <p className="mt-3 text-base sm:text-lg text-muted-foreground">{subtitle}</p>
+    </motion.div>
+  );
+}
+
+function DashboardMockup() {
+  const t = useTranslations('landing.mockup');
+
+  const bookings = [
+    {
+      service: t('sample1Service'),
+      client: t('sample1Client'),
+      time: t('sample1Time'),
+      color: 'bg-rose-100 border-rose-200 text-rose-700',
+    },
+    {
+      service: t('sample2Service'),
+      client: t('sample2Client'),
+      time: t('sample2Time'),
+      color: 'bg-amber-100 border-amber-200 text-amber-700',
+    },
+    {
+      service: t('sample3Service'),
+      client: t('sample3Client'),
+      time: t('sample3Time'),
+      color: 'bg-blue-100 border-blue-200 text-blue-700',
+    },
+  ];
+
+  return (
+    <div className="relative">
+      {/* Main dashboard card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, delay: 0.4 }}
+        className="bg-white rounded-3xl shadow-2xl shadow-rose-900/10 border border-border/40 overflow-hidden"
       >
-        {children}
-      </div>
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold">{t('todayTitle')}</p>
+            <p className="text-xs text-muted-foreground">{t('bookingsCount')}</p>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span className="text-xs font-medium text-emerald-700">
+              {t('liveBadge')}
+            </span>
+          </div>
+        </div>
 
-      <div className="md:hidden mt-6 text-center">
-        <Link href={viewAllLink}>
-          <Button variant="outline" className="rounded-full">
-            {viewAllLabel}
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </Link>
+        {/* Bookings list */}
+        <div className="p-4 space-y-2">
+          {bookings.map((b, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.7 + i * 0.1 }}
+              className={`flex items-center gap-3 p-3 rounded-xl border ${b.color}`}
+            >
+              <span className="font-semibold text-sm w-12">{b.time}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate text-foreground">
+                  {b.service}
+                </p>
+                <p className="text-xs opacity-70 truncate">{b.client}</p>
+              </div>
+              <Check className="w-4 h-4 shrink-0" />
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Stats footer */}
+        <div className="px-6 py-4 border-t border-border/50 grid grid-cols-2 gap-4 bg-muted/30">
+          <div>
+            <p className="text-xs text-muted-foreground">{t('newClients')}</p>
+            <p className="text-lg font-bold mt-0.5">+12</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">{t('completionRate')}</p>
+            <p className="text-lg font-bold mt-0.5">94%</p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Floating revenue card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20, rotate: -8 }}
+        animate={{ opacity: 1, y: 0, rotate: -6 }}
+        transition={{ duration: 0.6, delay: 0.9 }}
+        className="absolute -bottom-6 -left-6 sm:-left-10 bg-white rounded-2xl shadow-xl shadow-rose-900/10 border border-border/40 p-4 hidden sm:block"
+      >
+        <p className="text-xs text-muted-foreground">{t('revenue')}</p>
+        <p className="text-2xl font-bold mt-1">€842</p>
+        <div className="flex items-center gap-1 mt-1 text-xs text-emerald-600 font-medium">
+          <TrendingUp className="w-3.5 h-3.5" />
+          +18%
+        </div>
+      </motion.div>
+
+      {/* Floating notification bubble */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 1.1 }}
+        className="absolute -top-4 -right-4 sm:-right-8 bg-white rounded-2xl shadow-xl shadow-rose-900/10 border border-border/40 p-3 hidden sm:flex items-center gap-2"
+      >
+        <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center">
+          <Heart className="w-4 h-4 text-rose-500" />
+        </div>
+        <div>
+          <p className="text-xs font-semibold">Karine P.</p>
+          <p className="text-[10px] text-muted-foreground">+1 nouveau RDV</p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ======================================================
+// SHOWCASE SECTION (reusable layout: text + visual)
+// ======================================================
+
+type AccentColor = 'rose' | 'emerald' | 'indigo' | 'amber';
+
+const ACCENT_STYLES: Record<
+  AccentColor,
+  { eyebrow: string; check: string; glow: string }
+> = {
+  rose: {
+    eyebrow: 'bg-rose-100 text-rose-700',
+    check: 'text-rose-500',
+    glow: 'bg-rose-200/50',
+  },
+  emerald: {
+    eyebrow: 'bg-emerald-100 text-emerald-700',
+    check: 'text-emerald-500',
+    glow: 'bg-emerald-200/50',
+  },
+  indigo: {
+    eyebrow: 'bg-indigo-100 text-indigo-700',
+    check: 'text-indigo-500',
+    glow: 'bg-indigo-200/50',
+  },
+  amber: {
+    eyebrow: 'bg-amber-100 text-amber-700',
+    check: 'text-amber-500',
+    glow: 'bg-amber-200/50',
+  },
+};
+
+function ShowcaseSection({
+  id,
+  eyebrow,
+  title,
+  description,
+  bullets,
+  accent,
+  reverse,
+  visual,
+}: {
+  id: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  bullets: string[];
+  accent: AccentColor;
+  reverse: boolean;
+  visual: React.ReactNode;
+}) {
+  const styles = ACCENT_STYLES[accent];
+  return (
+    <section
+      id={id}
+      className="py-20 sm:py-28 relative overflow-hidden border-b border-border/50"
+    >
+      <div className="absolute inset-0 -z-10 pointer-events-none">
+        <div
+          className={`absolute ${reverse ? '-left-40' : '-right-40'} top-1/2 -translate-y-1/2 w-150 h-150 ${styles.glow} rounded-full blur-3xl opacity-60`}
+        />
+      </div>
+      <div className="container mx-auto px-4">
+        <div
+          className={`grid lg:grid-cols-2 gap-12 lg:gap-16 items-center max-w-6xl mx-auto ${
+            reverse ? 'lg:[&>*:first-child]:order-2' : ''
+          }`}
+        >
+          {/* Text */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.5 }}
+          >
+            <span
+              className={`inline-block px-3 py-1 rounded-full ${styles.eyebrow} text-xs font-medium mb-4`}
+            >
+              {eyebrow}
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+              {title}
+            </h2>
+            <p className="text-base sm:text-lg text-muted-foreground mb-6 leading-relaxed">
+              {description}
+            </p>
+            <ul className="space-y-3">
+              {bullets.map((bullet, i) => (
+                <motion.li
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, amount: 0.5 }}
+                  transition={{ duration: 0.3, delay: 0.2 + i * 0.08 }}
+                  className="flex items-start gap-3 text-sm sm:text-base text-foreground/80"
+                >
+                  <Check
+                    className={`w-5 h-5 ${styles.check} shrink-0 mt-0.5`}
+                  />
+                  <span>{bullet}</span>
+                </motion.li>
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* Visual */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            whileInView={{ opacity: 1, scale: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+          >
+            {visual}
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ======================================================
+// SHOWCASE 1: Booking 24/7 mockup
+// ======================================================
+
+function Booking247Mockup() {
+  return (
+    <div className="relative">
+      <div className="bg-white rounded-3xl shadow-2xl shadow-rose-900/10 border border-border/40 overflow-hidden">
+        {/* Browser chrome */}
+        <div className="px-4 py-3 border-b border-border/50 flex items-center gap-2 bg-muted/30">
+          <div className="flex gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-300" />
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-300" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-300" />
+          </div>
+          <div className="flex-1 ml-3 flex items-center gap-2 px-3 py-1 rounded-md bg-white border border-border/40 text-xs text-muted-foreground">
+            <Globe className="w-3 h-3" />
+            <span className="truncate">booklia.fr/em-institut</span>
+          </div>
+        </div>
+
+        {/* Page content */}
+        <div className="p-5 sm:p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-rose-200 to-amber-200" />
+            <div>
+              <p className="font-semibold">EM Institut</p>
+              <p className="text-xs text-muted-foreground">
+                Esthétique · Paris 9
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold">Prendre rendez-vous</p>
+              <div className="flex items-center gap-1 text-xs text-rose-600 font-medium">
+                <Clock className="w-3 h-3" />
+                23h47
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {['09:00', '09:30', '10:00', '10:30', '11:00', '11:30'].map(
+                (slot, i) => (
+                  <motion.button
+                    key={slot}
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.2, delay: i * 0.05 }}
+                    className={`py-2 rounded-lg text-xs font-medium border ${
+                      i === 2
+                        ? 'bg-foreground text-background border-foreground'
+                        : 'bg-white text-foreground border-border'
+                    }`}
+                  >
+                    {slot}
+                  </motion.button>
+                ),
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200">
+            <Check className="w-4 h-4 text-emerald-600" />
+            <span className="text-xs font-medium text-emerald-700">
+              Réservation confirmée en 30 secondes
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// Business Card
-function HomeBusinessCard({ business, t }: { business: Business; t: (key: string) => string }) {
-  const serviceCount = business._count?.services || business.services?.length || 0;
+// ======================================================
+// SHOWCASE 2: Client file mockup
+// ======================================================
 
+function ClientFileMockup() {
   return (
-    <Link href={`/business/${business.slug}`} className="block snap-start">
-      <motion.div
-        whileHover={{ y: -4 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-        className="w-72 sm:w-80 bg-surface border border-border rounded-2xl overflow-hidden hover:border-primary/30 hover:shadow-lg transition-all duration-300"
-      >
-        <div className="h-36 relative">
-          {business.coverUrl ? (
-            <img src={business.coverUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full bg-linear-to-br from-primary/20 via-primary/10 to-primary/5" />
-          )}
-          <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
+    <div className="relative">
+      <div className="bg-white rounded-3xl shadow-2xl shadow-emerald-900/10 border border-border/40 overflow-hidden">
+        {/* Header */}
+        <div className="p-5 sm:p-6 border-b border-border/50 flex items-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-linear-to-br from-emerald-200 to-amber-200 flex items-center justify-center text-xl font-bold text-foreground">
+            S
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold">Sophie Mercier</p>
+            <p className="text-xs text-muted-foreground">
+              Cliente depuis 2 ans
+            </p>
+          </div>
+          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
+            VIP
+          </span>
+        </div>
 
-          {business.isVerified && (
-            <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
-              <BadgeCheck className="w-4 h-4 text-foreground" />
-              <span className="text-xs font-semibold text-foreground">{t('verified')}</span>
-            </div>
-          )}
-
-          <div className="absolute -bottom-5 left-4">
-            <div className="w-14 h-14 bg-surface border-[3px] border-surface rounded-xl shadow-md flex items-center justify-center overflow-hidden">
-              {business.logoUrl ? (
-                <img src={business.logoUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-primary/10 flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-primary" />
-                </div>
-              )}
-            </div>
+        {/* Stats */}
+        <div className="grid grid-cols-3 divide-x divide-border/50">
+          <div className="p-4 text-center">
+            <p className="text-2xl font-bold">24</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
+              RDV
+            </p>
+          </div>
+          <div className="p-4 text-center">
+            <p className="text-2xl font-bold">€1840</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
+              CA
+            </p>
+          </div>
+          <div className="p-4 text-center">
+            <p className="text-2xl font-bold text-emerald-600">100%</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
+              Honoré
+            </p>
           </div>
         </div>
 
-        <div className="p-4 pt-7">
-          <h3 className="font-semibold text-base mb-1 truncate">{business.name}</h3>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
-            {business.city && (
-              <span className="flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5" />
-                {business.city}
-              </span>
-            )}
-            {serviceCount > 0 && (
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                {serviceCount} {serviceCount > 1 ? t('prestations') : t('prestation')}
-              </span>
-            )}
-          </div>
-          {business.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">{business.description}</p>
-          )}
-        </div>
-      </motion.div>
-    </Link>
-  );
-}
-
-export default function HomePage() {
-  const [query, setQuery] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
-  const [suggestions, setSuggestions] = useState<Business[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const router = useRouter();
-  const { latitude, longitude, hasPosition } = useGeolocation();
-  const t = useTranslations('home');
-  const tc = useTranslations('common');
-  const locale = useLocale();
-
-  const searchBusinesses = useCallback(async (q: string) => {
-    if (q.length < 2) {
-      setSuggestions([]);
-      return;
-    }
-    setIsSearching(true);
-    try {
-      const result = await api.searchBusinesses({ q, limit: 5 });
-      setSuggestions(result.data);
-      setSelectedIndex(-1);
-    } catch {
-      setSuggestions([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, []);
-
-  const handleQueryChange = (value: string) => {
-    setQuery(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => searchBusinesses(value), 300);
-  };
-
-  const handleSelectBusiness = (business: Business) => {
-    setIsFocused(false);
-    setSuggestions([]);
-    router.push(`/business/${business.slug}`);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!suggestions.length) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
-    } else if (e.key === 'Enter' && selectedIndex >= 0) {
-      e.preventDefault();
-      handleSelectBusiness(suggestions[selectedIndex]);
-    } else if (e.key === 'Escape') {
-      setSuggestions([]);
-      setSelectedIndex(-1);
-    }
-  };
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        setSuggestions([]);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const { scrollY } = useScroll();
-  const heroY = useTransform(scrollY, [0, 600], [0, 200]);
-  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
-
-  const { data: latestBusinesses } = useQuery({
-    queryKey: ['latestBusinesses'],
-    queryFn: () => api.searchBusinesses({ limit: 10, sortBy: 'recent' }),
-  });
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsFocused(false);
-    const params = new URLSearchParams();
-    if (query.trim()) params.set('q', query);
-    if (hasPosition) {
-      params.set('lat', String(latitude));
-      params.set('lng', String(longitude));
-    }
-    router.push(`/search?${params.toString()}`);
-  };
-
-  const { data: dbCategories } = useQuery({
-    queryKey: ['categories', locale],
-    queryFn: () => api.getCategories(),
-  });
-
-  const benefits = [
-    { title: t('benefits.instantBooking'), description: t('benefits.instantBookingDesc') },
-    { title: t('benefits.verifiedPros'), description: t('benefits.verifiedProsDesc') },
-    { title: t('benefits.authenticReviews'), description: t('benefits.authenticReviewsDesc') },
-    { title: t('benefits.instantConfirmation'), description: t('benefits.instantConfirmationDesc') },
-  ];
-
-  const stats = [
-    { value: t('stats.onlineBooking'), label: t('stats.onlineBookingLabel') },
-    { value: t('stats.reminders'), label: t('stats.remindersLabel') },
-    { value: t('stats.offHours'), label: t('stats.offHoursLabel') },
-  ];
-
-  return (
-    <div className="flex flex-col">
-      {/* ==================== HERO ==================== */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden -mt-20">
-        <motion.div style={{ y: heroY }} className="absolute inset-0">
-          <div
-            className={`absolute inset-0 bg-cover bg-center bg-no-repeat scale-110 transition-all duration-700 ${isFocused ? 'blur-sm' : ''}`}
-            style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?q=80&w=2574&auto=format&fit=crop)' }}
-          />
-        </motion.div>
-        <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/30 to-black/60" />
-
-        <motion.div style={{ opacity: heroOpacity }} className="relative z-10 container mx-auto px-4 text-center text-white pt-20">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-6">
-            <span className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-sm font-medium">
-              {t('badge')}
-            </span>
-          </motion.div>
-
-          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }} className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-            {t('title')}
-            <br />
-            <span className="bg-linear-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent">
-              {t('titleHighlight')}
-            </span>
-          </motion.h1>
-
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="text-lg md:text-xl text-white/70 mb-10 max-w-2xl mx-auto leading-relaxed">
-            {t('subtitle')}
-            <br className="hidden md:block" />
-            {t('subtitleCta')}
-          </motion.p>
-
-          {/* Search bar */}
-          <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }} onSubmit={handleSearch} className="max-w-xl mx-auto mb-12">
-            <div ref={searchContainerRef} className="relative">
-              <div className={`bg-white rounded-2xl shadow-2xl transition-all duration-300 ${isFocused ? 'shadow-white/10 ring-2 ring-white/20' : ''}`}>
-                <div className="flex items-center gap-3 px-5 py-3.5">
-                  {isSearching ? (
-                    <Loader2 className="w-5 h-5 text-gray-400 shrink-0 animate-spin" />
-                  ) : (
-                    <Search className="w-5 h-5 text-gray-400 shrink-0" />
-                  )}
-                  <input
-                    type="text"
-                    placeholder={t('searchPlaceholder')}
-                    value={query}
-                    onChange={(e) => handleQueryChange(e.target.value)}
-                    onFocus={() => setIsFocused(true)}
-                    onKeyDown={handleKeyDown}
-                    className="flex-1 text-gray-900 placeholder:text-gray-400 outline-none text-base bg-transparent"
-                  />
-                  <button type="submit" className="h-11 px-6 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary-hover transition-all cursor-pointer shrink-0">
-                    {t('searchButton')}
-                  </button>
+        {/* History */}
+        <div className="p-4 border-t border-border/50">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Historique récent
+          </p>
+          <div className="space-y-2">
+            {[
+              { svc: 'Coupe & couleur', date: '12 mars', emp: 'Camille' },
+              { svc: 'Brushing', date: '28 février', emp: 'Léa' },
+              { svc: 'Coloration', date: '14 février', emp: 'Camille' },
+            ].map((b, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -10 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.3, delay: 0.1 + i * 0.05 }}
+                className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30"
+              >
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
                 </div>
-              </div>
-
-              {suggestions.length > 0 && isFocused && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50">
-                  {suggestions.map((business, index) => (
-                    <button
-                      key={business.id}
-                      type="button"
-                      onMouseDown={() => handleSelectBusiness(business)}
-                      onMouseEnter={() => setSelectedIndex(index)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors cursor-pointer ${index === selectedIndex ? 'bg-gray-50' : 'hover:bg-gray-50'}`}
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-                        {business.logoUrl ? (
-                          <img src={business.logoUrl} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <Building2 className="w-5 h-5 text-gray-400" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium text-gray-900 truncate">{business.name}</span>
-                          {business.isVerified && <BadgeCheck className="w-3.5 h-3.5 text-foreground shrink-0" />}
-                        </div>
-                        {business.city && (
-                          <span className="text-xs text-gray-500 flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {business.city}
-                          </span>
-                        )}
-                      </div>
-                      {business._count?.services ? (
-                        <span className="text-xs text-gray-400 shrink-0">{business._count.services} {business._count.services > 1 ? tc('services') : tc('service')}</span>
-                      ) : null}
-                    </button>
-                  ))}
-                  <button type="submit" className="w-full px-4 py-2.5 text-sm text-primary font-medium bg-gray-50 hover:bg-gray-100 transition-colors text-center cursor-pointer">
-                    {t('seeAllResults', { query })}
-                  </button>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{b.svc}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {b.date} · avec {b.emp}
+                  </p>
                 </div>
-              )}
-            </div>
-          </motion.form>
-
-          {dbCategories && dbCategories.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.4 }} className="flex flex-wrap justify-center gap-2">
-              {dbCategories.filter(c => !c.parentId).map((category) => (
-                <Link key={category.id} href={`/search?category=${category.slug}`} className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 rounded-full text-sm text-white/80 hover:text-white transition-all">
-                  {category.name}
-                </Link>
-              ))}
-            </motion.div>
-          )}
-        </motion.div>
-
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-linear-to-t from-background to-transparent" />
-      </section>
-
-      {/* ==================== STATS ==================== */}
-      <section className="relative z-10 -mt-12">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {stats.map((stat, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} whileHover={{ scale: 1.04 }} className="bg-surface border border-border rounded-2xl p-8 shadow-lg cursor-default transition-shadow hover:shadow-xl hover:border-primary/20">
-                <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">{stat.value}</div>
-                <div className="text-sm text-muted-foreground leading-relaxed">{stat.label}</div>
               </motion.div>
             ))}
           </div>
         </div>
-      </section>
 
-      {/* ==================== CATEGORIES ==================== */}
-      {dbCategories && dbCategories.filter(c => !c.parentId).length > 0 && (
-        <section className="py-20 md:py-28">
-          <div className="container mx-auto px-4">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('categories.title')}</h2>
-              <p className="text-muted-foreground text-lg max-w-xl mx-auto">{t('categories.subtitle')}</p>
-            </motion.div>
+        {/* Note */}
+        <div className="mx-4 mb-4 p-3 rounded-xl bg-amber-50 border border-amber-100 text-xs text-amber-900">
+          <p className="font-semibold mb-0.5">Note privée</p>
+          <p className="opacity-80">
+            Allergique aux parfums forts. Préfère les produits bio.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
-              {dbCategories.filter(c => !c.parentId).map((category, index) => {
-                const image = CATEGORY_IMAGES[category.slug];
+// ======================================================
+// SHOWCASE 3: Multi-employee agenda mockup
+// ======================================================
+
+function MultiEmployeeMockup() {
+  const employees = [
+    { name: 'Camille', color: 'bg-rose-100 border-rose-200 text-rose-700' },
+    { name: 'Léa', color: 'bg-amber-100 border-amber-200 text-amber-700' },
+    { name: 'Karine', color: 'bg-blue-100 border-blue-200 text-blue-700' },
+  ];
+
+  // [employeeIndex, slotIndex (0-5), label]
+  const slots: Array<[number, number, string]> = [
+    [0, 0, 'Sophie M.'],
+    [0, 2, 'Marie D.'],
+    [1, 1, 'Léa B.'],
+    [1, 3, 'Anna R.'],
+    [2, 0, 'Karine P.'],
+    [2, 4, 'Julie F.'],
+  ];
+
+  return (
+    <div className="bg-white rounded-3xl shadow-2xl shadow-indigo-900/10 border border-border/40 overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
+        <p className="font-semibold text-sm">Vendredi 12 avril</p>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <UsersRound className="w-3.5 h-3.5" />
+          {employees.length} employés
+        </div>
+      </div>
+
+      {/* Employee columns */}
+      <div className="grid grid-cols-3 divide-x divide-border/50">
+        {employees.map((emp, empIdx) => (
+          <div key={emp.name} className="p-3">
+            <div
+              className={`text-xs font-semibold px-2 py-1 rounded-md ${emp.color} text-center mb-2`}
+            >
+              {emp.name}
+            </div>
+            <div className="space-y-1.5">
+              {Array.from({ length: 6 }).map((_, slotIdx) => {
+                const booking = slots.find(
+                  ([e, s]) => e === empIdx && s === slotIdx,
+                );
+                const startHour = 9 + slotIdx;
                 return (
-                  <motion.div key={category.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.06 }}>
-                    <Link href={`/search?category=${category.slug}`} className="group block relative h-52 md:h-64 rounded-2xl overflow-hidden">
-                      <img src={image} alt={category.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                      <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <span className="font-semibold text-white text-base">{category.name}</span>
-                        {category.children && category.children.length > 0 && (
-                          <p className="text-white/70 text-xs mt-0.5">
-                            {category.children.length} {category.children.length > 1 ? tc('specialities') : tc('speciality')}
-                          </p>
-                        )}
-                      </div>
-                    </Link>
+                  <motion.div
+                    key={slotIdx}
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{
+                      duration: 0.3,
+                      delay: 0.05 * (empIdx * 6 + slotIdx),
+                    }}
+                    className={`min-h-9 rounded-md px-2 py-1.5 text-[10px] flex items-center gap-1 ${
+                      booking
+                        ? `${emp.color} border font-medium`
+                        : 'bg-muted/30 text-muted-foreground'
+                    }`}
+                  >
+                    <span className="opacity-60 shrink-0">
+                      {String(startHour).padStart(2, '0')}h
+                    </span>
+                    {booking && (
+                      <span className="truncate">{booking[2]}</span>
+                    )}
                   </motion.div>
                 );
               })}
             </div>
           </div>
-        </section>
-      )}
+        ))}
+      </div>
+    </div>
+  );
+}
 
-      {/* ==================== BENEFITS ==================== */}
-      <section className="py-20 md:py-28 bg-muted/30">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('benefits.title')}</h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">{t('benefits.subtitle')}</p>
-          </motion.div>
+// ======================================================
+// SHOWCASE 4: Email reminders mockup
+// ======================================================
 
-          <div className="grid sm:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden">
-            {benefits.map((benefit, index) => (
-              <motion.div key={benefit.title} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }} className="bg-surface p-8 md:p-10 group hover:bg-muted/30 transition-colors">
-                <span className="text-5xl md:text-6xl font-bold text-primary/10 block mb-4 leading-none">0{index + 1}</span>
-                <h3 className="font-semibold text-lg mb-2">{benefit.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{benefit.description}</p>
-              </motion.div>
-            ))}
+function RemindersMockup() {
+  return (
+    <div className="relative">
+      {/* Phone-like email card */}
+      <div className="bg-white rounded-3xl shadow-2xl shadow-amber-900/10 border border-border/40 overflow-hidden max-w-md mx-auto">
+        <div className="px-5 py-3 border-b border-border/50 flex items-center justify-between bg-muted/20">
+          <div className="flex items-center gap-2">
+            <Mail className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs font-medium">Boîte de réception</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground">il y a 2 min</span>
+        </div>
+
+        <div className="p-5">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-linear-to-br from-rose-200 to-amber-200 flex items-center justify-center text-sm font-bold shrink-0">
+              EM
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm">EM Institut</p>
+              <p className="text-xs text-muted-foreground">
+                Rappel : votre rendez-vous est demain
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-3">
+            <p className="text-sm font-medium mb-2">Demain à 14h00</p>
+            <div className="space-y-1.5 text-xs text-muted-foreground">
+              <p className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                Soin du visage hydratant
+              </p>
+              <p className="flex items-center gap-2">
+                <UsersRound className="w-3.5 h-3.5 text-amber-600" />
+                Avec Camille
+              </p>
+              <p className="flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                Durée : 60 min
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">
+              <Check className="w-3 h-3" />
+              Envoyé automatiquement
+            </span>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ==================== HOW IT WORKS ==================== */}
-      <section className="py-20 md:py-28">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('howItWorks.title')}</h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">{t('howItWorks.subtitle')}</p>
-          </motion.div>
+      {/* Floating bell */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
+        whileInView={{ opacity: 1, scale: 1, rotate: -8 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        className="absolute -top-4 -right-2 sm:-right-4 bg-white rounded-2xl shadow-xl border border-border/40 p-3 hidden sm:flex items-center gap-2"
+      >
+        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+          <Bell className="w-4 h-4 text-amber-600" />
+        </div>
+        <div>
+          <p className="text-xs font-semibold">+ 12 rappels</p>
+          <p className="text-[10px] text-muted-foreground">cette semaine</p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
-          <div className="grid md:grid-cols-3 gap-6 md:gap-0">
-            {[
-              { step: '01', title: t('howItWorks.step1Title'), description: t('howItWorks.step1Desc') },
-              { step: '02', title: t('howItWorks.step2Title'), description: t('howItWorks.step2Desc') },
-              { step: '03', title: t('howItWorks.step3Title'), description: t('howItWorks.step3Desc') },
-            ].map((item, index) => (
-              <motion.div key={item.step} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.12 }} className={`relative p-8 ${index < 2 ? 'md:border-r md:border-border' : ''}`}>
-                <span className="text-5xl md:text-6xl font-bold text-primary/10 block mb-4 leading-none">{item.step}</span>
-                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
-              </motion.div>
-            ))}
+// ======================================================
+// WHY BOOKLIA — synthetic visual
+// ======================================================
+
+function WhyBookliaVisual() {
+  return (
+    <div className="relative">
+      {/* Background card showing fake stats over time */}
+      <div className="bg-white rounded-3xl shadow-2xl shadow-rose-900/10 border border-border/40 p-6 sm:p-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+              Tableau de bord
+            </p>
+            <p className="text-lg font-bold mt-0.5">Votre salon en chiffres</p>
+          </div>
+          <div className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium">
+            <TrendingUp className="w-3 h-3" />
+            +24%
           </div>
         </div>
-      </section>
 
-      {/* ==================== FEATURED BUSINESSES ==================== */}
-      <section className="py-20 md:py-28 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }}>
-            {latestBusinesses?.data && latestBusinesses.data.length > 0 ? (
-              <HorizontalSlider title={t('featured.title')} subtitle={t('featured.subtitle')} viewAllLink="/search" viewAllLabel={tc('seeAll')}>
-                {latestBusinesses.data.map((business) => (
-                  <HomeBusinessCard key={business.id} business={business} t={tc} />
-                ))}
-              </HorizontalSlider>
-            ) : (
-              <div className="text-center py-16 bg-surface rounded-3xl border border-border">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Building2 className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">{t('featured.comingSoon')}</h3>
-                <p className="text-muted-foreground">{t('featured.comingSoonDesc')}</p>
-              </div>
-            )}
-          </motion.div>
+        {/* Mini bar chart */}
+        <div className="flex items-end gap-2 h-32 mb-6">
+          {[40, 55, 48, 70, 62, 85, 92].map((h, i) => (
+            <motion.div
+              key={i}
+              initial={{ height: 0 }}
+              whileInView={{ height: `${h}%` }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 * i, ease: 'easeOut' }}
+              className={`flex-1 rounded-t-md ${
+                i >= 5 ? 'bg-rose-400' : 'bg-rose-200'
+              }`}
+            />
+          ))}
         </div>
-      </section>
 
-      {/* ==================== SOCIAL PROOF ==================== */}
-      <section className="py-20 md:py-28">
-        <div className="container mx-auto px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} className="max-w-4xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div>
-                <span className="inline-block px-4 py-1.5 bg-green-500/10 text-green-600 dark:text-green-400 text-sm font-medium rounded-full mb-4">
-                  {t('socialProof.badge')}
-                </span>
-                <h2 className="text-3xl md:text-4xl font-bold mb-6">{t('socialProof.title')}</h2>
-                <p className="text-muted-foreground text-lg mb-8 leading-relaxed">{t('socialProof.description')}</p>
-
-                <div className="space-y-4">
-                  {[
-                    { icon: BadgeCheck, text: t('socialProof.realReviews') },
-                    { icon: Shield, text: t('socialProof.verifiedPros') },
-                    { icon: Users, text: t('socialProof.trustedCommunity') },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-green-50 dark:bg-green-500/10 rounded-lg flex items-center justify-center shrink-0">
-                        <item.icon className="w-4 h-4 text-green-600 dark:text-green-400" />
-                      </div>
-                      <span className="text-sm font-medium">{item.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="relative">
-                <div className="bg-surface border border-border rounded-2xl p-6 shadow-lg">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-bold text-primary">M</span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">{t('socialProof.reviewerName')}</p>
-                      <p className="text-xs text-muted-foreground">{t('socialProof.reviewDate')}</p>
-                    </div>
-                    <div className="ml-auto flex gap-0.5">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{t('socialProof.reviewText')}</p>
-                  <div className="mt-4 pt-4 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
-                    <BadgeCheck className="w-3.5 h-3.5 text-green-500" />
-                    {tc('verifiedService')}
-                  </div>
-                </div>
-                <div className="absolute -bottom-4 -right-4 -z-10 w-full h-full bg-muted/50 rounded-2xl border border-border" />
-              </div>
-            </div>
-          </motion.div>
+        {/* Mini KPIs */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="p-3 rounded-xl bg-muted/30">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              RDV / sem.
+            </p>
+            <p className="text-lg font-bold mt-0.5">142</p>
+          </div>
+          <div className="p-3 rounded-xl bg-muted/30">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Nouveaux
+            </p>
+            <p className="text-lg font-bold mt-0.5 text-emerald-600">+18</p>
+          </div>
+          <div className="p-3 rounded-xl bg-muted/30">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Honoré
+            </p>
+            <p className="text-lg font-bold mt-0.5">96%</p>
+          </div>
         </div>
-      </section>
+      </div>
 
-      {/* ==================== CTA ==================== */}
-      <section className="py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="relative overflow-hidden rounded-3xl bg-primary text-primary-foreground p-10 md:p-16 text-center">
-            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-            <div className="relative z-10">
-              <h2 className="text-2xl md:text-4xl font-bold mb-4">{t('cta.title')}</h2>
-              <p className="text-lg text-primary-foreground/70 mb-8 max-w-xl mx-auto">{t('cta.subtitle')}</p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <Button size="lg" variant="outline" className="rounded-full px-8 bg-white text-primary hover:bg-white/90 border-white" onClick={() => router.push('/search')}>
-                  {t('cta.explorePros')}
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-                <Button size="lg" variant="ghost" className="rounded-full px-8 text-primary-foreground hover:bg-white/10" onClick={() => router.push('/auth/register')}>
-                  {t('cta.createAccount')}
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+      {/* Floating "Sans frais cachés" badge */}
+      <motion.div
+        initial={{ opacity: 0, y: 10, rotate: 5 }}
+        whileInView={{ opacity: 1, y: 0, rotate: 4 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+        className="absolute -bottom-4 -right-2 sm:-right-4 bg-white rounded-2xl shadow-xl border border-border/40 px-4 py-2 flex items-center gap-2 hidden sm:flex"
+      >
+        <Shield className="w-4 h-4 text-emerald-600" />
+        <span className="text-xs font-semibold">0% commission</span>
+      </motion.div>
     </div>
   );
 }

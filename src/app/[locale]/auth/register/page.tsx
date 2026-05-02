@@ -8,6 +8,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { BirthDateInput } from '@/components/ui/birth-date-input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/components/ui/toast';
 
@@ -21,6 +22,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [birthDate, setBirthDate] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -44,6 +46,13 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!birthDate) {
+      const message = t('errorBirthDate');
+      setError(message);
+      showError(message);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -52,6 +61,7 @@ export default function RegisterPage() {
         lastName,
         email,
         password,
+        birthDate,
       });
       success(t('success'));
       router.push('/');
@@ -113,6 +123,11 @@ export default function RegisterPage() {
                 placeholder={t('emailPlaceholder')}
                 required
               />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">{t('birthDate')}</label>
+              <BirthDateInput value={birthDate} onChange={setBirthDate} required />
             </div>
 
             <div>

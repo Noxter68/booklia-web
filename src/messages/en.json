@@ -6,6 +6,7 @@
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",
+    "rateLimitToast": "Too many requests — please wait {seconds, plural, one {# second} other {# seconds}} before trying again.",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -155,7 +156,9 @@
       "success": "Registration successful! Welcome to Booklia",
       "errorPasswordMismatch": "Passwords do not match",
       "errorPasswordLength": "Password must be at least 8 characters",
-      "errorGeneric": "An error occurred during registration"
+      "errorGeneric": "An error occurred during registration",
+      "birthDate": "Date of birth",
+      "errorBirthDate": "Please enter a valid date of birth"
     },
     "verifyEmail": {
       "verifying": "Verifying...",
@@ -235,6 +238,8 @@
     "date": "Date",
     "time": "Time",
     "total": "Total",
+    "priceQuote": "On quote",
+    "priceFree": "Free",
     "today": "Today",
     "tomorrow": "Tomorrow",
     "loginToBook": "Log in",
@@ -721,7 +726,35 @@
     "recapNoCategory": "None",
     "recapNoOptions": "No option",
     "remove": "Remove",
-    "inheritedFromCategory": "Inherited from the category — edit them from category management."
+    "inheritedFromCategory": "Inherited from the category — edit them from category management.",
+    "pricingTiersTitle": "Loyalty pricing",
+    "pricingTiersToggle": "Add a surcharge when the client comes back later",
+    "pricingTiersHint": "Define a surcharge applied on top of the base price when the client exceeds a number of weeks since their last completed booking.",
+    "tierThreshold": "After (weeks)",
+    "tierThresholdPlaceholder": "e.g. 4",
+    "tierSurcharge": "Surcharge (€)",
+    "tierAdd": "Add a tier",
+    "tierRemove": "Remove this tier",
+    "tierPreview": "Past {weeks} weeks: {total} €",
+    "tierDuplicateWeeks": "Two tiers cannot share the same duration.",
+    "recapPricingTiers": "Loyalty tiers",
+    "priceMode": "Pricing mode",
+    "priceModeFixed": "Fixed price",
+    "priceModeQuote": "On quote",
+    "priceModeFree": "Free",
+    "priceModeFixedHint": "Price shown to clients and billed automatically.",
+    "priceModeQuoteHint": "No price displayed. You'll set the amount after the appointment (discovery session, custom quote…).",
+    "priceModeFreeHint": "Free service — no price, no automatic invoice."
+  },
+  "loyaltyModal": {
+    "title": "Loyalty pricing",
+    "body": "It's been {days, plural, one {# day} other {# days}} since your last appointment (past {threshold, plural, one {# week} other {# weeks}}). The price has been adjusted accordingly.",
+    "basePrice": "Usual price",
+    "newPrice": "Applied price",
+    "confirm": "Got it",
+    "badgeTooltip": "Increased price (loyalty pricing)",
+    "surchargeBadge": "+{amount}",
+    "surchargeNote": "Adjusted price: more than {threshold, plural, one {# week} other {# weeks}} since your last appointment."
   },
   "admin": {
     "title": "Administration",
@@ -736,7 +769,9 @@
       "dashboard": "Dashboard",
       "businesses": "Businesses",
       "users": "Users",
-      "logout": "Log out"
+      "logout": "Log out",
+      "referrals": "Referrals",
+      "inviteRequests": "Requests"
     },
     "businesses": {
       "title": "Businesses",
@@ -745,6 +780,50 @@
       "pending": "Pending",
       "verify": "Verify",
       "unverify": "Remove verification"
+    },
+    "referrals": {
+      "title": "Referrals",
+      "subtitle": "Validate leads submitted by businesses",
+      "empty": "No referrals yet.",
+      "columnBusiness": "Business",
+      "columnTotal": "Total",
+      "columnPending": "Pending",
+      "columnValidated": "Validated",
+      "columnFreeMonths": "Free months",
+      "columnLast": "Last submission",
+      "detailTitle": "Referrals from {name}",
+      "detailBack": "Back",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "instagram": "Instagram",
+      "phone": "Phone",
+      "status": "Status",
+      "submittedAt": "Submitted",
+      "validate": "Validate",
+      "reject": "Reject",
+      "notes": "Notes",
+      "saveNotes": "Save",
+      "rejectPrompt": "Reason for rejection (optional)",
+      "validatedToast": "Referral validated",
+      "rewardedToast": "Free month credited to the business",
+      "rejectedToast": "Referral rejected",
+      "errorToast": "Update failed",
+      "statusPending": "Pending",
+      "statusValidated": "Validated",
+      "statusRejected": "Rejected"
+    },
+    "inviteRequests": {
+      "title": "Invite requests",
+      "subtitle": "People interested in Booklia, to follow up with.",
+      "empty": "No requests yet.",
+      "columnName": "Name",
+      "columnEmail": "Email",
+      "columnPhone": "Phone",
+      "columnDate": "Date",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this request?",
+      "deletedToast": "Request deleted",
+      "errorToast": "Error"
     }
   },
   "notifications": {
@@ -785,5 +864,218 @@
     "tooManyRequests": "Too many requests, please try again later",
     "serviceUnavailable": "Service temporarily unavailable",
     "generic": "An error occurred"
+  },
+  "referrals": {
+    "tabReferrals": "Referrals",
+    "title": "Referral program",
+    "subtitle": "Refer two clients and earn a free month",
+    "howItWorksTitle": "How it works",
+    "howItWorksStep1": "Refer a client interested in Booklia.",
+    "howItWorksStep2": "We contact them to onboard them.",
+    "howItWorksStep3": "Once confirmed, your referral is validated.",
+    "howItWorksStep4": "On the 2nd validated referral, one free month is credited.",
+    "progressTitle": "Progress",
+    "progressOneMore": "1 more validated referral to earn your next free month.",
+    "progressZero": "Send your first referral to get started.",
+    "progressReady": "You are ready to complete the next pair!",
+    "freeMonthsLabel": "Free months earned",
+    "submitButton": "Refer a client",
+    "modalTitle": "Refer a client",
+    "modalSubtitle": "Fill in the contact details of the person we should reach out to.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "instagram": "Instagram (without @)",
+    "phone": "Phone",
+    "cancel": "Cancel",
+    "send": "Send",
+    "submittedToast": "Referral sent!",
+    "errorToast": "An error occurred, please try again.",
+    "rateLimitToast": "Daily limit reached (4/day). Try again tomorrow.",
+    "historyTitle": "My referrals",
+    "historyEmpty": "No referrals submitted yet.",
+    "statusPending": "Pending",
+    "statusValidated": "Validated",
+    "statusRejected": "Rejected",
+    "rewardedBadge": "Month credited",
+    "submittedAt": "Submitted on"
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "how": "How it works",
+      "whyBooklia": "Why Booklia",
+      "getStarted": "Get started"
+    },
+    "hero": {
+      "badge": "Built for independent salons",
+      "title1": "The system that grows",
+      "titleAccent": "your salon",
+      "subtitle": "Calendar, clients, invoicing, online booking. Everything your salon needs, in one app designed for you.",
+      "ctaSecondary": "See a demo",
+      "heroNote": "Hands-on onboarding — within 24h"
+    },
+    "trustBar": {
+      "title": "Built for every wellness profession",
+      "categories": {
+        "hair": "Hair",
+        "barber": "Barber",
+        "nails": "Nails",
+        "beauty": "Beauty",
+        "wellness": "Wellness"
+      },
+      "subtitle": "Hair, barber, nails, beauty, wellness. Booklia adapts to your craft."
+    },
+    "features": {
+      "title": "Everything you need to run your salon",
+      "subtitle": "Six integrated tools that replace your notebook, your spreadsheet, and your scattered apps.",
+      "agenda": {
+        "title": "Smart calendar",
+        "desc": "Multi-employee scheduling, conflict detection, flexible hours with exceptions and time-off."
+      },
+      "crm": {
+        "title": "Client CRM",
+        "desc": "Full history, private notes, loyalty stats, trust level for every client."
+      },
+      "invoicing": {
+        "title": "Automated invoicing",
+        "desc": "Compliant PDF generation, email delivery, monthly batch generation in one click."
+      },
+      "booking": {
+        "title": "Online booking",
+        "desc": "A public page for your clients. They book in 30 seconds, you confirm in one click."
+      },
+      "referral": {
+        "title": "Referrals",
+        "desc": "Refer two salons, earn a free month. Stack rewards with no limit."
+      },
+      "team": {
+        "title": "Multi-employee",
+        "desc": "Individual schedules, custom services per employee, time-off management in a few clicks."
+      }
+    },
+    "how": {
+      "title": "How to join Booklia",
+      "subtitle": "Booklia is in early access. We set up your salon with you.",
+      "step1": {
+        "title": "You reach out to us",
+        "desc": "Send us a quick message. We get back to you within 24h to understand your needs."
+      },
+      "step2": {
+        "title": "We set it up together",
+        "desc": "We create your account, import your services, employees and hours. With you, on video or on-site."
+      },
+      "step3": {
+        "title": "Your salon is live",
+        "desc": "You get your Booklia link, share it with your clients. Manage everything from the dashboard."
+      }
+    },
+    "why": {
+      "title": "Why choose Booklia",
+      "subtitle": "We built Booklia with and for wellness professionals. No compromise.",
+      "allInOne": {
+        "title": "All-in-one",
+        "desc": "No more juggling 3 tools. Calendar, clients, invoices: all in one place."
+      },
+      "noFees": {
+        "title": "No hidden fees",
+        "desc": "No commission on bookings. No SMS fees. One transparent price."
+      },
+      "french": {
+        "title": "Made in France",
+        "desc": "Data hosted in Europe. GDPR compliant. Support in French, English and Portuguese."
+      },
+      "fast": {
+        "title": "Fast to learn",
+        "desc": "Designed for speed. Your team gets trained in 15 minutes."
+      },
+      "badge": "Why Booklia"
+    },
+    "testimonial": {
+      "quote": "Switching to Booklia saved me two hours a day. My clients love being able to book online without calling us.",
+      "author": "Camille",
+      "role": "EM Institut, Paris"
+    },
+    "finalCta": {
+      "title": "Ready to take it to the next level?",
+      "subtitle": "Join the salons that simplify their daily life with Booklia.",
+      "cta": "Get started now"
+    },
+    "clientFooter": {
+      "label": "Looking to book an appointment?",
+      "cta": "Find a salon"
+    },
+    "mockup": {
+      "todayTitle": "Today",
+      "bookingsCount": "8 bookings",
+      "revenue": "Today's revenue",
+      "liveBadge": "Live",
+      "sample1Service": "Cut & color",
+      "sample1Client": "Sophie M.",
+      "sample1Time": "10:00",
+      "sample2Service": "Blowout",
+      "sample2Client": "Lea B.",
+      "sample2Time": "11:30",
+      "sample3Service": "Coloring",
+      "sample3Client": "Karine P.",
+      "sample3Time": "14:00",
+      "statsTitle": "This week",
+      "newClients": "New clients",
+      "completionRate": "Completion rate"
+    },
+    "showcase": {
+      "booking": {
+        "eyebrow": "24/7 booking",
+        "title": "Your clients book even at night",
+        "description": "A public page dedicated to your salon. Your clients pick a slot in 30 seconds, no calling, no waiting for opening hours.",
+        "bullet1": "Public page with your visual identity",
+        "bullet2": "Slots updated in real time",
+        "bullet3": "Auto-confirm or manual validation"
+      },
+      "clients": {
+        "eyebrow": "Client files",
+        "title": "Know your clients by heart",
+        "description": "Full history, loyalty stats, private notes and preferences. Everything you need to deliver personalized service at every appointment.",
+        "bullet1": "Appointment, service and revenue history",
+        "bullet2": "Private notes and preferences (allergies, products)",
+        "bullet3": "Loyalty level and automatic VIP badge"
+      },
+      "team": {
+        "eyebrow": "Multi-employee",
+        "title": "One team, one unified schedule",
+        "description": "Manage multiple employees in parallel with individual hours, employee-specific services and time-off in a few clicks.",
+        "bullet1": "Schedule per employee, unified overview",
+        "bullet2": "Custom services per employee",
+        "bullet3": "Time-off and schedule exceptions"
+      },
+      "reminders": {
+        "eyebrow": "Email reminders",
+        "title": "Cut no-shows without lifting a finger",
+        "description": "Your clients automatically receive a reminder 24h before their appointment. No more no-shows, no more manual follow-ups.",
+        "bullet1": "Reminder sent 24h before the appointment",
+        "bullet2": "Branded with your colors and info",
+        "bullet3": "Zero setup required"
+      }
+    }
+  },
+  "requestInvite": {
+    "title": "Request an invite",
+    "subtitle": "Booklia is invite-only. Drop us your details and we'll reach out within 24h to set up your salon with you.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email address",
+    "phone": "Phone",
+    "submit": "Send my request",
+    "cancel": "Cancel",
+    "success": "Request sent. We'll reach out within 24h!",
+    "error": "Something went wrong, please try again.",
+    "rateLimit": "You already sent several requests. We'll be in touch shortly.",
+    "placeholderFirstName": "Sophie",
+    "placeholderLastName": "Martin",
+    "placeholderEmail": "sophie@mysalon.com",
+    "placeholderPhone": "+33 6 12 34 56 78",
+    "noSpam": "No spam. Your data is never shared.",
+    "thanksTitle": "Thanks for your request!",
+    "thanksSubtitle": "We'll reach out within 24h by email or phone to set up your salon with you.",
+    "backToHome": "Back to home"
   }
 }

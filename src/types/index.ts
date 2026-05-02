@@ -48,6 +48,7 @@ export interface Booking {
   };
   status: BookingStatus;
   agreedPriceCents?: number;
+  appliedTierWeeks?: number | null;
   scheduledAt?: string;
   scheduledEndAt?: string;
   completedAt?: string;
@@ -160,12 +161,21 @@ export interface Business {
   distance?: number;
 }
 
+export interface ServicePricingTier {
+  id: string;
+  thresholdWeeks: number;
+  surchargeCents: number;
+}
+
+export type ServicePriceMode = 'FIXED' | 'QUOTE' | 'FREE';
+
 export interface BusinessService {
   id: string;
   businessId: string;
   name: string;
   description?: string;
   detailedDescription?: string;
+  priceMode: ServicePriceMode;
   priceCents: number;
   currency: string;
   durationMinutes: number;
@@ -177,6 +187,7 @@ export interface BusinessService {
   createdAt: string;
   updatedAt: string;
   employees?: { employee: Employee }[];
+  pricingTiers?: ServicePricingTier[];
 }
 
 export interface Employee {
@@ -289,6 +300,7 @@ export interface BusinessClient {
     name?: string;
     email: string;
     image?: string;
+    birthDate?: string | null;
   };
   stats?: ClientStats;
 }
@@ -461,5 +473,67 @@ export interface Notification {
   message: string;
   bookingId?: string;
   isRead: boolean;
+  createdAt: string;
+}
+
+// Referrals
+export type ReferralStatus = 'PENDING' | 'VALIDATED' | 'REJECTED';
+
+export interface Referral {
+  id: string;
+  businessId: string;
+  firstName: string;
+  lastName: string;
+  instagram: string;
+  phone: string;
+  status: ReferralStatus;
+  notes?: string | null;
+  rewardGrantedAt?: string | null;
+  validatedAt?: string | null;
+  rejectedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MyReferralsResponse {
+  data: Referral[];
+  freeMonthsEarned: number;
+  validatedTowardNext: number;
+  nextRewardThreshold: number;
+}
+
+export interface AdminReferralBusinessRow {
+  businessId: string;
+  businessName: string;
+  businessSlug: string | null;
+  ownerName: string | null;
+  ownerEmail: string | null;
+  freeMonthsEarned: number;
+  totalReferrals: number;
+  pendingCount: number;
+  validatedCount: number;
+  rejectedCount: number;
+  lastSubmittedAt: string;
+}
+
+export interface AdminReferralBusinessDetail {
+  business: {
+    id: string;
+    name: string;
+    slug: string;
+    freeMonthsEarned: number;
+    owner: { name: string | null; email: string };
+  };
+  referrals: Referral[];
+}
+
+// Invite requests (closed-beta lead capture)
+export interface InviteRequest {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  notes?: string | null;
   createdAt: string;
 }

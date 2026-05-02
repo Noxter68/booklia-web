@@ -6,6 +6,7 @@
   "common": {
     "loading": "Chargement...",
     "error": "Une erreur est survenue",
+    "rateLimitToast": "Trop de requêtes — patientez {seconds, plural, one {# seconde} other {# secondes}} avant de réessayer.",
     "save": "Enregistrer",
     "cancel": "Annuler",
     "delete": "Supprimer",
@@ -155,7 +156,9 @@
       "success": "Inscription réussie ! Bienvenue sur Booklia",
       "errorPasswordMismatch": "Les mots de passe ne correspondent pas",
       "errorPasswordLength": "Le mot de passe doit contenir au moins 8 caractères",
-      "errorGeneric": "Une erreur est survenue lors de l'inscription"
+      "errorGeneric": "Une erreur est survenue lors de l'inscription",
+      "birthDate": "Date de naissance",
+      "errorBirthDate": "Veuillez saisir une date de naissance valide"
     },
     "verifyEmail": {
       "verifying": "Vérification en cours...",
@@ -235,6 +238,8 @@
     "date": "Date",
     "time": "Heure",
     "total": "Total",
+    "priceQuote": "Sur devis",
+    "priceFree": "Gratuit",
     "today": "Aujourd'hui",
     "tomorrow": "Demain",
     "loginToBook": "Se connecter",
@@ -721,7 +726,35 @@
     "recapNoCategory": "Aucune",
     "recapNoOptions": "Aucune option",
     "remove": "Retirer",
-    "inheritedFromCategory": "Héritées de la catégorie — éditables depuis la gestion des catégories."
+    "inheritedFromCategory": "Héritées de la catégorie — éditables depuis la gestion des catégories.",
+    "pricingTiersTitle": "Tarification fidélité",
+    "pricingTiersToggle": "Activer la majoration si le client revient tard",
+    "pricingTiersHint": "Définissez une majoration appliquée au prix de base si le client dépasse un certain nombre de semaines depuis sa dernière prestation terminée.",
+    "tierThreshold": "Après (semaines)",
+    "tierThresholdPlaceholder": "Ex : 4",
+    "tierSurcharge": "Majoration (€)",
+    "tierAdd": "Ajouter un palier",
+    "tierRemove": "Supprimer ce palier",
+    "tierPreview": "Au-delà de {weeks} semaines : {total} €",
+    "tierDuplicateWeeks": "Deux paliers ne peuvent pas avoir la même durée.",
+    "recapPricingTiers": "Paliers de fidélité",
+    "priceMode": "Mode de tarification",
+    "priceModeFixed": "Prix fixe",
+    "priceModeQuote": "Sur devis",
+    "priceModeFree": "Gratuit",
+    "priceModeFixedHint": "Prix affiché aux clients et facturé automatiquement.",
+    "priceModeQuoteHint": "Aucun prix affiché. Vous fixerez le tarif après le rendez-vous (rdv découverte, prestation à devis…).",
+    "priceModeFreeHint": "Prestation gratuite — aucun prix ni facture automatique."
+  },
+  "loyaltyModal": {
+    "title": "Tarif fidélité",
+    "body": "Cela fait {days, plural, one {# jour} other {# jours}} depuis votre dernier rendez-vous (au-delà de {threshold, plural, one {# semaine} other {# semaines}}). Le prix de cette prestation est ajusté en conséquence.",
+    "basePrice": "Prix habituel",
+    "newPrice": "Prix appliqué",
+    "confirm": "J'ai compris",
+    "badgeTooltip": "Prix majoré (tarif fidélité)",
+    "surchargeBadge": "+{amount}",
+    "surchargeNote": "Tarif majoré : vous dépassez {threshold, plural, one {# semaine} other {# semaines}} depuis votre dernier rendez-vous."
   },
   "admin": {
     "title": "Administration",
@@ -736,7 +769,9 @@
       "dashboard": "Dashboard",
       "businesses": "Établissements",
       "users": "Utilisateurs",
-      "logout": "Déconnexion"
+      "logout": "Déconnexion",
+      "referrals": "Parrainages",
+      "inviteRequests": "Demandes"
     },
     "businesses": {
       "title": "Établissements",
@@ -745,6 +780,51 @@
       "pending": "En attente",
       "verify": "Vérifier",
       "unverify": "Retirer la vérification"
+    },
+    "referrals": {
+      "title": "Parrainages",
+      "subtitle": "Validez les leads proposés par les salons",
+      "empty": "Aucun parrainage pour le moment.",
+      "columnBusiness": "Salon",
+      "columnTotal": "Total",
+      "columnPending": "En attente",
+      "columnValidated": "Validés",
+      "columnFreeMonths": "Mois crédités",
+      "columnLast": "Dernière soumission",
+      "detailTitle": "Parrainages de {name}",
+      "detailBack": "Retour",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "instagram": "Instagram",
+      "phone": "Téléphone",
+      "status": "Statut",
+      "submittedAt": "Soumis",
+      "validate": "Valider",
+      "reject": "Rejeter",
+      "notes": "Notes",
+      "saveNotes": "Enregistrer",
+      "rejectPrompt": "Raison du rejet (optionnel)",
+      "validatedToast": "Parrainage validé",
+      "rewardedToast": "Mois gratuit crédité au salon",
+      "rejectedToast": "Parrainage rejeté",
+      "errorToast": "Erreur lors de la mise à jour",
+      "statusPending": "En attente",
+      "statusValidated": "Validé",
+      "statusRejected": "Rejeté"
+    },
+    "inviteRequests": {
+      "title": "Demandes d'invitation",
+      "subtitle": "Personnes intéressées par Booklia, à recontacter.",
+      "empty": "Aucune demande pour le moment.",
+      "columnName": "Nom",
+      "columnEmail": "Email",
+      "columnPhone": "Téléphone",
+      "columnDate": "Date",
+      "delete": "Supprimer",
+      "deleteConfirm": "Supprimer cette demande ?",
+      "deletedToast": "Demande supprimée",
+      "errorToast": "Erreur",
+      "columnTelephone": "Telephone"
     }
   },
   "notifications": {
@@ -785,5 +865,218 @@
     "tooManyRequests": "Trop de requêtes, veuillez réessayer plus tard",
     "serviceUnavailable": "Le service est temporairement indisponible",
     "generic": "Une erreur est survenue"
+  },
+  "referrals": {
+    "tabReferrals": "Parrainage",
+    "title": "Parrainage",
+    "subtitle": "Recommandez deux clients et gagnez un mois gratuit",
+    "howItWorksTitle": "Comment ça marche",
+    "howItWorksStep1": "Proposez un client ou une cliente intéressé(e) par Booklia.",
+    "howItWorksStep2": "Nous le ou la contactons pour l'onboarder.",
+    "howItWorksStep3": "Une fois confirmée, votre proposition est validée.",
+    "howItWorksStep4": "Au 2ᵉ parrainage validé, un mois gratuit est crédité.",
+    "progressTitle": "Progression",
+    "progressOneMore": "Plus que 1 parrainage validé pour obtenir votre prochain mois gratuit.",
+    "progressZero": "Proposez votre premier parrainage pour démarrer.",
+    "progressReady": "Vous êtes prêt(e) à valider la paire suivante !",
+    "freeMonthsLabel": "Mois gratuits gagnés",
+    "submitButton": "Proposer un client",
+    "modalTitle": "Proposer un client",
+    "modalSubtitle": "Renseignez les coordonnées de la personne à contacter.",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "instagram": "Instagram (sans @)",
+    "phone": "Téléphone",
+    "cancel": "Annuler",
+    "send": "Envoyer",
+    "submittedToast": "Parrainage envoyé !",
+    "errorToast": "Une erreur est survenue, réessayez.",
+    "rateLimitToast": "Limite quotidienne atteinte (4/jour). Réessayez demain.",
+    "historyTitle": "Mes parrainages",
+    "historyEmpty": "Aucun parrainage soumis pour le moment.",
+    "statusPending": "En attente",
+    "statusValidated": "Validé",
+    "statusRejected": "Rejeté",
+    "rewardedBadge": "Mois crédité",
+    "submittedAt": "Soumis le"
+  },
+  "landing": {
+    "nav": {
+      "features": "Fonctionnalités",
+      "how": "Comment ça marche",
+      "whyBooklia": "Pourquoi Booklia",
+      "getStarted": "Démarrer"
+    },
+    "hero": {
+      "badge": "Conçu pour les salons indépendants",
+      "title1": "Le système qui fait",
+      "titleAccent": "grandir votre salon",
+      "subtitle": "Agenda, clients, factures, réservations en ligne. Tout ce dont votre salon a besoin, dans une seule application pensée pour vous.",
+      "ctaSecondary": "Voir une démonstration",
+      "heroNote": "Mise en route accompagnée — sous 24h"
+    },
+    "trustBar": {
+      "title": "Pensé pour tous les métiers du soin",
+      "categories": {
+        "hair": "Coiffure",
+        "barber": "Barbier",
+        "nails": "Manucure",
+        "beauty": "Institut de beauté",
+        "wellness": "Bien-être"
+      },
+      "subtitle": "Coiffure, barbier, manucure, esthétique, bien-être. Booklia s'adapte à votre métier."
+    },
+    "features": {
+      "title": "Tout ce qu'il faut pour gérer votre salon",
+      "subtitle": "Six outils intégrés qui remplacent votre cahier, votre Excel et vos applications éparpillées.",
+      "agenda": {
+        "title": "Agenda intelligent",
+        "desc": "Planning multi-employés, gestion des conflits, horaires flexibles avec exceptions et congés."
+      },
+      "crm": {
+        "title": "CRM clients",
+        "desc": "Historique complet, notes privées, statistiques de fidélité, niveau de confiance par client."
+      },
+      "invoicing": {
+        "title": "Facturation automatique",
+        "desc": "Génération PDF conforme, envoi par email, génération en lot pour la fin du mois."
+      },
+      "booking": {
+        "title": "Réservation en ligne",
+        "desc": "Page publique pour vos clients. Ils réservent en 30 secondes, vous validez en un clic."
+      },
+      "referral": {
+        "title": "Parrainage",
+        "desc": "Recommandez deux salons, obtenez un mois gratuit. Cumulable sans limite."
+      },
+      "team": {
+        "title": "Multi-employés",
+        "desc": "Plannings individuels, services personnalisés par employé, gestion des absences en quelques clics."
+      }
+    },
+    "how": {
+      "title": "Comment rejoindre Booklia",
+      "subtitle": "Booklia est en accès anticipé. On configure votre salon avec vous.",
+      "step1": {
+        "title": "Vous nous contactez",
+        "desc": "Envoyez-nous un message rapide. On vous recontacte sous 24h pour comprendre vos besoins."
+      },
+      "step2": {
+        "title": "On configure ensemble",
+        "desc": "On crée votre compte, on importe vos prestations, vos employés et vos horaires. Avec vous, en visio ou sur place."
+      },
+      "step3": {
+        "title": "Votre salon est en ligne",
+        "desc": "Vous recevez votre lien Booklia, partagez-le à vos clientes. Vous gérez tout depuis le tableau de bord."
+      }
+    },
+    "why": {
+      "title": "Pourquoi choisir Booklia",
+      "subtitle": "On a conçu Booklia avec et pour des professionnels du soin. Sans compromis.",
+      "allInOne": {
+        "title": "Tout-en-un",
+        "desc": "Plus besoin de jongler entre 3 outils. Agenda, clients, factures : tout au même endroit."
+      },
+      "noFees": {
+        "title": "Sans frais cachés",
+        "desc": "Pas de commission sur vos rendez-vous. Pas de frais par SMS. Un seul prix, transparent."
+      },
+      "french": {
+        "title": "Made in France",
+        "desc": "Données hébergées en Europe. Conforme RGPD. Support en français, anglais et portugais."
+      },
+      "fast": {
+        "title": "Rapide à prendre en main",
+        "desc": "Interface pensée pour aller vite. Vos employés se forment en 15 minutes."
+      },
+      "badge": "Pourquoi Booklia"
+    },
+    "testimonial": {
+      "quote": "En passant à Booklia, j'ai gagné deux heures par jour. Mes clientes adorent pouvoir réserver en ligne sans nous appeler.",
+      "author": "Camille",
+      "role": "EM Institut, Paris"
+    },
+    "finalCta": {
+      "title": "Prête à passer au niveau supérieur ?",
+      "subtitle": "Rejoignez les salons qui simplifient leur quotidien avec Booklia.",
+      "cta": "Démarrer maintenant"
+    },
+    "clientFooter": {
+      "label": "Vous cherchez à réserver un rendez-vous ?",
+      "cta": "Trouvez un salon"
+    },
+    "mockup": {
+      "todayTitle": "Aujourd'hui",
+      "bookingsCount": "8 rendez-vous",
+      "revenue": "CA du jour",
+      "liveBadge": "En direct",
+      "sample1Service": "Coupe & couleur",
+      "sample1Client": "Sophie M.",
+      "sample1Time": "10:00",
+      "sample2Service": "Brushing",
+      "sample2Client": "Léa B.",
+      "sample2Time": "11:30",
+      "sample3Service": "Coloration",
+      "sample3Client": "Karine P.",
+      "sample3Time": "14:00",
+      "statsTitle": "Cette semaine",
+      "newClients": "Nouveaux clients",
+      "completionRate": "Taux de complétion"
+    },
+    "showcase": {
+      "booking": {
+        "eyebrow": "Réservation 24/7",
+        "title": "Vos clientes réservent même la nuit",
+        "description": "Une page publique dédiée à votre salon. Vos clientes choisissent un créneau en 30 secondes, sans avoir à appeler ni à attendre vos horaires d'ouverture.",
+        "bullet1": "Page publique avec votre identité visuelle",
+        "bullet2": "Créneaux mis à jour en temps réel",
+        "bullet3": "Confirmation automatique ou validation manuelle"
+      },
+      "clients": {
+        "eyebrow": "Fiches clients",
+        "title": "Connaissez vos clientes par cœur",
+        "description": "Historique complet, statistiques de fidélité, notes privées et préférences. Tout ce qu'il faut pour offrir un service personnalisé à chaque rendez-vous.",
+        "bullet1": "Historique de RDV, prestations et chiffre d'affaires",
+        "bullet2": "Notes privées et préférences (allergies, produits)",
+        "bullet3": "Niveau de fidélité et badge VIP automatique"
+      },
+      "team": {
+        "eyebrow": "Multi-employés",
+        "title": "Une équipe, un planning unifié",
+        "description": "Gérez plusieurs employés en parallèle avec des horaires individuels, des prestations spécifiques et la gestion des absences en quelques clics.",
+        "bullet1": "Planning par employé, vue d'ensemble unifiée",
+        "bullet2": "Prestations personnalisées par employé",
+        "bullet3": "Gestion des congés et exceptions horaires"
+      },
+      "reminders": {
+        "eyebrow": "Rappels par email",
+        "title": "Réduisez les oublis sans rien faire",
+        "description": "Vos clientes reçoivent automatiquement un email de rappel 24h avant leur rendez-vous. Plus de no-shows, plus de relances manuelles à faire.",
+        "bullet1": "Rappel envoyé 24h avant le rendez-vous",
+        "bullet2": "Personnalisé avec vos couleurs et infos",
+        "bullet3": "Aucune configuration requise"
+      }
+    }
+  },
+  "requestInvite": {
+    "title": "Demander une invitation",
+    "subtitle": "Booklia est en accès fermé. Laissez-nous vos coordonnées, on vous recontacte sous 24h pour configurer votre salon ensemble.",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Adresse email",
+    "phone": "Téléphone",
+    "submit": "Envoyer ma demande",
+    "cancel": "Annuler",
+    "success": "Demande envoyée. On vous recontacte sous 24h !",
+    "error": "Une erreur est survenue, réessayez.",
+    "rateLimit": "Vous avez déjà envoyé plusieurs demandes. On vous recontacte très vite.",
+    "placeholderFirstName": "Sophie",
+    "placeholderLastName": "Martin",
+    "placeholderEmail": "sophie@monsalon.com",
+    "placeholderPhone": "06 12 34 56 78",
+    "noSpam": "Pas de spam. Vos données ne sont jamais partagées.",
+    "thanksTitle": "Merci pour votre demande !",
+    "thanksSubtitle": "On vous recontacte sous 24h par email ou par téléphone pour configurer votre salon avec vous.",
+    "backToHome": "Retour à l'accueil"
   }
 }

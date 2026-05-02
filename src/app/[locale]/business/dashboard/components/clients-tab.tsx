@@ -22,13 +22,16 @@ import {
   X,
   Mail,
   StickyNote,
+  Cake,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { BirthDateInput } from '@/components/ui/birth-date-input';
 import { useToast } from '@/components/ui/toast';
 import { formatPrice } from '@/lib/utils';
 import { ClientTrustLevel } from '@/types';
+import { isBirthdayToday, formatBirthDate } from '@/lib/birthday';
 import { ClientLastNoteCard } from './client-last-note-card';
 import { BookingNoteEditor } from './booking-note-editor';
 import { InvoiceEditor } from './invoice-editor';
@@ -79,7 +82,14 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
   onClose: () => void;
   onCreated: (clientId: string) => void;
 }) {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', notes: '' });
+  const [form, setForm] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    notes: string;
+    birthDate: string | null;
+  }>({ name: '', email: '', phone: '', address: '', notes: '', birthDate: null });
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -89,9 +99,10 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
       phone: form.phone || undefined,
       address: form.address || undefined,
       notes: form.notes || undefined,
+      birthDate: form.birthDate || undefined,
     }),
     onSuccess: (data) => {
-      setForm({ name: '', email: '', phone: '', address: '', notes: '' });
+      setForm({ name: '', email: '', phone: '', address: '', notes: '', birthDate: null });
       setError(null);
       onCreated(data.id);
     },
@@ -102,7 +113,7 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
 
   useEffect(() => {
     if (!isOpen) {
-      setForm({ name: '', email: '', phone: '', address: '', notes: '' });
+      setForm({ name: '', email: '', phone: '', address: '', notes: '', birthDate: null });
       setError(null);
     }
   }, [isOpen]);
@@ -201,6 +212,15 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
                 className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
+          </div>
+
+          {/* Birth date */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Date d'anniversaire</label>
+            <BirthDateInput
+              value={form.birthDate}
+              onChange={(iso) => setForm(f => ({ ...f, birthDate: iso }))}
+            />
           </div>
 
           {/* Notes */}
@@ -346,6 +366,7 @@ export function ClientsTab({ businessId, initialClientId }: {
           {clients.map((client, idx) => {
             const trust = client.stats ? getTrustBadge(client.stats.trustLevel) : null;
             const TrustIcon = trust?.icon;
+            const isBday = isBirthdayToday(client.user?.birthDate);
 
             return (
               <button
@@ -363,7 +384,14 @@ export function ClientsTab({ businessId, initialClientId }: {
                         {(client.user?.name || client.user?.email || '?')[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-medium">{client.user?.name || 'Sans nom'}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{client.user?.name || 'Sans nom'}</p>
+                          {isBday && (
+                            <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
+                              <Cake className="w-3 h-3 mr-1" /> Anniv.
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">{client.user?.email}</p>
                       </div>
                     </div>
@@ -397,7 +425,14 @@ export function ClientsTab({ businessId, initialClientId }: {
                       {(client.user?.name || client.user?.email || '?')[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-medium truncate">{client.user?.name || 'Sans nom'}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{client.user?.name || 'Sans nom'}</p>
+                        {isBday && (
+                          <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 shrink-0">
+                            <Cake className="w-3 h-3 mr-1" /> Anniv.
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">{client.user?.email}</p>
                     </div>
                   </div>
@@ -435,6 +470,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
   const [notes, setNotes] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [birthDate, setBirthDate] = useState<string | null>(null);
   const [editingNoteBookingId, setEditingNoteBookingId] = useState<string | null>(null);
   const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null);
 
@@ -449,7 +485,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { isBlocked?: boolean; notes?: string; phone?: string; address?: string }) =>
+    mutationFn: (data: { isBlocked?: boolean; notes?: string; phone?: string; address?: string; birthDate?: string | null }) =>
       api.updateBusinessClient(clientId, data),
     onSuccess: () => {
       success('Client mis à jour');
@@ -496,7 +532,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
   };
 
   const handleSaveInfo = () => {
-    updateMutation.mutate({ notes, phone, address });
+    updateMutation.mutate({ notes, phone, address, birthDate });
   };
 
   const startEditing = () => {
@@ -504,6 +540,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
     setNotes(client.notes || '');
     setPhone(client.phone || '');
     setAddress(client.address || '');
+    setBirthDate(client.user?.birthDate || null);
     setEditingNotes(true);
   };
 
@@ -529,6 +566,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
 
   const trust = client.stats ? getTrustBadge(client.stats.trustLevel) : null;
   const TrustIcon = trust?.icon;
+  const isBday = isBirthdayToday(client.user?.birthDate);
 
   return (
     <div>
@@ -542,7 +580,14 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
             {(client.user?.name || client.user?.email || '?')[0].toUpperCase()}
           </div>
           <div className="min-w-0">
-            <h2 className="text-xl font-bold truncate">{client.user?.name || 'Sans nom'}</h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-xl font-bold truncate">{client.user?.name || 'Sans nom'}</h2>
+              {isBday && (
+                <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
+                  <Cake className="w-3.5 h-3.5 mr-1" /> Jour d&apos;anniversaire
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground truncate">{client.user?.email}</p>
           </div>
         </div>
@@ -693,6 +738,10 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                   </div>
                 </div>
                 <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Date d&apos;anniversaire</label>
+                  <BirthDateInput value={birthDate} onChange={setBirthDate} />
+                </div>
+                <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Notes</label>
                   <textarea
                     value={notes}
@@ -717,12 +766,18 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                     <span>{client.address}</span>
                   </div>
                 )}
+                {client.user?.birthDate && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Cake className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span>{formatBirthDate(client.user.birthDate)}</span>
+                  </div>
+                )}
                 {client.notes && (
                   <div className="mt-3 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
                     {client.notes}
                   </div>
                 )}
-                {!client.phone && !client.address && !client.notes && (
+                {!client.phone && !client.address && !client.user?.birthDate && !client.notes && (
                   <p className="text-sm text-muted-foreground">Aucune information enregistrée</p>
                 )}
               </div>

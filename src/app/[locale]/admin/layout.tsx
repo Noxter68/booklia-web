@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import {
   Shield,
   Building2,
@@ -10,9 +11,15 @@ import {
   Menu,
   X,
   LayoutDashboard,
+  Heart,
+  Inbox,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { PageLoader } from '@/components/ui/spinner';
+import { api } from '@/lib/api';
+
+const REFERRALS_LAST_SEEN_KEY = 'admin:referrals:lastSeenAt';
+const INVITE_REQUESTS_LAST_SEEN_KEY = 'admin:invite-requests:lastSeenAt';
 
 export default function AdminLayout({
   children,
@@ -27,6 +34,19 @@ export default function AdminLayout({
 
   // Allow login page without auth (pathname includes locale prefix, e.g. /fr/admin/login)
   const isLoginPage = pathname.endsWith('/admin/login');
+
+  // All hooks must run on every render (Rules of Hooks). lastSeenAt + the
+  // two badge queries used to live below the early returns, which broke
+  // the hook order whenever this component switched between login and
+  // authenticated views.
+  const [referralsLastSeenAt, setReferralsLastSeenAt] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(REFERRALS_LAST_SEEN_KEY);
+  });
+  const [invitesLastSeenAt, setInvitesLastSeenAt] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(INVITE_REQUESTS_LAST_SEEN_KEY);
+  });
 
   useEffect(() => {
     // Reset redirect flag when on login page
@@ -46,6 +66,43 @@ export default function AdminLayout({
       }
     }
   }, [user, isLoading, isLoginPage, router]);
+
+  // Reset the relevant badge when the admin navigates to its page.
+  useEffect(() => {
+    if (pathname.endsWith('/admin/referrals')) {
+      const now = new Date().toISOString();
+      window.localStorage.setItem(REFERRALS_LAST_SEEN_KEY, now);
+      setReferralsLastSeenAt(now);
+    }
+    if (pathname.endsWith('/admin/invite-requests')) {
+      const now = new Date().toISOString();
+      window.localStorage.setItem(INVITE_REQUESTS_LAST_SEEN_KEY, now);
+      setInvitesLastSeenAt(now);
+    }
+  }, [pathname]);
+
+  // Badge queries: gated by `enabled` so they don't fire on the login page.
+  // Polled every 2 min, no refetch on window focus — the badge counts don't
+  // need to be real-time and tab focus events were causing a refetch storm.
+  const { data: referralsBadge } = useQuery({
+    queryKey: ['admin-referrals-pending-count', referralsLastSeenAt],
+    queryFn: () =>
+      api.adminGetReferralsPendingCount(referralsLastSeenAt ?? undefined),
+    enabled: !!user?.isAdmin && !isLoginPage,
+    refetchInterval: 120_000,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+  });
+
+  const { data: invitesBadge } = useQuery({
+    queryKey: ['admin-invite-requests-pending-count', invitesLastSeenAt],
+    queryFn: () =>
+      api.adminGetInviteRequestsPendingCount(invitesLastSeenAt ?? undefined),
+    enabled: !!user?.isAdmin && !isLoginPage,
+    refetchInterval: 120_000,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+  });
 
   // Show loader while checking auth (except on login page)
   if (isLoading && !isLoginPage) {
@@ -70,9 +127,24 @@ export default function AdminLayout({
     );
   }
 
+  const referralsBadgeCount = referralsBadge?.count ?? 0;
+  const invitesBadgeCount = invitesBadge?.count ?? 0;
+
   const navItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/businesses', icon: Building2, label: 'Business' },
+    {
+      href: '/admin/invite-requests',
+      icon: Inbox,
+      label: 'Demandes',
+      badge: invitesBadgeCount,
+    },
+    {
+      href: '/admin/referrals',
+      icon: Heart,
+      label: 'Parrainages',
+      badge: referralsBadgeCount,
+    },
   ];
 
   const handleLogout = () => {
@@ -122,6 +194,7 @@ export default function AdminLayout({
         <nav className="p-4 space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
+            const badgeCount = item.badge ?? 0;
             return (
               <Link
                 key={item.href}
@@ -136,7 +209,12 @@ export default function AdminLayout({
                 `}
               >
                 <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium flex-1">{item.label}</span>
+                {badgeCount > 0 && !isActive && (
+                  <span className="min-w-5 h-5 px-1.5 inline-flex items-center justify-center text-xs font-semibold text-white bg-red-500 rounded-full ring-2 ring-white">
+                    {badgeCount > 99 ? '99+' : badgeCount}
+                  </span>
+                )}
               </Link>
             );
           })}

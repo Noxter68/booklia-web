@@ -122,6 +122,16 @@ class ApiClient {
       }
     }
 
+    // On 429, broadcast a window event so a global listener can toast the
+    // user with the remaining cooldown. Throttler returns a Retry-After
+    // header in seconds (NestJS @nestjs/throttler default behavior).
+    if (response.status === 429 && typeof window !== 'undefined') {
+      const retryAfter = Number(response.headers.get('Retry-After')) || 30;
+      window.dispatchEvent(
+        new CustomEvent('api:rate-limit', { detail: { retryAfter } }),
+      );
+    }
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       const message = error.message || 'An error occurred';
@@ -263,6 +273,15 @@ class ApiClient {
     return this.request<import('@/types').Booking[]>(`/bookings/me${queryString ? `?${queryString}` : ''}`);
   }
 
+  /** Returns a completed-but-unreviewed booking with the given business, if any. */
+  async getReviewableBooking(businessId: string) {
+    return this.request<{
+      id: string;
+      completedAt: string | null;
+      businessService: { id: string; name: string };
+    } | null>(`/bookings/can-review?businessId=${encodeURIComponent(businessId)}`);
+  }
+
   // Reviews
   async createReview(data: {
     bookingId: string;
@@ -296,20 +315,6 @@ class ApiClient {
     return this.request<import('@/types').Category[]>('/categories');
   }
 
-  // Stripe
-  async createSubscription(priceId: string) {
-    return this.request<{ url: string }>('/stripe/subscribe', {
-      method: 'POST',
-      body: JSON.stringify({ priceId }),
-    });
-  }
-
-  async createBillingPortal() {
-    return this.request<{ url: string }>('/stripe/portal', {
-      method: 'POST',
-    });
-  }
-
   // Business
   async createBusiness(data: {
     name: string;
@@ -329,7 +334,9 @@ class ApiClient {
   }
 
   async getMyBusiness() {
-    return this.request<import('@/types').Business>('/business/mine');
+    // Returns null when the current user has no business (i.e. is a client,
+    // not a pro). Used as a "is current user a pro?" probe on public pages.
+    return this.request<import('@/types').Business | null>('/business/mine');
   }
 
   async updateBusiness(data: Partial<import('@/types').Business>) {
@@ -374,10 +381,12 @@ class ApiClient {
     name: string;
     description?: string;
     detailedDescription?: string;
+    priceMode?: import('@/types').ServicePriceMode;
     priceCents: number;
     durationMinutes: number;
     categoryId?: string;
     businessCategoryId?: string;
+    pricingTiers?: { thresholdWeeks: number; surchargeCents: number }[];
   }) {
     return this.request<import('@/types').BusinessService>('/business/services', {
       method: 'POST',
@@ -387,7 +396,9 @@ class ApiClient {
 
   async updateBusinessService(
     id: string,
-    data: Partial<import('@/types').BusinessService>,
+    data: Omit<Partial<import('@/types').BusinessService>, 'pricingTiers'> & {
+      pricingTiers?: { thresholdWeeks: number; surchargeCents: number }[];
+    },
   ) {
     return this.request<import('@/types').BusinessService>(`/business/services/${id}`, {
       method: 'PUT',
@@ -478,34 +489,29 @@ class ApiClient {
     return this.request<import('@/types').Employee[]>(`/employees/business/${businessId}`);
   }
 
-  async getAvailableSlots(employeeId: string, businessServiceId: string, date: string) {
+  /**
+   * Bulk fetch: one HTTP call for the whole [dateFrom, dateTo] range. Backed
+   * by /employees/slots-range — 5 DB queries total instead of 5 per day.
+   */
+  async getAvailableSlotsRange(
+    employeeId: string,
+    businessServiceId: string,
+    dateFrom: string,
+    dateTo: string,
+  ) {
     const params = new URLSearchParams({
       employeeId,
       businessServiceId,
-      date,
+      dateFrom,
+      dateTo,
     });
-    return this.request<{ slots: { time: string; available: boolean }[] }>(
-      `/employees/slots?${params}`
-    );
-  }
-
-  async getAvailableSlotsMultipleDays(
-    employeeId: string,
-    businessServiceId: string,
-    dates: string[]
-  ) {
-    // Fetch slots for multiple dates in parallel
-    const results = await Promise.all(
-      dates.map(async (date) => {
-        try {
-          const result = await this.getAvailableSlots(employeeId, businessServiceId, date);
-          return { date, slots: result.slots };
-        } catch {
-          return { date, slots: [] };
-        }
-      })
-    );
-    return results;
+    return this.request<{
+      days: { date: string; slots: { time: string; available: boolean }[] }[];
+      loyalty: {
+        lastCompletedAt: string | null;
+        pricingTiers: { thresholdWeeks: number; surchargeCents: number }[];
+      } | null;
+    }>(`/employees/slots-range?${params}`);
   }
 
   // Business Booking
@@ -719,6 +725,7 @@ class ApiClient {
     phone?: string;
     address?: string;
     notes?: string;
+    birthDate?: string | null;
   }) {
     return this.request<import('@/types').BusinessClient>('/business/clients', {
       method: 'POST',
@@ -746,6 +753,7 @@ class ApiClient {
     notes?: string;
     phone?: string;
     address?: string;
+    birthDate?: string | null;
   }) {
     return this.request<import('@/types').BusinessClient>(`/business/clients/${clientId}`, {
       method: 'PUT',
@@ -1080,6 +1088,106 @@ class ApiClient {
   async deleteCalendarBlock(id: string) {
     return this.request<{ success: boolean }>(`/calendar/blocks/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  // ============================================
+  // Referrals
+  // ============================================
+
+  async createReferral(data: {
+    firstName: string;
+    lastName: string;
+    instagram: string;
+    phone: string;
+  }) {
+    return this.request<import('@/types').Referral>('/referrals', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMyReferrals() {
+    return this.request<import('@/types').MyReferralsResponse>('/referrals/mine');
+  }
+
+  // Admin
+  async adminListReferralsByBusiness() {
+    return this.request<import('@/types').AdminReferralBusinessRow[]>('/admin/referrals');
+  }
+
+  async adminGetReferralsPendingCount(since?: string) {
+    const qs = since ? `?since=${encodeURIComponent(since)}` : '';
+    return this.request<{ count: number }>(`/admin/referrals/pending-count${qs}`);
+  }
+
+  // ============================================
+  // Invite requests
+  // ============================================
+
+  async createInviteRequest(data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  }) {
+    return this.request<{ id: string; success: boolean }>('/invite-requests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Admin
+  async adminListInviteRequests() {
+    return this.request<import('@/types').InviteRequest[]>('/admin/invite-requests');
+  }
+
+  async adminGetInviteRequestsPendingCount(since?: string) {
+    const qs = since ? `?since=${encodeURIComponent(since)}` : '';
+    return this.request<{ count: number }>(
+      `/admin/invite-requests/pending-count${qs}`,
+    );
+  }
+
+  async adminDeleteInviteRequest(id: string) {
+    return this.request<{ success: boolean }>(`/admin/invite-requests/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async adminUpdateInviteRequestNotes(id: string, notes: string | null) {
+    return this.request<import('@/types').InviteRequest>(
+      `/admin/invite-requests/${id}/notes`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ notes }),
+      },
+    );
+  }
+
+  async adminGetReferralsForBusiness(businessId: string) {
+    return this.request<import('@/types').AdminReferralBusinessDetail>(
+      `/admin/referrals/business/${businessId}`,
+    );
+  }
+
+  async adminValidateReferral(id: string) {
+    return this.request<import('@/types').Referral>(`/admin/referrals/${id}/validate`, {
+      method: 'PATCH',
+    });
+  }
+
+  async adminRejectReferral(id: string, reason?: string) {
+    return this.request<import('@/types').Referral>(`/admin/referrals/${id}/reject`, {
+      method: 'PATCH',
+      body: JSON.stringify(reason ? { reason } : {}),
+    });
+  }
+
+  async adminUpdateReferralNotes(id: string, notes: string | null) {
+    return this.request<import('@/types').Referral>(`/admin/referrals/${id}/notes`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes }),
     });
   }
 }

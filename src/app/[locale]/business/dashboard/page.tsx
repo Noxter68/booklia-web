@@ -27,6 +27,7 @@ import {
   FileText,
   CalendarDays,
   CornerDownRight,
+  BanknoteArrowUp,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -36,15 +37,36 @@ import { Input } from '@/components/ui/input';
 import { PageLoader } from '@/components/ui/spinner';
 import { useToast } from '@/components/ui/toast';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import {
+  PricingTiersEditor,
+  PricingTierDraft,
+  tiersToPayload,
+  tiersHaveDuplicates,
+} from '@/components/business/pricing-tiers-editor';
 import { formatPrice } from '@/lib/utils';
 import { createPortal } from 'react-dom';
 import { Business, Employee, BusinessService, Booking, BookingStatus, BusinessHours, BusinessCategory, BusinessImage } from '@/types';
-import { ClientsTab } from './components/clients-tab';
-import { InvoicesTab } from './components/invoices-tab';
+import dynamic from 'next/dynamic';
 import { RevenueChart } from './components/revenue-chart';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-import { AgendaTab } from './components/calendar/agenda-tab';
 import { LatestReviews } from './components/latest-reviews';
+
+// Heavy tabs (clients, invoices, agenda) pull in recharts / calendar libs,
+// big forms, and the invoice editor. Lazy-load them so the initial dashboard
+// bundle only contains the overview path.
+const ClientsTab = dynamic(
+  () => import('./components/clients-tab').then((m) => ({ default: m.ClientsTab })),
+  { ssr: false },
+);
+const InvoicesTab = dynamic(
+  () => import('./components/invoices-tab').then((m) => ({ default: m.InvoicesTab })),
+  { ssr: false },
+);
+const AgendaTab = dynamic(
+  () =>
+    import('./components/calendar/agenda-tab').then((m) => ({ default: m.AgendaTab })),
+  { ssr: false },
+);
 import { useTranslations, useLocale } from 'next-intl';
 import {
   AmountsVisibilityProvider,
@@ -531,7 +553,18 @@ function BusinessDashboardContent() {
                           )}
                         </div>
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span className="truncate mr-2">{booking.businessService?.name || t('prestation')}</span>
+                          <span className="truncate mr-2 flex items-center gap-1.5 min-w-0">
+                            <span className="truncate">{booking.businessService?.name || t('prestation')}</span>
+                            {booking.appliedTierWeeks != null && (
+                              <span
+                                title={`Prix majoré (tarif fidélité, +${booking.appliedTierWeeks} semaines)`}
+                                aria-label={`Prix majoré : client revenu après plus de ${booking.appliedTierWeeks} semaines`}
+                                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-500/10 text-orange-600 shrink-0"
+                              >
+                                <BanknoteArrowUp className="w-3 h-3" />
+                              </span>
+                            )}
+                          </span>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {booking.scheduledAt && (
                               <>
@@ -559,7 +592,20 @@ function BusinessDashboardContent() {
                           </button>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{booking.businessService?.name || t('prestation')}</p>
+                          <p className="font-medium text-sm truncate flex items-center gap-1.5">
+                            <span className="truncate">
+                              {booking.businessService?.name || t('prestation')}
+                            </span>
+                            {booking.appliedTierWeeks != null && (
+                              <span
+                                title={`Prix majoré (tarif fidélité, +${booking.appliedTierWeeks} semaines)`}
+                                aria-label={`Prix majoré : client revenu après plus de ${booking.appliedTierWeeks} semaines`}
+                                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-500/10 text-orange-600 shrink-0"
+                              >
+                                <BanknoteArrowUp className="w-3 h-3" />
+                              </span>
+                            )}
+                          </p>
                         </div>
                         <div className="shrink-0">
                           {booking.scheduledAt ? (
@@ -601,7 +647,20 @@ function BusinessDashboardContent() {
                           </button>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{booking.businessService?.name || t('prestation')}</p>
+                          <p className="font-medium text-sm truncate flex items-center gap-1.5">
+                            <span className="truncate">
+                              {booking.businessService?.name || t('prestation')}
+                            </span>
+                            {booking.appliedTierWeeks != null && (
+                              <span
+                                title={`Prix majoré (tarif fidélité, +${booking.appliedTierWeeks} semaines)`}
+                                aria-label={`Prix majoré : client revenu après plus de ${booking.appliedTierWeeks} semaines`}
+                                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-500/10 text-orange-600 shrink-0"
+                              >
+                                <BanknoteArrowUp className="w-3 h-3" />
+                              </span>
+                            )}
+                          </p>
                         </div>
                         <div className="w-45 shrink-0">
                           {booking.scheduledAt ? (
@@ -1800,20 +1859,29 @@ function EditServiceModal({
   const [isMounted, setIsMounted] = useState(false);
   const t = useTranslations('dashboard');
   const tc = useTranslations('common');
+  const tForm = useTranslations('serviceForm');
 
   const [formData, setFormData] = useState({
     name: service.name,
     description: service.description || '',
     detailedDescription: service.detailedDescription || '',
+    priceMode: service.priceMode,
     priceCents: service.priceCents,
     durationMinutes: service.durationMinutes,
     businessCategoryId: service.businessCategoryId || null,
     isActive: service.isActive,
+    pricingTiers: (service.pricingTiers ?? []).map<PricingTierDraft>((tier) => ({
+      thresholdWeeks: tier.thresholdWeeks,
+      surchargeCents: tier.surchargeCents,
+    })),
   });
 
   useState(() => {
     setIsMounted(true);
   });
+
+  const isFixedPrice = formData.priceMode === 'FIXED';
+  const tiersInvalid = tiersHaveDuplicates(formData.pricingTiers);
 
   const updateMutation = useMutation({
     mutationFn: () =>
@@ -1821,10 +1889,12 @@ function EditServiceModal({
         name: formData.name,
         description: formData.description || undefined,
         detailedDescription: formData.detailedDescription || undefined,
-        priceCents: formData.priceCents,
+        priceMode: formData.priceMode,
+        priceCents: isFixedPrice ? formData.priceCents : 0,
         durationMinutes: formData.durationMinutes,
         businessCategoryId: formData.businessCategoryId || undefined,
         isActive: formData.isActive,
+        pricingTiers: isFixedPrice ? tiersToPayload(formData.pricingTiers) : [],
       }),
     onSuccess: () => {
       success(t('serviceUpdated'));
@@ -1914,29 +1984,87 @@ function EditServiceModal({
               />
             </div>
 
-            {/* Price */}
+            {/* Price mode */}
             <div>
               <label className="text-sm font-medium mb-2 block">
-                {t('price')}
+                {tForm('priceMode')}
               </label>
-              <div className="relative">
-                <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="number"
-                  value={formData.priceCents / 100}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      priceCents: Math.round(parseFloat(e.target.value || '0') * 100),
-                    })
-                  }
-                  placeholder="0.00"
-                  min={0}
-                  step={0.5}
-                  className="pl-10"
-                />
+              <div className="grid grid-cols-3 gap-2">
+                {(['FIXED', 'QUOTE', 'FREE'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, priceMode: m })}
+                    className={`p-2.5 rounded-lg border text-sm font-medium transition-colors cursor-pointer ${
+                      formData.priceMode === m
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    {tForm(
+                      m === 'FIXED'
+                        ? 'priceModeFixed'
+                        : m === 'QUOTE'
+                        ? 'priceModeQuote'
+                        : 'priceModeFree',
+                    )}
+                  </button>
+                ))}
               </div>
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={formData.priceMode}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="text-xs text-muted-foreground mt-2"
+                >
+                  {tForm(
+                    formData.priceMode === 'FIXED'
+                      ? 'priceModeFixedHint'
+                      : formData.priceMode === 'QUOTE'
+                      ? 'priceModeQuoteHint'
+                      : 'priceModeFreeHint',
+                  )}
+                </motion.p>
+              </AnimatePresence>
             </div>
+
+            {/* Price (only for FIXED mode) */}
+            <AnimatePresence initial={false}>
+              {isFixedPrice && (
+                <motion.div
+                  key="edit-price-input"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="overflow-hidden"
+                >
+                  <label className="text-sm font-medium mb-2 block">
+                    {t('price')}
+                  </label>
+                  <div className="relative">
+                    <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="number"
+                      value={formData.priceCents / 100}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          priceCents: Math.round(parseFloat(e.target.value || '0') * 100),
+                        })
+                      }
+                      placeholder="0.00"
+                      min={0}
+                      step={0.5}
+                      className="pl-10"
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Duration */}
             <div>
@@ -2025,6 +2153,31 @@ function EditServiceModal({
               )}
             </div>
 
+            {/* Loyalty pricing tiers (FIXED only) */}
+            <AnimatePresence initial={false}>
+              {isFixedPrice && (
+                <motion.div
+                  key="edit-pricing-tiers"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-4 border-t border-border">
+                    <h3 className="text-sm font-semibold mb-3">
+                      {tForm('pricingTiersTitle')}
+                    </h3>
+                    <PricingTiersEditor
+                      basePriceCents={formData.priceCents}
+                      tiers={formData.pricingTiers}
+                      onChange={(next) => setFormData({ ...formData, pricingTiers: next })}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Active toggle */}
             <div className="flex items-center justify-between p-3 rounded-xl bg-background">
               <div>
@@ -2052,7 +2205,9 @@ function EditServiceModal({
             </Button>
             <Button
               onClick={() => updateMutation.mutate()}
-              disabled={!formData.name.trim() || updateMutation.isPending}
+              disabled={
+                !formData.name.trim() || updateMutation.isPending || tiersInvalid
+              }
               isLoading={updateMutation.isPending}
               className="rounded-full"
             >

@@ -3,11 +3,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations, useLocale } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sun, Moon, LogOut, ChevronDown, Menu, X, Building2, Calendar, BadgeCheck, MapPin } from 'lucide-react';
+import { LogOut, ChevronDown, Menu, X, Building2, Calendar, BadgeCheck, MapPin } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
@@ -20,7 +19,6 @@ import { Link } from '@/i18n/routing';
 
 export function Header() {
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
   const { user, isLoading, logout } = useAuth();
   const { success } = useToast();
   const t = useTranslations('header');
@@ -38,10 +36,13 @@ export function Header() {
     setIsMounted(true);
   }, []);
 
-  // Fetch categories for nav links
+  // Fetch categories for nav links — quasi-static, cache aggressively to avoid
+  // refetching on every navigation.
   const { data: categories } = useQuery({
     queryKey: ['categories', locale],
     queryFn: () => api.getCategories(),
+    staleTime: 60 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
   // Detect if user owns a business (to show "Mon entreprise" vs "Mes reservations")
@@ -174,16 +175,6 @@ export function Header() {
 
             {/* Language switcher */}
             <LanguageSwitcher />
-
-            {/* Theme toggle */}
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
-              aria-label={t('toggleTheme')}
-            >
-              <Sun className="w-5 h-5 hidden dark:block" />
-              <Moon className="w-5 h-5 block dark:hidden" />
-            </button>
 
             {/* User section - Desktop */}
             <div className="hidden md:block">
