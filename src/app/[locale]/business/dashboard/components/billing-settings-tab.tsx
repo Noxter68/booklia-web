@@ -10,21 +10,11 @@ import {
   Info,
   Calculator,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { VatMode, LegalForm } from '@/types';
-
-const legalFormLabels: Record<LegalForm, string> = {
-  AUTOENTREPRENEUR_BIC_SERVICE: 'Auto-entrepreneur (BIC services)',
-  AUTOENTREPRENEUR_BIC_VENTE: 'Auto-entrepreneur (BIC vente)',
-  AUTOENTREPRENEUR_BNC: 'Auto-entrepreneur (BNC)',
-  EI: 'Entreprise individuelle (EI)',
-  EURL: 'EURL',
-  SASU: 'SASU',
-  SARL: 'SARL',
-  OTHER: 'Autre',
-};
 
 // Indicative URSSAF rates (subject to change). User can override.
 const defaultUrssafRate: Record<LegalForm, number | null> = {
@@ -41,6 +31,18 @@ const defaultUrssafRate: Record<LegalForm, number | null> = {
 export function BillingSettingsTab() {
   const queryClient = useQueryClient();
   const { success, error: showError } = useToast();
+  const t = useTranslations('billingSettings');
+
+  const legalFormLabels: Record<LegalForm, string> = {
+    AUTOENTREPRENEUR_BIC_SERVICE: t('legalFormBicService'),
+    AUTOENTREPRENEUR_BIC_VENTE: t('legalFormBicVente'),
+    AUTOENTREPRENEUR_BNC: t('legalFormBnc'),
+    EI: t('legalFormEi'),
+    EURL: 'EURL',
+    SASU: 'SASU',
+    SARL: 'SARL',
+    OTHER: t('legalFormOther'),
+  };
 
   const [legalName, setLegalName] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
@@ -114,11 +116,11 @@ export function BillingSettingsTab() {
       });
     },
     onSuccess: () => {
-      success('Paramètres de facturation enregistrés');
+      success(t('saved'));
       queryClient.invalidateQueries({ queryKey: ['billing-settings'] });
       queryClient.invalidateQueries({ queryKey: ['accounting-summary'] });
     },
-    onError: () => showError('Erreur lors de l\'enregistrement'),
+    onError: () => showError(t('saveError')),
   });
 
   // When legalForm changes, suggest the matching default URSSAF rate (only if user hasn't typed one)
@@ -145,7 +147,7 @@ export function BillingSettingsTab() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-6">Paramètres de facturation</h2>
+      <h2 className="text-xl font-bold mb-6">{t('title')}</h2>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Left column */}
@@ -154,25 +156,25 @@ export function BillingSettingsTab() {
           <div className="bg-surface border border-border rounded-2xl p-5">
             <h3 className="font-semibold flex items-center gap-2 mb-4">
               <Building2 className="w-5 h-5" />
-              Informations légales
+              {t('sectionLegal')}
             </h3>
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                  Raison sociale *
+                  {t('legalName')}
                 </label>
                 <input
                   type="text"
                   value={legalName}
                   onChange={(e) => setLegalName(e.target.value)}
-                  placeholder="Nom de l'entreprise"
+                  placeholder={t('legalNamePlaceholder')}
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                    SIRET *
+                    {t('siret')}
                   </label>
                   <input
                     type="text"
@@ -185,7 +187,7 @@ export function BillingSettingsTab() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                    N° TVA intracommunautaire
+                    {t('vatNumber')}
                   </label>
                   <input
                     type="text"
@@ -204,37 +206,37 @@ export function BillingSettingsTab() {
           <div className="bg-surface border border-border rounded-2xl p-5">
             <h3 className="font-semibold flex items-center gap-2 mb-4">
               <MapPin className="w-5 h-5" />
-              Adresse
+              {t('sectionAddress')}
             </h3>
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                  Adresse ligne 1 *
+                  {t('addressLine1')}
                 </label>
                 <input
                   type="text"
                   value={addressLine1}
                   onChange={(e) => setAddressLine1(e.target.value)}
-                  placeholder="12 rue de la Paix"
+                  placeholder={t('addressLine1Placeholder')}
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                  Adresse ligne 2
+                  {t('addressLine2')}
                 </label>
                 <input
                   type="text"
                   value={addressLine2}
                   onChange={(e) => setAddressLine2(e.target.value)}
-                  placeholder="Bâtiment A, 2ème étage"
+                  placeholder={t('addressLine2Placeholder')}
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                    Code postal *
+                    {t('postalCode')}
                   </label>
                   <input
                     type="text"
@@ -246,7 +248,7 @@ export function BillingSettingsTab() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                    Ville *
+                    {t('city')}
                   </label>
                   <input
                     type="text"
@@ -267,31 +269,31 @@ export function BillingSettingsTab() {
           <div className="bg-surface border border-border rounded-2xl p-5">
             <h3 className="font-semibold flex items-center gap-2 mb-4">
               <FileText className="w-5 h-5" />
-              Facturation
+              {t('sectionBilling')}
             </h3>
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                  Régime TVA *
+                  {t('vatMode')}
                 </label>
                 <select
                   value={vatMode}
                   onChange={(e) => setVatMode(e.target.value as VatMode)}
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value="FRANCHISE_293B">Franchise en base de TVA (art. 293 B)</option>
-                  <option value="STANDARD">Assujetti TVA</option>
+                  <option value="FRANCHISE_293B">{t('vatFranchise')}</option>
+                  <option value="STANDARD">{t('vatStandard')}</option>
                 </select>
               </div>
               {vatMode === 'FRANCHISE_293B' && (
                 <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-xs text-blue-700 dark:text-blue-400">
                   <Info className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>La mention &quot;TVA non applicable, art. 293 B du CGI&quot; sera automatiquement ajoutée sur vos factures.</span>
+                  <span>{t('vatFranchiseNote')}</span>
                 </div>
               )}
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                  Préfixe des factures *
+                  {t('invoicePrefix')}
                 </label>
                 <input
                   type="text"
@@ -302,17 +304,17 @@ export function BillingSettingsTab() {
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 uppercase"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Exemple de numéro : {invoicePrefix || 'PREFIX'}-{new Date().getFullYear()}-0001
+                  {t('invoicePrefixExample')} {invoicePrefix || 'PREFIX'}-{new Date().getFullYear()}-0001
                 </p>
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                  Conditions de paiement
+                  {t('paymentTerms')}
                 </label>
                 <textarea
                   value={paymentTerms}
                   onChange={(e) => setPaymentTerms(e.target.value)}
-                  placeholder="Paiement à réception, espèces ou carte bancaire"
+                  placeholder={t('paymentTermsPlaceholder')}
                   rows={2}
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                 />
@@ -324,19 +326,19 @@ export function BillingSettingsTab() {
           <div className="bg-surface border border-border rounded-2xl p-5">
             <h3 className="font-semibold flex items-center gap-2 mb-4">
               <Calculator className="w-5 h-5" />
-              Paramètres comptables
+              {t('sectionAccounting')}
             </h3>
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                  Statut juridique
+                  {t('legalForm')}
                 </label>
                 <select
                   value={legalForm}
                   onChange={(e) => handleLegalFormChange(e.target.value as LegalForm | '')}
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value="">— Non défini —</option>
+                  <option value="">{t('legalFormUndefined')}</option>
                   {(Object.keys(legalFormLabels) as LegalForm[]).map((f) => (
                     <option key={f} value={f}>{legalFormLabels[f]}</option>
                   ))}
@@ -346,7 +348,7 @@ export function BillingSettingsTab() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                    Taux URSSAF (%)
+                    {t('urssafRate')}
                   </label>
                   <input
                     type="text"
@@ -359,7 +361,7 @@ export function BillingSettingsTab() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                    Taux IR estimé (%)
+                    {t('incomeTaxRate')}
                   </label>
                   <input
                     type="text"
@@ -382,9 +384,9 @@ export function BillingSettingsTab() {
                 />
                 <div className="flex-1">
                   <label htmlFor="acre-active" className="text-sm font-medium cursor-pointer">
-                    ACRE active
+                    {t('acreActive')}
                   </label>
-                  <p className="text-xs text-muted-foreground">Réduction de cotisations URSSAF la 1ère année</p>
+                  <p className="text-xs text-muted-foreground">{t('acreNote')}</p>
                   {acreActive && (
                     <input
                       type="date"
@@ -398,7 +400,7 @@ export function BillingSettingsTab() {
 
               <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-xs text-blue-700 dark:text-blue-400">
                 <Info className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>Ces paramètres sont utilisés pour estimer ton URSSAF et ton net dans l&apos;onglet Comptabilité.</span>
+                <span>{t('accountingNote')}</span>
               </div>
             </div>
           </div>
@@ -414,7 +416,7 @@ export function BillingSettingsTab() {
           className="rounded-full"
         >
           <Save className="w-4 h-4 mr-2" />
-          Enregistrer
+          {t('save')}
         </Button>
       </div>
     </div>

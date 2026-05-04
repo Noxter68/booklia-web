@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Star, MessageCircle, Reply } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 import { api } from '@/lib/api';
 import { Review } from '@/types';
 import { ReviewReplyModal } from '@/components/reviews/review-reply-modal';
@@ -27,6 +28,8 @@ function StarRating({ score }: { score: number }) {
 }
 
 export function LatestReviews({ businessId }: LatestReviewsProps) {
+  const t = useTranslations('dashboard');
+  const locale = useLocale();
   const [replyReview, setReplyReview] = useState<Review | null>(null);
 
   const { data: reviews } = useQuery({
@@ -44,14 +47,14 @@ export function LatestReviews({ businessId }: LatestReviewsProps) {
       <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5 mt-4">
         <h3 className="font-semibold flex items-center gap-2 mb-4">
           <MessageCircle className="w-5 h-5" />
-          Derniers avis
+          {t('latestReviews')}
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {latestReviews.map((review) => {
             const authorName = review.author?.name || 'Client';
             const serviceName = review.booking?.businessService?.name;
-            const date = new Date(review.createdAt).toLocaleDateString('fr-FR', {
+            const date = new Date(review.createdAt).toLocaleDateString(locale, {
               day: 'numeric',
               month: 'short',
             });
@@ -92,7 +95,7 @@ export function LatestReviews({ businessId }: LatestReviewsProps) {
                 {/* Reply or reply button */}
                 {review.reply ? (
                   <div className="mt-3 bg-muted/30 rounded-lg px-3 py-2">
-                    <p className="text-[11px] text-muted-foreground mb-0.5 font-medium">Votre réponse</p>
+                    <p className="text-[11px] text-muted-foreground mb-0.5 font-medium">{t('reviewReply')}</p>
                     <p className="text-xs text-foreground/80 line-clamp-2">{review.reply}</p>
                   </div>
                 ) : (
@@ -101,7 +104,7 @@ export function LatestReviews({ businessId }: LatestReviewsProps) {
                     className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/5 hover:bg-primary/10 rounded-lg transition-colors cursor-pointer self-start"
                   >
                     <Reply className="w-3.5 h-3.5" />
-                    Répondre à l&apos;avis
+                    {t('reviewRespond')}
                   </button>
                 )}
               </div>
