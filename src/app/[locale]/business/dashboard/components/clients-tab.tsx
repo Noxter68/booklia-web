@@ -22,16 +22,21 @@ import {
   X,
   Mail,
   StickyNote,
+  Cake,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { BirthDateInput } from '@/components/ui/birth-date-input';
 import { useToast } from '@/components/ui/toast';
 import { formatPrice } from '@/lib/utils';
 import { ClientTrustLevel } from '@/types';
+import { isBirthdayToday, formatBirthDate } from '@/lib/birthday';
 import { ClientLastNoteCard } from './client-last-note-card';
 import { BookingNoteEditor } from './booking-note-editor';
 import { InvoiceEditor } from './invoice-editor';
+import { SendInvoiceButton } from './send-invoice-button';
+import { MaskedAmount } from '@/contexts/amounts-visibility-context';
 
 function getTrustBadge(level: ClientTrustLevel) {
   switch (level) {
@@ -77,7 +82,14 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
   onClose: () => void;
   onCreated: (clientId: string) => void;
 }) {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', notes: '' });
+  const [form, setForm] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    notes: string;
+    birthDate: string | null;
+  }>({ name: '', email: '', phone: '', address: '', notes: '', birthDate: null });
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -87,9 +99,10 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
       phone: form.phone || undefined,
       address: form.address || undefined,
       notes: form.notes || undefined,
+      birthDate: form.birthDate || undefined,
     }),
     onSuccess: (data) => {
-      setForm({ name: '', email: '', phone: '', address: '', notes: '' });
+      setForm({ name: '', email: '', phone: '', address: '', notes: '', birthDate: null });
       setError(null);
       onCreated(data.id);
     },
@@ -100,7 +113,7 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
 
   useEffect(() => {
     if (!isOpen) {
-      setForm({ name: '', email: '', phone: '', address: '', notes: '' });
+      setForm({ name: '', email: '', phone: '', address: '', notes: '', birthDate: null });
       setError(null);
     }
   }, [isOpen]);
@@ -199,6 +212,15 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
                 className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
+          </div>
+
+          {/* Birth date */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Date d'anniversaire</label>
+            <BirthDateInput
+              value={form.birthDate}
+              onChange={(iso) => setForm(f => ({ ...f, birthDate: iso }))}
+            />
           </div>
 
           {/* Notes */}
@@ -344,6 +366,7 @@ export function ClientsTab({ businessId, initialClientId }: {
           {clients.map((client, idx) => {
             const trust = client.stats ? getTrustBadge(client.stats.trustLevel) : null;
             const TrustIcon = trust?.icon;
+            const isBday = isBirthdayToday(client.user?.birthDate);
 
             return (
               <button
@@ -361,7 +384,14 @@ export function ClientsTab({ businessId, initialClientId }: {
                         {(client.user?.name || client.user?.email || '?')[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-medium">{client.user?.name || 'Sans nom'}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{client.user?.name || 'Sans nom'}</p>
+                          {isBday && (
+                            <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
+                              <Cake className="w-3 h-3 mr-1" /> Anniv.
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">{client.user?.email}</p>
                       </div>
                     </div>
@@ -377,7 +407,7 @@ export function ClientsTab({ businessId, initialClientId }: {
                     {client.stats && (
                       <>
                         <span className="text-muted-foreground">{client.stats.totalBookings} RDV</span>
-                        <span className="font-medium">{formatPrice(client.stats.totalRevenueCents)}</span>
+                        <span className="font-medium"><MaskedAmount value={formatPrice(client.stats.totalRevenueCents)} /></span>
                       </>
                     )}
                     {client.isBlocked && (
@@ -395,7 +425,14 @@ export function ClientsTab({ businessId, initialClientId }: {
                       {(client.user?.name || client.user?.email || '?')[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-medium truncate">{client.user?.name || 'Sans nom'}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{client.user?.name || 'Sans nom'}</p>
+                        {isBday && (
+                          <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 shrink-0">
+                            <Cake className="w-3 h-3 mr-1" /> Anniv.
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">{client.user?.email}</p>
                     </div>
                   </div>
@@ -408,7 +445,7 @@ export function ClientsTab({ businessId, initialClientId }: {
                     )}
                   </div>
                   <span className="text-sm text-right">{client.stats?.totalBookings ?? 0}</span>
-                  <span className="text-sm font-medium text-right">{formatPrice(client.stats?.totalRevenueCents ?? 0)}</span>
+                  <span className="text-sm font-medium text-right"><MaskedAmount value={formatPrice(client.stats?.totalRevenueCents ?? 0)} /></span>
                   <span className="text-sm text-right">{client.stats?.canceledByClient ?? 0}</span>
                   <div className="flex justify-center">
                     {client.isBlocked && (
@@ -433,6 +470,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
   const [notes, setNotes] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [birthDate, setBirthDate] = useState<string | null>(null);
   const [editingNoteBookingId, setEditingNoteBookingId] = useState<string | null>(null);
   const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null);
 
@@ -447,7 +485,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { isBlocked?: boolean; notes?: string; phone?: string; address?: string }) =>
+    mutationFn: (data: { isBlocked?: boolean; notes?: string; phone?: string; address?: string; birthDate?: string | null }) =>
       api.updateBusinessClient(clientId, data),
     onSuccess: () => {
       success('Client mis à jour');
@@ -494,7 +532,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
   };
 
   const handleSaveInfo = () => {
-    updateMutation.mutate({ notes, phone, address });
+    updateMutation.mutate({ notes, phone, address, birthDate });
   };
 
   const startEditing = () => {
@@ -502,6 +540,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
     setNotes(client.notes || '');
     setPhone(client.phone || '');
     setAddress(client.address || '');
+    setBirthDate(client.user?.birthDate || null);
     setEditingNotes(true);
   };
 
@@ -527,28 +566,36 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
 
   const trust = client.stats ? getTrustBadge(client.stats.trustLevel) : null;
   const TrustIcon = trust?.icon;
+  const isBday = isBirthdayToday(client.user?.birthDate);
 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" onClick={onBack} className="rounded-full h-9 w-9 p-0">
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button variant="ghost" onClick={onBack} className="rounded-full h-9 w-9 p-0 shrink-0">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-lg font-semibold text-primary shrink-0">
             {(client.user?.name || client.user?.email || '?')[0].toUpperCase()}
           </div>
-          <div className="min-w-0">
-            <h2 className="text-xl font-bold truncate">{client.user?.name || 'Sans nom'}</h2>
-            <p className="text-sm text-muted-foreground truncate">{client.user?.email}</p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg sm:text-xl font-bold truncate">{client.user?.name || 'Sans nom'}</h2>
+              {isBday && (
+                <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 shrink-0">
+                  <Cake className="w-3.5 h-3.5 mr-1" /> Anniversaire
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground truncate" title={client.user?.email}>{client.user?.email}</p>
           </div>
         </div>
         <Button
           variant={client.isBlocked ? 'default' : 'outline'}
           onClick={handleToggleBlock}
           disabled={updateMutation.isPending}
-          className={`rounded-full shrink-0 ${client.isBlocked ? 'bg-red-600 hover:bg-red-700' : 'text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20'}`}
+          className={`rounded-full w-full sm:w-auto sm:shrink-0 sm:ml-auto ${client.isBlocked ? 'bg-red-600 hover:bg-red-700' : 'text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20'}`}
         >
           <Ban className="w-4 h-4 mr-2" />
           {client.isBlocked ? 'Débloquer' : 'Bloquer'}
@@ -591,9 +638,9 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                   <span className="text-sm text-muted-foreground">Taux de complétion</span>
                   <span className="font-semibold">{Math.round(client.stats.completionRate)}%</span>
                 </div>
-                <div className="border-t border-border pt-3 flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Chiffre d&apos;affaires</span>
-                  <span className="font-bold text-primary">{formatPrice(client.stats.totalRevenueCents)}</span>
+                <div className="border-t border-border pt-3 flex items-center justify-between gap-2">
+                  <span className="text-sm text-muted-foreground shrink-0">Chiffre d&apos;affaires</span>
+                  <span className="font-bold text-primary text-right truncate"><MaskedAmount value={formatPrice(client.stats.totalRevenueCents)} /></span>
                 </div>
                 {client.stats.lastBookingAt && (
                   <div className="flex items-center justify-between">
@@ -691,6 +738,10 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                   </div>
                 </div>
                 <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Date d&apos;anniversaire</label>
+                  <BirthDateInput value={birthDate} onChange={setBirthDate} />
+                </div>
+                <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Notes</label>
                   <textarea
                     value={notes}
@@ -704,23 +755,29 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
             ) : (
               <div className="space-y-2.5">
                 {client.phone && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span>{client.phone}</span>
+                  <div className="flex items-start gap-2 text-sm min-w-0">
+                    <Phone className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <span className="wrap-break-word min-w-0">{client.phone}</span>
                   </div>
                 )}
                 {client.address && (
+                  <div className="flex items-start gap-2 text-sm min-w-0">
+                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <span className="wrap-break-word min-w-0">{client.address}</span>
+                  </div>
+                )}
+                {client.user?.birthDate && (
                   <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span>{client.address}</span>
+                    <Cake className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span>{formatBirthDate(client.user.birthDate)}</span>
                   </div>
                 )}
                 {client.notes && (
-                  <div className="mt-3 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                  <div className="mt-3 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground wrap-break-word">
                     {client.notes}
                   </div>
                 )}
-                {!client.phone && !client.address && !client.notes && (
+                {!client.phone && !client.address && !client.user?.birthDate && !client.notes && (
                   <p className="text-sm text-muted-foreground">Aucune information enregistrée</p>
                 )}
               </div>
@@ -750,50 +807,62 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
               <div className="space-y-2">
                 {bookings.map((booking) => (
                   <div key={booking.id}>
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-background">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl bg-background">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm truncate">
+                        <div className="flex items-center gap-2 mb-1 min-w-0 flex-wrap">
+                          <span className="font-medium text-sm truncate min-w-0">
                             {booking.businessService?.name || 'Service'}
                           </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[booking.status]}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${statusColors[booking.status]}`}>
                             {statusLabels[booking.status]}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                           {booking.scheduledAt && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                              })}
-                              {' à '}
-                              {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
+                            <span className="flex items-center gap-1 min-w-0">
+                              <Calendar className="w-3 h-3 shrink-0" />
+                              <span className="truncate">
+                                {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })}
+                                {' à '}
+                                {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
                             </span>
                           )}
                           {booking.employee && (
-                            <span>{booking.employee.firstName} {booking.employee.lastName}</span>
+                            <span className="truncate min-w-0">{booking.employee.firstName} {booking.employee.lastName}</span>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                      <div className="flex items-center justify-end gap-2 sm:shrink-0 flex-wrap">
                         {booking.status === 'COMPLETED' && (
                           <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleQuickInvoice(booking)}
-                              disabled={createInvoiceMutation.isPending}
-                              className="rounded-full text-xs"
-                            >
-                              <Receipt className="w-3.5 h-3.5 mr-1" />
-                              Facturer
-                            </Button>
+                            {booking.invoice && booking.invoice.status === 'FINALIZED' ? (
+                              <SendInvoiceButton
+                                invoiceId={booking.invoice.id}
+                                emailSentAt={booking.invoice.emailSentAt}
+                                clientEmail={client.user?.email}
+                                variant="label"
+                                invalidateKeys={[['business-client-bookings', clientId]]}
+                              />
+                            ) : !booking.invoice ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleQuickInvoice(booking)}
+                                disabled={createInvoiceMutation.isPending}
+                                className="rounded-full text-xs"
+                              >
+                                <Receipt className="w-3.5 h-3.5 mr-1" />
+                                Facturer
+                              </Button>
+                            ) : null}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -810,7 +879,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                           </>
                         )}
                         {booking.agreedPriceCents != null && (
-                          <span className="font-semibold text-sm">
+                          <span className="font-semibold text-sm whitespace-nowrap">
                             {formatPrice(booking.agreedPriceCents)}
                           </span>
                         )}

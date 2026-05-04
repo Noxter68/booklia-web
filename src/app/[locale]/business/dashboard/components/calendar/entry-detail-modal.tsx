@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, Check, Ban, AlertTriangle, CheckCircle, StickyNote, Loader2 } from 'lucide-react';
+import { X, Check, Ban, AlertTriangle, CheckCircle, StickyNote, Loader2, BanknoteArrowUp } from 'lucide-react';
 import type { CalendarEntry, BookingStatus, BookingNote } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -197,6 +197,16 @@ export function EntryDetailModal({
                         {STATUS_LABELS[entry.status]}
                       </Badge>
                     </div>
+                    {entry.appliedTierWeeks != null && (
+                      <div className="flex items-center gap-2 rounded-lg bg-orange-500/10 border border-orange-500/20 px-3 py-2">
+                        <BanknoteArrowUp className="w-4 h-4 text-orange-600 shrink-0" />
+                        <p className="text-xs text-foreground">
+                          Client revenu après plus de{' '}
+                          <strong>{entry.appliedTierWeeks} semaines</strong> —
+                          prix majoré appliqué.
+                        </p>
+                      </div>
+                    )}
                   </>
                 )}
 

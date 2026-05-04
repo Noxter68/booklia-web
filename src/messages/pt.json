@@ -6,6 +6,7 @@
   "common": {
     "loading": "Carregando...",
     "error": "Ocorreu um erro",
+    "rateLimitToast": "Muitas requisições — aguarde {seconds, plural, one {# segundo} other {# segundos}} antes de tentar novamente.",
     "save": "Salvar",
     "cancel": "Cancelar",
     "delete": "Excluir",
@@ -44,7 +45,7 @@
     "toggleTheme": "Alternar tema"
   },
   "footer": {
-    "tagline": "A plataforma de serviços entre particulares, baseada na confiança e na reputação.",
+    "tagline": "A plataforma dos profissionais de beleza e bem-estar.",
     "platform": "Plataforma",
     "search": "Pesquisar",
     "serviceOffers": "Ofertas de serviços",
@@ -155,7 +156,9 @@
       "success": "Cadastro realizado! Bem-vindo ao Booklia",
       "errorPasswordMismatch": "As senhas não coincidem",
       "errorPasswordLength": "A senha deve ter pelo menos 8 caracteres",
-      "errorGeneric": "Ocorreu um erro durante o cadastro"
+      "errorGeneric": "Ocorreu um erro durante o cadastro",
+      "birthDate": "Data de nascimento",
+      "errorBirthDate": "Por favor, insira uma data de nascimento válida"
     },
     "verifyEmail": {
       "verifying": "Verificando...",
@@ -235,6 +238,8 @@
     "date": "Data",
     "time": "Horário",
     "total": "Total",
+    "priceQuote": "Sob orçamento",
+    "priceFree": "Gratuito",
     "today": "Hoje",
     "tomorrow": "Amanhã",
     "loginToBook": "Entrar",
@@ -305,7 +310,10 @@
     "title": "Cancelar reserva",
     "message": "Tem certeza de que deseja cancelar esta reserva?",
     "confirm": "Sim, cancelar",
-    "cancel": "Não, manter"
+    "cancel": "Não, manter",
+    "tooLateTitle": "Cancelamento não permitido",
+    "tooLateMessage": "Este agendamento ocorre em menos de 24h ({hours}h restantes). Você não pode mais cancelá-lo pela sua conta.",
+    "tooLateContact": "Entre em contato diretamente com o profissional por telefone se não puder comparecer."
   },
   "review": {
     "title": "Deixar uma avaliação",
@@ -354,32 +362,44 @@
   },
   "contact": {
     "title": "Entre em contato",
-    "subtitle": "Uma dúvida, uma sugestão ou precisa de ajuda? Nossa equipe está aqui para ajudá-lo.",
-    "stayInTouch": "Fique em contato",
+    "subtitle": "Uma dúvida ou precisa de ajuda? Escreva-nos, respondemos rapidamente.",
     "email": "Email",
-    "emailValue": "contact@sidey.fr",
     "emailDesc": "Resposta em 24-48h",
-    "support": "Suporte",
-    "supportValue": "support@sidey.fr",
-    "supportDesc": "Para questões técnicas",
     "location": "Localização",
-    "locationValue": "Paris, França",
+    "locationValue": "Bartenheim, Alsácia",
     "locationDesc": "Equipe 100% francesa",
-    "faq": "FAQ",
-    "faqDesc": "Consulte nossas perguntas frequentes para encontrar rapidamente respostas para as dúvidas mais comuns.",
-    "viewFaq": "Ver FAQ",
-    "sendMessage": "Envie-nos uma mensagem",
-    "name": "Nome",
-    "namePlaceholder": "Seu nome",
-    "emailPlaceholder": "voce@exemplo.com",
-    "subject": "Assunto",
-    "subjectPlaceholder": "Como podemos ajudá-lo?",
-    "message": "Mensagem",
-    "messagePlaceholder": "Descreva sua solicitação...",
-    "send": "Enviar mensagem",
-    "successTitle": "Mensagem enviada!",
-    "successMessage": "Obrigado por entrar em contato. Responderemos o mais breve possível.",
-    "sendAnother": "Enviar outra mensagem"
+    "faqTitle": "Perguntas frequentes",
+    "faq1Q": "Como criar minha conta?",
+    "faq1A": "Solicite primeiro uma demonstração através do <invite>formulário de solicitação</invite>. Se Booklia atender às suas necessidades, um administrador criará sua conta em até 48h e você receberá os acessos por email.",
+    "faq2Q": "Como reservar um horário?",
+    "faq2A": "Encontre o profissional mais próximo através da busca, escolha o serviço e o horário que lhe convém, e confirme. Tudo em menos de 30 segundos.",
+    "faq3Q": "Como cancelar ou alterar um agendamento?",
+    "faq3A": "No seu espaço pessoal, vá em « Minhas reservas ». Você pode cancelar um agendamento futuro de lá.",
+    "faq4Q": "Como funciona o pagamento?",
+    "faq4A": "Booklia ainda não integra um sistema de pagamento online. O pagamento é feito diretamente entre você e o profissional, segundo as modalidades dele.",
+    "faq5Q": "Como me tornar profissional na Booklia?",
+    "faq5A": "Solicite uma demonstração através do <invite>formulário de solicitação</invite>. Nossa equipe entrará em contato para apresentar a plataforma.",
+    "faq6Q": "Como excluir minha conta?",
+    "faq6A": "Envie sua solicitação para contact@booklia.org. Sua conta e seus dados pessoais serão excluídos em até 30 dias, conforme nossa política de privacidade.",
+    "faq7Q": "Booklia é gratuita?",
+    "faq7A": "Booklia é totalmente gratuita para os clientes. Para os profissionais, é um serviço pago, cujas modalidades são apresentadas durante a demonstração."
+  },
+  "cookies": {
+    "title": "Suas preferências de cookies",
+    "description": "Usamos apenas cookies necessários para o funcionamento da Booklia. Outros cookies podem ser ativados com seu consentimento.",
+    "learnMore": "Saiba mais",
+    "acceptAll": "Aceitar todos",
+    "rejectAll": "Recusar todos",
+    "customise": "Personalizar",
+    "customiseTitle": "Personalizar seus cookies",
+    "customiseDescription": "Escolha as categorias de cookies que você autoriza.",
+    "savePreferences": "Salvar",
+    "categoryNecessary": "Estritamente necessários",
+    "categoryNecessaryDesc": "Indispensáveis ao funcionamento do site (autenticação, preferências). Sempre ativos.",
+    "categoryAnalytics": "Análise de audiência",
+    "categoryAnalyticsDesc": "Estatísticas anônimas para melhorar a plataforma. Sem publicidade.",
+    "categoryMarketing": "Marketing",
+    "categoryMarketingDesc": "Personalização de conteúdos. Nenhum cookie de marketing é utilizado atualmente."
   },
   "dashboard": {
     "title": "Painel",
@@ -397,6 +417,7 @@
     "employees": "Funcionários",
     "servicesTab": "Serviços",
     "invoices": "Faturas",
+    "accounting": "Contabilidade",
     "accept": "Aceitar",
     "reject": "Recusar",
     "complete": "Concluir",
@@ -407,6 +428,7 @@
     "prestations": "Serviços",
     "team": "Equipe",
     "viewMyPage": "Ver minha página",
+    "viewMyPageShort": "Minha página",
     "noAddress": "Nenhum endereço",
     "services": "Serviços",
     "employeesCount": "Funcionários",
@@ -721,7 +743,35 @@
     "recapNoCategory": "Nenhuma",
     "recapNoOptions": "Nenhuma opção",
     "remove": "Remover",
-    "inheritedFromCategory": "Herdadas da categoria — edite-as pela gestão de categorias."
+    "inheritedFromCategory": "Herdadas da categoria — edite-as pela gestão de categorias.",
+    "pricingTiersTitle": "Preço por fidelidade",
+    "pricingTiersToggle": "Aplicar acréscimo quando o cliente volta mais tarde",
+    "pricingTiersHint": "Defina um acréscimo aplicado ao preço base quando o cliente ultrapassar um número de semanas desde o último agendamento concluído.",
+    "tierThreshold": "Depois de (semanas)",
+    "tierThresholdPlaceholder": "Ex: 4",
+    "tierSurcharge": "Acréscimo (€)",
+    "tierAdd": "Adicionar um nível",
+    "tierRemove": "Remover este nível",
+    "tierPreview": "Após {weeks} semanas: {total} €",
+    "tierDuplicateWeeks": "Dois níveis não podem ter a mesma duração.",
+    "recapPricingTiers": "Níveis de fidelidade",
+    "priceMode": "Modo de preço",
+    "priceModeFixed": "Preço fixo",
+    "priceModeQuote": "Sob orçamento",
+    "priceModeFree": "Gratuito",
+    "priceModeFixedHint": "Preço exibido aos clientes e cobrado automaticamente.",
+    "priceModeQuoteHint": "Nenhum preço exibido. Você define o valor após o agendamento (sessão de descoberta, orçamento personalizado…).",
+    "priceModeFreeHint": "Serviço gratuito — sem preço nem fatura automática."
+  },
+  "loyaltyModal": {
+    "title": "Preço de fidelidade",
+    "body": "Passaram-se {days, plural, one {# dia} other {# dias}} desde seu último agendamento (acima de {threshold, plural, one {# semana} other {# semanas}}). O preço foi ajustado.",
+    "basePrice": "Preço habitual",
+    "newPrice": "Preço aplicado",
+    "confirm": "Entendi",
+    "badgeTooltip": "Preço aumentado (preço de fidelidade)",
+    "surchargeBadge": "+{amount}",
+    "surchargeNote": "Preço ajustado: mais de {threshold, plural, one {# semana} other {# semanas}} desde seu último agendamento."
   },
   "admin": {
     "title": "Administração",
@@ -736,7 +786,9 @@
       "dashboard": "Painel",
       "businesses": "Estabelecimentos",
       "users": "Usuários",
-      "logout": "Sair"
+      "logout": "Sair",
+      "referrals": "Indicações",
+      "inviteRequests": "Solicitacoes"
     },
     "businesses": {
       "title": "Estabelecimentos",
@@ -745,6 +797,50 @@
       "pending": "Pendentes",
       "verify": "Verificar",
       "unverify": "Remover verificação"
+    },
+    "referrals": {
+      "title": "Indicações",
+      "subtitle": "Valide os leads enviados pelos salões",
+      "empty": "Nenhuma indicação ainda.",
+      "columnBusiness": "Salão",
+      "columnTotal": "Total",
+      "columnPending": "Pendentes",
+      "columnValidated": "Validadas",
+      "columnFreeMonths": "Meses grátis",
+      "columnLast": "Última envio",
+      "detailTitle": "Indicações de {name}",
+      "detailBack": "Voltar",
+      "firstName": "Nome",
+      "lastName": "Sobrenome",
+      "instagram": "Instagram",
+      "phone": "Telefone",
+      "status": "Status",
+      "submittedAt": "Enviada",
+      "validate": "Validar",
+      "reject": "Rejeitar",
+      "notes": "Notas",
+      "saveNotes": "Salvar",
+      "rejectPrompt": "Motivo da rejeição (opcional)",
+      "validatedToast": "Indicação validada",
+      "rewardedToast": "Mês grátis creditado ao salão",
+      "rejectedToast": "Indicação rejeitada",
+      "errorToast": "Falha na atualização",
+      "statusPending": "Pendente",
+      "statusValidated": "Validada",
+      "statusRejected": "Rejeitada"
+    },
+    "inviteRequests": {
+      "title": "Solicitacoes de convite",
+      "subtitle": "Pessoas interessadas no Booklia, para retornar contato.",
+      "empty": "Nenhuma solicitacao ainda.",
+      "columnName": "Nome",
+      "columnEmail": "Email",
+      "columnPhone": "Telefone",
+      "columnDate": "Data",
+      "delete": "Excluir",
+      "deleteConfirm": "Excluir esta solicitacao?",
+      "deletedToast": "Solicitacao excluida",
+      "errorToast": "Erro"
     }
   },
   "notifications": {
@@ -785,5 +881,218 @@
     "tooManyRequests": "Muitas requisições, tente novamente mais tarde",
     "serviceUnavailable": "Serviço temporariamente indisponível",
     "generic": "Ocorreu um erro"
+  },
+  "referrals": {
+    "tabReferrals": "Indicações",
+    "title": "Programa de indicação",
+    "subtitle": "Indique duas clientes e ganhe um mês grátis",
+    "howItWorksTitle": "Como funciona",
+    "howItWorksStep1": "Indique uma cliente interessada no Booklia.",
+    "howItWorksStep2": "Entramos em contato para integrá-la.",
+    "howItWorksStep3": "Após confirmação, sua indicação é validada.",
+    "howItWorksStep4": "Na 2ª indicação validada, um mês grátis é creditado.",
+    "progressTitle": "Progresso",
+    "progressOneMore": "Falta 1 indicação validada para ganhar seu próximo mês grátis.",
+    "progressZero": "Envie sua primeira indicação para começar.",
+    "progressReady": "Você está pronta para completar o próximo par!",
+    "freeMonthsLabel": "Meses grátis ganhos",
+    "submitButton": "Indicar uma cliente",
+    "modalTitle": "Indicar uma cliente",
+    "modalSubtitle": "Preencha os contatos da pessoa a ser contatada.",
+    "firstName": "Nome",
+    "lastName": "Sobrenome",
+    "instagram": "Instagram (sem @)",
+    "phone": "Telefone",
+    "cancel": "Cancelar",
+    "send": "Enviar",
+    "submittedToast": "Indicação enviada!",
+    "errorToast": "Ocorreu um erro, tente novamente.",
+    "rateLimitToast": "Limite diário atingido (4/dia). Tente novamente amanhã.",
+    "historyTitle": "Minhas indicações",
+    "historyEmpty": "Nenhuma indicação enviada ainda.",
+    "statusPending": "Pendente",
+    "statusValidated": "Validada",
+    "statusRejected": "Rejeitada",
+    "rewardedBadge": "Mês creditado",
+    "submittedAt": "Enviada em"
+  },
+  "landing": {
+    "nav": {
+      "features": "Funcionalidades",
+      "how": "Como funciona",
+      "whyBooklia": "Por que Booklia",
+      "getStarted": "Começar"
+    },
+    "hero": {
+      "badge": "Feito para salões independentes",
+      "title1": "O sistema que faz",
+      "titleAccent": "seu salão crescer",
+      "subtitle": "Agenda, clientes, faturamento, reservas online. Tudo o que seu salão precisa, em um único app feito para você.",
+      "ctaSecondary": "Ver demonstração",
+      "heroNote": "Onboarding acompanhado — em 24h"
+    },
+    "trustBar": {
+      "title": "Pensado para todas as profissões de bem-estar",
+      "categories": {
+        "hair": "Cabeleireiro",
+        "barber": "Barbeiro",
+        "nails": "Manicure",
+        "beauty": "Estética",
+        "wellness": "Bem-estar"
+      },
+      "subtitle": "Cabeleireiro, barbeiro, manicure, estética, bem-estar. Booklia se adapta à sua profissão."
+    },
+    "features": {
+      "title": "Tudo o que você precisa para gerir seu salão",
+      "subtitle": "Seis ferramentas integradas que substituem o caderno, a planilha e os apps espalhados.",
+      "agenda": {
+        "title": "Agenda inteligente",
+        "desc": "Agendamento multi-funcionário, detecção de conflitos, horários flexíveis com exceções e folgas."
+      },
+      "crm": {
+        "title": "CRM de clientes",
+        "desc": "Histórico completo, notas privadas, estatísticas de fidelidade, nível de confiança por cliente."
+      },
+      "invoicing": {
+        "title": "Faturamento automático",
+        "desc": "Geração de PDF, envio por email, geração em lote no fim do mês."
+      },
+      "booking": {
+        "title": "Reservas online",
+        "desc": "Uma página pública para seus clientes. Eles reservam em 30 segundos, você confirma com um clique."
+      },
+      "referral": {
+        "title": "Indicações",
+        "desc": "Indique dois salões, ganhe um mês grátis. Acumulável sem limite."
+      },
+      "team": {
+        "title": "Multi-funcionários",
+        "desc": "Agendas individuais, serviços por funcionário, gestão de ausências em poucos cliques."
+      }
+    },
+    "how": {
+      "title": "Como entrar no Booklia",
+      "subtitle": "Booklia está em acesso antecipado. Configuramos seu salão com você.",
+      "step1": {
+        "title": "Você entra em contato",
+        "desc": "Envie uma mensagem rápida. Retornamos em 24h para entender suas necessidades."
+      },
+      "step2": {
+        "title": "Configuramos juntos",
+        "desc": "Criamos sua conta, importamos seus serviços, funcionários e horários. Com você, em vídeo ou presencial."
+      },
+      "step3": {
+        "title": "Seu salão está online",
+        "desc": "Você recebe seu link Booklia, compartilha com suas clientes. Gerencia tudo no painel."
+      }
+    },
+    "why": {
+      "title": "Por que escolher Booklia",
+      "subtitle": "Construímos Booklia com e para profissionais do bem-estar. Sem comprometimento.",
+      "allInOne": {
+        "title": "Tudo em um",
+        "desc": "Sem precisar de 3 ferramentas. Agenda, clientes, faturas: tudo no mesmo lugar."
+      },
+      "noFees": {
+        "title": "Sem taxas escondidas",
+        "desc": "Sem comissão sobre seus agendamentos. Sem taxa por SMS. Um preço transparente."
+      },
+      "french": {
+        "title": "Made in France",
+        "desc": "Dados hospedados na Europa. Conforme com RGPD. Suporte em francês, inglês e português."
+      },
+      "fast": {
+        "title": "Rápido de aprender",
+        "desc": "Interface pensada para ser rápida. Sua equipe se forma em 15 minutos."
+      },
+      "badge": "Por que Booklia"
+    },
+    "testimonial": {
+      "quote": "Mudar para o Booklia me fez ganhar duas horas por dia. Minhas clientes adoram poder agendar online sem ligar.",
+      "author": "Camille",
+      "role": "EM Institut, Paris"
+    },
+    "finalCta": {
+      "title": "Pronta para o próximo nível?",
+      "subtitle": "Junte-se aos salões que simplificam o dia a dia com Booklia.",
+      "cta": "Começar agora"
+    },
+    "clientFooter": {
+      "label": "Procurando agendar um atendimento?",
+      "cta": "Encontre um salão"
+    },
+    "mockup": {
+      "todayTitle": "Hoje",
+      "bookingsCount": "8 agendamentos",
+      "revenue": "Faturamento de hoje",
+      "liveBadge": "Ao vivo",
+      "sample1Service": "Corte e coloração",
+      "sample1Client": "Sophie M.",
+      "sample1Time": "10:00",
+      "sample2Service": "Escova",
+      "sample2Client": "Léa B.",
+      "sample2Time": "11:30",
+      "sample3Service": "Coloração",
+      "sample3Client": "Karine P.",
+      "sample3Time": "14:00",
+      "statsTitle": "Esta semana",
+      "newClients": "Novos clientes",
+      "completionRate": "Taxa de conclusão"
+    },
+    "showcase": {
+      "booking": {
+        "eyebrow": "Reserva 24/7",
+        "title": "Suas clientes reservam até à noite",
+        "description": "Uma página pública dedicada ao seu salão. Suas clientes escolhem um horário em 30 segundos, sem ligar nem esperar pelo horário de funcionamento.",
+        "bullet1": "Página pública com sua identidade visual",
+        "bullet2": "Horários atualizados em tempo real",
+        "bullet3": "Confirmação automática ou validação manual"
+      },
+      "clients": {
+        "eyebrow": "Fichas de clientes",
+        "title": "Conheça suas clientes de cor",
+        "description": "Histórico completo, estatísticas de fidelidade, notas privadas e preferências. Tudo o que você precisa para oferecer um serviço personalizado.",
+        "bullet1": "Histórico de agendamentos, serviços e faturamento",
+        "bullet2": "Notas privadas e preferências (alergias, produtos)",
+        "bullet3": "Nível de fidelidade e badge VIP automático"
+      },
+      "team": {
+        "eyebrow": "Multi-funcionários",
+        "title": "Uma equipe, uma agenda unificada",
+        "description": "Gerencie vários funcionários em paralelo com horários individuais, serviços específicos por funcionário e gestão de ausências em poucos cliques.",
+        "bullet1": "Agenda por funcionário, visão unificada",
+        "bullet2": "Serviços personalizados por funcionário",
+        "bullet3": "Gestão de folgas e exceções de horário"
+      },
+      "reminders": {
+        "eyebrow": "Lembretes por email",
+        "title": "Reduza os esquecimentos sem fazer nada",
+        "description": "Suas clientes recebem automaticamente um email de lembrete 24h antes do agendamento. Sem mais no-shows, sem mais lembretes manuais.",
+        "bullet1": "Lembrete enviado 24h antes do agendamento",
+        "bullet2": "Personalizado com suas cores e informações",
+        "bullet3": "Zero configuração necessária"
+      }
+    }
+  },
+  "requestInvite": {
+    "title": "Pedir um convite",
+    "subtitle": "Booklia esta em acesso fechado. Deixe seus dados e entraremos em contato em 24h para configurar seu salao juntos.",
+    "firstName": "Nome",
+    "lastName": "Sobrenome",
+    "email": "Endereco de email",
+    "phone": "Telefone",
+    "submit": "Enviar minha solicitacao",
+    "cancel": "Cancelar",
+    "success": "Solicitacao enviada. Entraremos em contato em 24h!",
+    "error": "Ocorreu um erro, tente novamente.",
+    "rateLimit": "Voce ja enviou varias solicitacoes. Entraremos em contato em breve.",
+    "placeholderFirstName": "Sophie",
+    "placeholderLastName": "Martin",
+    "placeholderEmail": "sophie@meusalao.com",
+    "placeholderPhone": "+55 11 91234 5678",
+    "noSpam": "Sem spam. Seus dados nao sao compartilhados.",
+    "thanksTitle": "Obrigado pela sua solicitacao!",
+    "thanksSubtitle": "Entraremos em contato em 24h por email ou telefone para configurar seu salao com voce.",
+    "backToHome": "Voltar a inicial"
   }
 }

@@ -48,6 +48,7 @@ export interface Booking {
   };
   status: BookingStatus;
   agreedPriceCents?: number;
+  appliedTierWeeks?: number | null;
   scheduledAt?: string;
   scheduledEndAt?: string;
   completedAt?: string;
@@ -57,6 +58,12 @@ export interface Booking {
   kind?: CalendarEntryKind;
   blockReason?: BlockReason | null;
   options?: BookingOption[];
+  invoice?: {
+    id: string;
+    status: InvoiceStatus;
+    emailSentAt?: string | null;
+    invoiceNumber?: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -154,12 +161,21 @@ export interface Business {
   distance?: number;
 }
 
+export interface ServicePricingTier {
+  id: string;
+  thresholdWeeks: number;
+  surchargeCents: number;
+}
+
+export type ServicePriceMode = 'FIXED' | 'QUOTE' | 'FREE';
+
 export interface BusinessService {
   id: string;
   businessId: string;
   name: string;
   description?: string;
   detailedDescription?: string;
+  priceMode: ServicePriceMode;
   priceCents: number;
   currency: string;
   durationMinutes: number;
@@ -171,6 +187,7 @@ export interface BusinessService {
   createdAt: string;
   updatedAt: string;
   employees?: { employee: Employee }[];
+  pricingTiers?: ServicePricingTier[];
 }
 
 export interface Employee {
@@ -283,6 +300,7 @@ export interface BusinessClient {
     name?: string;
     email: string;
     image?: string;
+    birthDate?: string | null;
   };
   stats?: ClientStats;
 }
@@ -326,6 +344,26 @@ export type VatMode = 'FRANCHISE_293B' | 'STANDARD';
 export type InvoiceStatus = 'DRAFT' | 'FINALIZED' | 'CANCELLED';
 export type InvoiceLineKind = 'SERVICE' | 'PRODUCT' | 'OTHER';
 
+export type LegalForm =
+  | 'AUTOENTREPRENEUR_BIC_SERVICE'
+  | 'AUTOENTREPRENEUR_BIC_VENTE'
+  | 'AUTOENTREPRENEUR_BNC'
+  | 'EI'
+  | 'EURL'
+  | 'SASU'
+  | 'SARL'
+  | 'OTHER';
+
+export type ExpenseCategory =
+  | 'URSSAF'
+  | 'RENT'
+  | 'MATERIAL'
+  | 'SUPPLIER_ORDER'
+  | 'INSURANCE'
+  | 'SOFTWARE'
+  | 'MARKETING'
+  | 'OTHER';
+
 export interface BusinessBillingSettings {
   id: string;
   businessId: string;
@@ -342,8 +380,54 @@ export interface BusinessBillingSettings {
   nextInvoiceSequence: number;
   logoKey?: string;
   paymentTerms?: string;
+  legalForm?: LegalForm | null;
+  urssafRate?: number | null;
+  incomeTaxRate?: number | null;
+  acreActive: boolean;
+  acreEndDate?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// Accounting
+export interface ExpenseItem {
+  id: string;
+  date: string;
+  category: ExpenseCategory;
+  description: string;
+  amountCents: number;
+  reference: string | null;
+}
+
+export interface AccountingSummary {
+  period: { from: string; to: string };
+  revenue: {
+    grossCents: number;
+    netHTCents: number;
+    bookingCount: number;
+    invoicedCents: number;
+    invoiceCount: number;
+    monthlyBreakdown: { month: string; cents: number }[];
+  };
+  expenses: {
+    totalCents: number;
+    count: number;
+    byCategory: { category: ExpenseCategory; cents: number }[];
+    monthlyBreakdown: { month: string; cents: number }[];
+    items: ExpenseItem[];
+  };
+  provisions: {
+    urssafCents: number;
+    incomeTaxCents: number;
+  };
+  netEstimateCents: number;
+  settings: {
+    legalForm: LegalForm | null;
+    urssafRate: number | null;
+    incomeTaxRate: number | null;
+    acreActive: boolean;
+    vatMode: VatMode;
+  } | null;
 }
 
 export interface InvoiceLine {
@@ -376,6 +460,7 @@ export interface Invoice {
   vatMode: VatMode;
   snapshot?: Record<string, unknown>;
   pdfKey?: string;
+  emailSentAt?: string | null;
   createdByUserId: string;
   createdAt: string;
   updatedAt: string;
@@ -454,5 +539,67 @@ export interface Notification {
   message: string;
   bookingId?: string;
   isRead: boolean;
+  createdAt: string;
+}
+
+// Referrals
+export type ReferralStatus = 'PENDING' | 'VALIDATED' | 'REJECTED';
+
+export interface Referral {
+  id: string;
+  businessId: string;
+  firstName: string;
+  lastName: string;
+  instagram: string;
+  phone: string;
+  status: ReferralStatus;
+  notes?: string | null;
+  rewardGrantedAt?: string | null;
+  validatedAt?: string | null;
+  rejectedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MyReferralsResponse {
+  data: Referral[];
+  freeMonthsEarned: number;
+  validatedTowardNext: number;
+  nextRewardThreshold: number;
+}
+
+export interface AdminReferralBusinessRow {
+  businessId: string;
+  businessName: string;
+  businessSlug: string | null;
+  ownerName: string | null;
+  ownerEmail: string | null;
+  freeMonthsEarned: number;
+  totalReferrals: number;
+  pendingCount: number;
+  validatedCount: number;
+  rejectedCount: number;
+  lastSubmittedAt: string;
+}
+
+export interface AdminReferralBusinessDetail {
+  business: {
+    id: string;
+    name: string;
+    slug: string;
+    freeMonthsEarned: number;
+    owner: { name: string | null; email: string };
+  };
+  referrals: Referral[];
+}
+
+// Invite requests (closed-beta lead capture)
+export interface InviteRequest {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  notes?: string | null;
   createdAt: string;
 }

@@ -23,6 +23,7 @@ import {
   Pencil,
   Lock,
   Settings,
+  Heart,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -34,6 +35,8 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Link } from '@/i18n/routing';
 import { BusinessImage, BusinessHours, Category, BusinessPromotion } from '@/types';
 import { useTranslations, useLocale } from 'next-intl';
+import { ExceptionsManager } from './components/exceptions-manager';
+import { ReferralsTab } from './components/referrals-tab';
 
 const LOCALE_MAP: Record<string, string> = {
   fr: 'fr-FR',
@@ -41,7 +44,7 @@ const LOCALE_MAP: Record<string, string> = {
   pt: 'pt-BR',
 };
 
-type Tab = 'profile' | 'images' | 'hours' | 'promotions' | 'settings';
+type Tab = 'profile' | 'images' | 'hours' | 'promotions' | 'settings' | 'referrals';
 
 export default function BusinessSettingsPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -49,6 +52,7 @@ export default function BusinessSettingsPage() {
   const queryClient = useQueryClient();
   const t = useTranslations('businessSettings');
   const tc = useTranslations('common');
+  const tReferrals = useTranslations('referrals');
   const locale = useLocale();
   const dateLocale = LOCALE_MAP[locale] || 'fr-FR';
   const [tab, setTab] = useState<Tab>('profile');
@@ -72,6 +76,7 @@ export default function BusinessSettingsPage() {
   const [coverUrl, setCoverUrl] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [autoAcceptBookings, setAutoAcceptBookings] = useState(false);
+  const [acceptsOnlineBooking, setAcceptsOnlineBooking] = useState(true);
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
@@ -123,6 +128,7 @@ export default function BusinessSettingsPage() {
       setCoverUrl(business.coverUrl || '');
       setSelectedCategoryId(business.categoryId || '');
       setAutoAcceptBookings(business.autoAcceptBookings ?? false);
+      setAcceptsOnlineBooking(business.acceptsOnlineBooking ?? true);
       setIsProfileLoaded(true);
     }
   }, [business, isProfileLoaded]);
@@ -231,6 +237,7 @@ export default function BusinessSettingsPage() {
       logoUrl?: string;
       coverUrl?: string;
       autoAcceptBookings?: boolean;
+      acceptsOnlineBooking?: boolean;
     }) => api.updateBusiness(data),
     onSuccess: () => {
       success(t('profileUpdated'));
@@ -536,6 +543,17 @@ export default function BusinessSettingsPage() {
           >
             <Settings className="w-4 h-4" />
             {t('tabSettings')}
+          </button>
+          <button
+            onClick={() => setTab('referrals')}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
+              tab === 'referrals'
+                ? 'bg-surface text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Heart className="w-4 h-4" />
+            {tReferrals('tabReferrals')}
           </button>
         </div>
 
@@ -972,7 +990,7 @@ export default function BusinessSettingsPage() {
                               onChange={(e) =>
                                 handleHourChange(dayOfWeek, 'startTime', e.target.value)
                               }
-                              className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                              className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-foreground focus:ring-1 focus:ring-foreground outline-none"
                             />
                             <span className="text-muted-foreground">-</span>
                             <input
@@ -981,7 +999,7 @@ export default function BusinessSettingsPage() {
                               onChange={(e) =>
                                 handleHourChange(dayOfWeek, 'endTime', e.target.value)
                               }
-                              className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                              className="px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-foreground focus:ring-1 focus:ring-foreground outline-none"
                             />
                           </div>
                         )}
@@ -1000,6 +1018,19 @@ export default function BusinessSettingsPage() {
                   <Save className="w-4 h-4 mr-2" />
                   {updateHoursMutation.isPending ? t('saving') : t('saveHours')}
                 </Button>
+              </div>
+
+              {/* Exceptions (fermetures & horaires spéciaux) */}
+              <div className="mt-8 pt-6 border-t border-border/50">
+                <div className="mb-5">
+                  <h3 className="font-bold">Jours spéciaux</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Ajoutez des fermetures exceptionnelles ou des horaires différents
+                    sur des jours précis. Ces exceptions remplacent les horaires
+                    hebdomadaires pour la journée concernée.
+                  </p>
+                </div>
+                <ExceptionsManager employees={business?.employees ?? []} />
               </div>
             </motion.div>
           )}
@@ -1216,7 +1247,30 @@ export default function BusinessSettingsPage() {
               <div>
                 <h3 className="text-lg font-semibold mb-4">{t('bookingsSection')}</h3>
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="pr-4">
+                    <p className="text-sm font-medium">Accepter les réservations en ligne</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Désactivez pour utiliser l&apos;app uniquement comme CRM client et facturation. Les boutons de réservation seront masqués sur votre profil public.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !acceptsOnlineBooking;
+                      setAcceptsOnlineBooking(next);
+                      updateBusinessMutation.mutate({ acceptsOnlineBooking: next });
+                    }}
+                    className="shrink-0 cursor-pointer"
+                  >
+                    <div className={`w-11 h-6 rounded-full transition-colors flex items-center ${
+                      acceptsOnlineBooking ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'
+                    }`}>
+                      <div className="w-5 h-5 rounded-full bg-white shadow mx-0.5" />
+                    </div>
+                  </button>
+                </div>
+                <div className={`flex items-center justify-between mt-4 transition-opacity ${acceptsOnlineBooking ? '' : 'opacity-50 pointer-events-none'}`}>
+                  <div className="pr-4">
                     <p className="text-sm font-medium">{t('autoAccept')}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {t('autoAcceptHint')}
@@ -1229,6 +1283,7 @@ export default function BusinessSettingsPage() {
                       updateBusinessMutation.mutate({ autoAcceptBookings: !autoAcceptBookings });
                     }}
                     className="shrink-0 cursor-pointer"
+                    disabled={!acceptsOnlineBooking}
                   >
                     <div className={`w-11 h-6 rounded-full transition-colors flex items-center ${
                       autoAcceptBookings ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'
@@ -1306,6 +1361,19 @@ export default function BusinessSettingsPage() {
                   </div>
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {/* Referrals Tab */}
+          {tab === 'referrals' && (
+            <motion.div
+              key="referrals"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-surface rounded-2xl border border-border p-6 lg:p-8"
+            >
+              <ReferralsTab />
             </motion.div>
           )}
         </AnimatePresence>
