@@ -344,6 +344,26 @@ export type VatMode = 'FRANCHISE_293B' | 'STANDARD';
 export type InvoiceStatus = 'DRAFT' | 'FINALIZED' | 'CANCELLED';
 export type InvoiceLineKind = 'SERVICE' | 'PRODUCT' | 'OTHER';
 
+export type LegalForm =
+  | 'AUTOENTREPRENEUR_BIC_SERVICE'
+  | 'AUTOENTREPRENEUR_BIC_VENTE'
+  | 'AUTOENTREPRENEUR_BNC'
+  | 'EI'
+  | 'EURL'
+  | 'SASU'
+  | 'SARL'
+  | 'OTHER';
+
+export type ExpenseCategory =
+  | 'URSSAF'
+  | 'RENT'
+  | 'MATERIAL'
+  | 'SUPPLIER_ORDER'
+  | 'INSURANCE'
+  | 'SOFTWARE'
+  | 'MARKETING'
+  | 'OTHER';
+
 export interface BusinessBillingSettings {
   id: string;
   businessId: string;
@@ -360,8 +380,54 @@ export interface BusinessBillingSettings {
   nextInvoiceSequence: number;
   logoKey?: string;
   paymentTerms?: string;
+  legalForm?: LegalForm | null;
+  urssafRate?: number | null;
+  incomeTaxRate?: number | null;
+  acreActive: boolean;
+  acreEndDate?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// Accounting
+export interface ExpenseItem {
+  id: string;
+  date: string;
+  category: ExpenseCategory;
+  description: string;
+  amountCents: number;
+  reference: string | null;
+}
+
+export interface AccountingSummary {
+  period: { from: string; to: string };
+  revenue: {
+    grossCents: number;
+    netHTCents: number;
+    bookingCount: number;
+    invoicedCents: number;
+    invoiceCount: number;
+    monthlyBreakdown: { month: string; cents: number }[];
+  };
+  expenses: {
+    totalCents: number;
+    count: number;
+    byCategory: { category: ExpenseCategory; cents: number }[];
+    monthlyBreakdown: { month: string; cents: number }[];
+    items: ExpenseItem[];
+  };
+  provisions: {
+    urssafCents: number;
+    incomeTaxCents: number;
+  };
+  netEstimateCents: number;
+  settings: {
+    legalForm: LegalForm | null;
+    urssafRate: number | null;
+    incomeTaxRate: number | null;
+    acreActive: boolean;
+    vatMode: VatMode;
+  } | null;
 }
 
 export interface InvoiceLine {

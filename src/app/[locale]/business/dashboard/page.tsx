@@ -28,6 +28,7 @@ import {
   CalendarDays,
   CornerDownRight,
   BanknoteArrowUp,
+  Calculator,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -62,6 +63,10 @@ const InvoicesTab = dynamic(
   () => import('./components/invoices-tab').then((m) => ({ default: m.InvoicesTab })),
   { ssr: false },
 );
+const AccountingTab = dynamic(
+  () => import('./components/accounting-tab').then((m) => ({ default: m.AccountingTab })),
+  { ssr: false },
+);
 const AgendaTab = dynamic(
   () =>
     import('./components/calendar/agenda-tab').then((m) => ({ default: m.AgendaTab })),
@@ -71,6 +76,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import {
   AmountsVisibilityProvider,
   AmountsVisibilityToggle,
+  AmountsVisibilityButton,
   MaskedAmount,
 } from '@/contexts/amounts-visibility-context';
 
@@ -94,7 +100,7 @@ function BusinessDashboardContent() {
 
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const validTabs = ['overview', 'services', 'employees', 'bookings', 'clients', 'invoices', 'agenda'] as const;
+  const validTabs = ['overview', 'services', 'employees', 'bookings', 'clients', 'invoices', 'accounting', 'agenda'] as const;
   const initialTab = validTabs.includes(tabParam as any) ? (tabParam as typeof validTabs[number]) : 'overview';
 
   type TabId = typeof validTabs[number];
@@ -304,6 +310,7 @@ function BusinessDashboardContent() {
     { id: 'employees', label: t('team'), icon: Users },
     { id: 'clients', label: t('clients'), icon: UserCheck },
     { id: 'invoices', label: t('invoices'), icon: FileText },
+    { id: 'accounting', label: t('accounting'), icon: Calculator },
   ] as const;
 
   return (
@@ -331,7 +338,8 @@ function BusinessDashboardContent() {
             </div>
           </div>
         </div>
-        <div className="flex gap-2 items-center">
+        {/* Desktop: original compact layout (eye + button + icon) */}
+        <div className="hidden sm:flex gap-2 items-center">
           <AmountsVisibilityToggle />
           <Link href={`/business/${business.slug}`}>
             <Button variant="outline" className="rounded-full">
@@ -340,6 +348,21 @@ function BusinessDashboardContent() {
           </Link>
           <Link href="/business/settings">
             <Button variant="outline" className="rounded-full w-10 h-10 p-0">
+              <Settings className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
+
+        {/* Mobile: 3 equal-height bordered buttons */}
+        <div className="sm:hidden grid grid-cols-3 gap-2 w-full">
+          <AmountsVisibilityButton />
+          <Link href={`/business/${business.slug}`} className="contents">
+            <Button variant="outline" className="rounded-full w-full whitespace-nowrap text-sm">
+              {t('viewMyPageShort')}
+            </Button>
+          </Link>
+          <Link href="/business/settings" className="contents">
+            <Button variant="outline" className="rounded-full w-full">
               <Settings className="w-4 h-4" />
             </Button>
           </Link>
@@ -353,7 +376,7 @@ function BusinessDashboardContent() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer flex-1 sm:flex-none ${
+              className={`relative flex items-center justify-center gap-1.5 xl:gap-2 px-2.5 xl:px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer flex-1 xl:flex-none ${
                 activeTab === tab.id
                   ? 'text-foreground'
                   : 'text-muted-foreground hover:text-foreground'
@@ -367,9 +390,9 @@ function BusinessDashboardContent() {
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
-              <span className="relative z-10 flex items-center gap-1.5 sm:gap-2">
+              <span className="relative z-10 flex items-center gap-1.5 xl:gap-2">
                 <tab.icon className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="hidden xl:inline">{tab.label}</span>
               </span>
             </button>
           ))}
@@ -385,46 +408,33 @@ function BusinessDashboardContent() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
           >
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <div className="bg-surface border border-border rounded-2xl p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                    <Scissors className="w-5 h-5 text-primary" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold">{business.services?.length || 0}</div>
-                <div className="text-sm text-muted-foreground">{t('services')}</div>
-              </div>
-              <div className="bg-surface border border-border rounded-2xl p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                    <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold">{business.employees?.length || 0}</div>
-                <div className="text-sm text-muted-foreground">{t('employeesCount')}</div>
-              </div>
-              <div className="bg-surface border border-border rounded-2xl p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold">{businessBookings.length}</div>
-                <div className="text-sm text-muted-foreground">{t('reservations')}</div>
-              </div>
-              <div className="bg-surface border border-border rounded-2xl p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                    <Home className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold">
-                  <MaskedAmount value={formatPrice(completedRevenue)} />
-                </div>
-                <div className="text-sm text-muted-foreground">{viewMode === 'week' ? t('caWeek') : t('caMonth')}</div>
-              </div>
+            {/* Stats — mobile: icon left, value+label right (compact horizontal layout)
+                                 desktop: icon top, value+label below (vertical) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <StatCard
+                icon={<Scissors className="w-5 h-5 text-primary" />}
+                iconBg="bg-primary/10"
+                value={business.services?.length || 0}
+                label={t('services')}
+              />
+              <StatCard
+                icon={<Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+                iconBg="bg-blue-100 dark:bg-blue-900/30"
+                value={business.employees?.length || 0}
+                label={t('employeesCount')}
+              />
+              <StatCard
+                icon={<Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />}
+                iconBg="bg-green-100 dark:bg-green-900/30"
+                value={businessBookings.length}
+                label={t('reservations')}
+              />
+              <StatCard
+                icon={<Home className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+                iconBg="bg-purple-100 dark:bg-purple-900/30"
+                value={<MaskedAmount value={formatPrice(completedRevenue)} />}
+                label={viewMode === 'week' ? t('caWeek') : t('caMonth')}
+              />
             </div>
 
             {/* Graphique CA */}
@@ -446,24 +456,26 @@ function BusinessDashboardContent() {
                   )}
                 </div>
 
-                {/* Navigation de période (inline) */}
-                <div className="flex items-center gap-1">
+                {/* Navigation de période (inline, single line) */}
+                <div className="flex flex-nowrap items-center gap-1 min-w-0">
                   <button
                     onClick={() => navigatePeriod('prev')}
-                    className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer shrink-0"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <span className="text-sm font-medium capitalize px-1">{periodLabel}</span>
+                  <span className="text-sm font-medium capitalize px-1 whitespace-nowrap">
+                    {periodLabel}
+                  </span>
                   <button
                     onClick={() => navigatePeriod('next')}
-                    className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer shrink-0"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
                   <button
                     onClick={goToToday}
-                    className="ml-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer"
+                    className="ml-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer shrink-0"
                   >
                     {t('today')}
                   </button>
@@ -813,24 +825,25 @@ function BusinessDashboardContent() {
 
             {/* Navigation de période */}
             <div className="bg-surface border border-border rounded-2xl p-4 mb-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 min-w-0">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => navigatePeriod('prev')}
-                  className="rounded-full"
+                  className="rounded-full shrink-0"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </Button>
 
-                <div className="flex items-center gap-3">
-                  <span className="text-lg font-semibold capitalize">{periodLabel}</span>
-                  {/* Bouton Aujourd'hui */}
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <span className="text-sm sm:text-lg font-semibold capitalize whitespace-nowrap truncate">
+                    {periodLabel}
+                  </span>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={goToToday}
-                    className="rounded-full text-xs"
+                    className="rounded-full text-xs shrink-0"
                   >
                     {t('today')}
                   </Button>
@@ -840,7 +853,7 @@ function BusinessDashboardContent() {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigatePeriod('next')}
-                  className="rounded-full"
+                  className="rounded-full shrink-0"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </Button>
@@ -1040,6 +1053,17 @@ function BusinessDashboardContent() {
           </motion.div>
         )}
 
+        {activeTab === 'accounting' && (
+          <motion.div
+            key="accounting"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <AccountingTab />
+          </motion.div>
+        )}
+
         {activeTab === 'agenda' && (
           <motion.div
             key="agenda"
@@ -1056,6 +1080,32 @@ function BusinessDashboardContent() {
         )}
 
       </AnimatePresence>
+    </div>
+  );
+}
+
+// Compact stat card. Mobile: icon left + value/label stacked right.
+// Desktop (sm+): icon top, value/label below — keeps visual breathing room.
+function StatCard({
+  icon,
+  iconBg,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  value: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5 flex items-center gap-4">
+      <div className={`w-11 h-11 ${iconBg} rounded-xl flex items-center justify-center shrink-0`}>
+        {icon}
+      </div>
+      <div className="min-w-0 ml-auto text-right">
+        <div className="text-2xl font-bold leading-tight">{value}</div>
+        <div className="text-sm text-muted-foreground">{label}</div>
+      </div>
     </div>
   );
 }

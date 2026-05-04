@@ -7,6 +7,8 @@ import { useLocale } from 'next-intl';
 import { ToastProvider } from '@/components/ui/toast';
 import { AuthProvider } from '@/contexts/auth-context';
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
+import { CookieConsentProvider } from '@/contexts/cookie-consent-context';
+import { CookieBanner } from '@/components/cookie-banner';
 import { RateLimitListener } from '@/components/rate-limit-listener';
 import { api } from '@/lib/api';
 
@@ -55,8 +57,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <AuthProvider>
           <WebSocketProvider>
             <ToastProvider>
-              <RateLimitListener />
-              {children}
+              <CookieConsentProvider>
+                <RateLimitListener />
+                {children}
+                <CookieBanner />
+              </CookieConsentProvider>
             </ToastProvider>
           </WebSocketProvider>
         </AuthProvider>

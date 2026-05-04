@@ -105,10 +105,23 @@ export function CancelBookingModal({
               )}
             </div>
 
-            {/* Message */}
-            <p className="text-sm text-muted-foreground">
-              {t('message')}
-            </p>
+            {isLateCancellation ? (
+              <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-sm text-amber-800 dark:text-amber-300 space-y-1">
+                  <p className="font-medium">{t('tooLateTitle')}</p>
+                  <p>
+                    {t('tooLateMessage', { hours: hoursRemaining ?? 0 })}
+                  </p>
+                  <p className="flex items-center gap-1.5 text-xs opacity-90 mt-2">
+                    <Clock className="w-3.5 h-3.5" />
+                    {t('tooLateContact')}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('message')}</p>
+            )}
           </div>
 
           {/* Actions */}
@@ -119,21 +132,23 @@ export function CancelBookingModal({
               onClick={onClose}
               disabled={isLoading}
             >
-              {t('cancel')}
+              {isLateCancellation ? tc('close') : t('cancel')}
             </Button>
-            <Button
-              variant={isLateCancellation ? 'destructive' : 'default'}
-              className="flex-1 rounded-xl"
-              onClick={onConfirm}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Ban className="w-4 h-4 mr-2" />
-              )}
-              {t('confirm')}
-            </Button>
+            {!isLateCancellation && (
+              <Button
+                variant="default"
+                className="flex-1 rounded-xl"
+                onClick={onConfirm}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Ban className="w-4 h-4 mr-2" />
+                )}
+                {t('confirm')}
+              </Button>
+            )}
           </div>
         </motion.div>
       </motion.div>

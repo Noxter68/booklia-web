@@ -571,31 +571,31 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" onClick={onBack} className="rounded-full h-9 w-9 p-0">
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button variant="ghost" onClick={onBack} className="rounded-full h-9 w-9 p-0 shrink-0">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-lg font-semibold text-primary shrink-0">
             {(client.user?.name || client.user?.email || '?')[0].toUpperCase()}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-xl font-bold truncate">{client.user?.name || 'Sans nom'}</h2>
+              <h2 className="text-lg sm:text-xl font-bold truncate">{client.user?.name || 'Sans nom'}</h2>
               {isBday && (
-                <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
-                  <Cake className="w-3.5 h-3.5 mr-1" /> Jour d&apos;anniversaire
+                <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 shrink-0">
+                  <Cake className="w-3.5 h-3.5 mr-1" /> Anniversaire
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground truncate">{client.user?.email}</p>
+            <p className="text-sm text-muted-foreground truncate" title={client.user?.email}>{client.user?.email}</p>
           </div>
         </div>
         <Button
           variant={client.isBlocked ? 'default' : 'outline'}
           onClick={handleToggleBlock}
           disabled={updateMutation.isPending}
-          className={`rounded-full shrink-0 ${client.isBlocked ? 'bg-red-600 hover:bg-red-700' : 'text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20'}`}
+          className={`rounded-full w-full sm:w-auto sm:shrink-0 sm:ml-auto ${client.isBlocked ? 'bg-red-600 hover:bg-red-700' : 'text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20'}`}
         >
           <Ban className="w-4 h-4 mr-2" />
           {client.isBlocked ? 'Débloquer' : 'Bloquer'}
@@ -638,9 +638,9 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                   <span className="text-sm text-muted-foreground">Taux de complétion</span>
                   <span className="font-semibold">{Math.round(client.stats.completionRate)}%</span>
                 </div>
-                <div className="border-t border-border pt-3 flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Chiffre d&apos;affaires</span>
-                  <span className="font-bold text-primary"><MaskedAmount value={formatPrice(client.stats.totalRevenueCents)} /></span>
+                <div className="border-t border-border pt-3 flex items-center justify-between gap-2">
+                  <span className="text-sm text-muted-foreground shrink-0">Chiffre d&apos;affaires</span>
+                  <span className="font-bold text-primary text-right truncate"><MaskedAmount value={formatPrice(client.stats.totalRevenueCents)} /></span>
                 </div>
                 {client.stats.lastBookingAt && (
                   <div className="flex items-center justify-between">
@@ -755,15 +755,15 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
             ) : (
               <div className="space-y-2.5">
                 {client.phone && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span>{client.phone}</span>
+                  <div className="flex items-start gap-2 text-sm min-w-0">
+                    <Phone className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <span className="wrap-break-word min-w-0">{client.phone}</span>
                   </div>
                 )}
                 {client.address && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span>{client.address}</span>
+                  <div className="flex items-start gap-2 text-sm min-w-0">
+                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <span className="wrap-break-word min-w-0">{client.address}</span>
                   </div>
                 )}
                 {client.user?.birthDate && (
@@ -773,7 +773,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                   </div>
                 )}
                 {client.notes && (
-                  <div className="mt-3 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                  <div className="mt-3 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground wrap-break-word">
                     {client.notes}
                   </div>
                 )}
@@ -807,38 +807,40 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
               <div className="space-y-2">
                 {bookings.map((booking) => (
                   <div key={booking.id}>
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-background">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl bg-background">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm truncate">
+                        <div className="flex items-center gap-2 mb-1 min-w-0 flex-wrap">
+                          <span className="font-medium text-sm truncate min-w-0">
                             {booking.businessService?.name || 'Service'}
                           </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[booking.status]}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${statusColors[booking.status]}`}>
                             {statusLabels[booking.status]}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                           {booking.scheduledAt && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                              })}
-                              {' à '}
-                              {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
+                            <span className="flex items-center gap-1 min-w-0">
+                              <Calendar className="w-3 h-3 shrink-0" />
+                              <span className="truncate">
+                                {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })}
+                                {' à '}
+                                {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
                             </span>
                           )}
                           {booking.employee && (
-                            <span>{booking.employee.firstName} {booking.employee.lastName}</span>
+                            <span className="truncate min-w-0">{booking.employee.firstName} {booking.employee.lastName}</span>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                      <div className="flex items-center justify-end gap-2 sm:shrink-0 flex-wrap">
                         {booking.status === 'COMPLETED' && (
                           <>
                             {booking.invoice && booking.invoice.status === 'FINALIZED' ? (
@@ -877,7 +879,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                           </>
                         )}
                         {booking.agreedPriceCents != null && (
-                          <span className="font-semibold text-sm">
+                          <span className="font-semibold text-sm whitespace-nowrap">
                             {formatPrice(booking.agreedPriceCents)}
                           </span>
                         )}
