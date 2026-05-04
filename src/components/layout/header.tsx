@@ -173,8 +173,8 @@ export function Header() {
               </div>
             )}
 
-            {/* Language switcher */}
-            <LanguageSwitcher />
+            {/* Language switcher — hidden until multi-language support is enabled */}
+            {/* <LanguageSwitcher /> */}
 
             {/* User section - Desktop */}
             <div className="hidden md:block">
