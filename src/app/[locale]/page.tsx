@@ -21,10 +21,15 @@ import {
   Bell,
   Clock,
   MessageCircle,
+  Landmark,
+  Wallet,
+  BarChart2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Button } from '@/components/ui/button';
+import { HeroDashboardMockup } from './components/hero-dashboard-mockup';
+import { AccountingMockup } from './components/accounting-mockup';
 
 // Stock photography per category (Unsplash, license-free).
 // Kept as URLs (no next/image) to match the rest of the codebase.
@@ -77,94 +82,101 @@ export default function LandingPage() {
         ref={heroRef}
         className="relative overflow-hidden border-b border-border/50"
       >
-        {/* Soft gradient background */}
+        {/* Gradient background */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-linear-to-br from-rose-50 via-amber-50 to-white" />
-          <div className="absolute -top-40 -right-40 w-150 h-150 bg-rose-200/40 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-150 h-150 bg-amber-200/40 rounded-full blur-3xl" />
+          <div className="absolute inset-0 bg-linear-to-b from-rose-50/80 via-amber-50/40 to-white" />
+          <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-150 h-150 bg-rose-200/30 rounded-full blur-3xl" />
+          <div className="absolute top-60 -right-40 w-96 h-96 bg-amber-200/30 rounded-full blur-3xl" />
+          {/* Dot grid */}
+          <div
+            className="absolute inset-0 opacity-[0.18]"
+            style={{
+              backgroundImage: 'radial-gradient(circle, #9ca3af 1px, transparent 1px)',
+              backgroundSize: '28px 28px',
+            }}
+          />
+          {/* Fade edges on dot grid */}
+          <div className="absolute inset-0 bg-linear-to-b from-rose-50/80 via-transparent to-white" />
+          <div className="absolute inset-0 bg-linear-to-r from-white via-transparent to-white" />
         </div>
 
-        <div className="container mx-auto px-4 pt-24 pb-16 sm:pt-32 sm:pb-24 lg:pt-40 lg:pb-32">
-          <div className="grid lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-16 items-center">
-            {/* Text column */}
+        <div className="container mx-auto px-4 pt-24 pb-0 sm:pt-32 lg:pt-40">
+          {/* Centered text block */}
+          <motion.div
+            style={{ y: heroParallax, opacity: heroOpacity }}
+            className="text-center max-w-3xl mx-auto"
+          >
             <motion.div
-              style={{ y: heroParallax, opacity: heroOpacity }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 mb-6 rounded-full bg-white/80 backdrop-blur border border-border/50 text-xs font-medium text-foreground/80"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              {t('hero.badge')}
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-foreground"
+            >
+              {t('hero.title1')}{' '}
+              <span className="relative inline-block">
+                <span className="relative z-10">{t('hero.titleAccent')}</span>
+                <motion.span
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ duration: 0.7, delay: 0.5, ease: 'easeOut' }}
+                  className="absolute left-0 bottom-1 h-3 sm:h-4 w-full bg-amber-200/70 z-0 origin-left rounded-sm"
+                />
+              </span>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mt-6 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto"
+            >
+              {t('hero.subtitle')}
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="mt-8 flex flex-col sm:flex-row items-center gap-3 justify-center"
+            >
+              <Link href="/auth/request-invite">
+                <Button size="lg" className="rounded-full px-7 h-12 text-base">
+                  {t('hero.ctaSecondary')}
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+            </motion.div>
+
+            <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center lg:text-left"
+              transition={{ duration: 0.5, delay: 0.5 }}
+              className="mt-4 text-xs text-muted-foreground flex items-center gap-1.5 justify-center"
             >
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 mb-6 rounded-full bg-white/80 backdrop-blur border border-border/50 text-xs font-medium text-foreground/80"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                {t('hero.badge')}
-              </motion.div>
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              {t('hero.heroNote')}
+            </motion.p>
+          </motion.div>
 
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-foreground"
-              >
-                {t('hero.title1')}{' '}
-                <span className="relative inline-block">
-                  <span className="relative z-10">{t('hero.titleAccent')}</span>
-                  <motion.span
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.7, delay: 0.5, ease: 'easeOut' }}
-                    className="absolute left-0 bottom-1 h-3 sm:h-4 w-full bg-amber-200/70 z-0 origin-left rounded-sm"
-                  />
-                </span>
-              </motion.h1>
-
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="mt-6 text-base sm:text-lg text-muted-foreground max-w-xl lg:max-w-none"
-              >
-                {t('hero.subtitle')}
-              </motion.p>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="mt-8 flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start"
-              >
-                <Link href="/auth/request-invite">
-                  <Button size="lg" className="rounded-full px-7 h-12 text-base">
-                    {t('hero.ctaSecondary')}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
-              </motion.div>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.5 }}
-                className="mt-4 text-xs text-muted-foreground flex items-center gap-1.5 justify-center lg:justify-start"
-              >
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                {t('hero.heroNote')}
-              </motion.p>
-            </motion.div>
-
-            {/* Visual column: dashboard mockup */}
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.3, ease: 'easeOut' }}
-              className="relative"
-            >
-              <DashboardMockup />
-            </motion.div>
-          </div>
+          {/* macOS dashboard mockup */}
+          <motion.div
+            initial={{ opacity: 0, y: 60 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-16 max-w-5xl mx-auto"
+          >
+            <MacOSDashboardMockup />
+          </motion.div>
         </div>
       </section>
 
@@ -277,6 +289,58 @@ export default function LandingPage() {
         reverse
         visual={<RemindersMockup />}
       />
+
+      {/* ======================================================
+          ACCOUNTING SHOWCASE
+          ====================================================== */}
+      <section className="py-20 sm:py-28 border-b border-border/50 overflow-hidden">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: 0.5 }}
+            className="text-center max-w-2xl mx-auto mb-12"
+          >
+            <span className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium mb-4">
+              Comptabilité intégrée
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+              Pilotez votre salon{' '}
+              <span className="relative inline-block">
+                <span className="relative z-10">comme un pro</span>
+                <span className="absolute left-0 bottom-1 h-3 w-full bg-emerald-200/70 z-0 origin-left rounded-sm" />
+              </span>
+            </h2>
+            <p className="mt-4 text-base text-muted-foreground">
+              CA brut, charges, provisions URSSAF, net estimé — tout en un coup d&apos;œil. Suivez votre trésorerie mois par mois sans quitter Booklia.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              {[
+                { icon: <TrendingUp className="w-3.5 h-3.5 text-pink-600" />, label: 'CA en temps réel' },
+                { icon: <Landmark className="w-3.5 h-3.5 text-blue-600" />, label: 'Provisions URSSAF' },
+                { icon: <Wallet className="w-3.5 h-3.5 text-emerald-600" />, label: 'Net estimé automatique' },
+                { icon: <BarChart2 className="w-3.5 h-3.5 text-amber-600" />, label: 'Graphiques mensuels' },
+              ].map((item) => (
+                <span key={item.label} className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground/70 bg-surface border border-border/50 rounded-full px-3 py-1.5">
+                  {item.icon}
+                  {item.label}
+                </span>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="max-w-4xl mx-auto"
+          >
+            <AccountingMockup />
+          </motion.div>
+        </div>
+      </section>
 
       {/* ======================================================
           FEATURES
@@ -588,6 +652,10 @@ function SectionHeader({
       <p className="mt-3 text-base sm:text-lg text-muted-foreground">{subtitle}</p>
     </motion.div>
   );
+}
+
+function MacOSDashboardMockup() {
+  return <HeroDashboardMockup />;
 }
 
 function DashboardMockup() {
