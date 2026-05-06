@@ -84,20 +84,21 @@ export default function LandingPage() {
       >
         {/* Gradient background */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-linear-to-b from-rose-50/80 via-amber-50/40 to-white" />
-          <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-150 h-150 bg-rose-200/30 rounded-full blur-3xl" />
-          <div className="absolute top-60 -right-40 w-96 h-96 bg-amber-200/30 rounded-full blur-3xl" />
-          {/* Dot grid */}
+          {/* Dot grid — placed first so everything else sits on top */}
           <div
-            className="absolute inset-0 opacity-[0.18]"
+            className="absolute inset-0"
             style={{
-              backgroundImage: 'radial-gradient(circle, #9ca3af 1px, transparent 1px)',
+              backgroundImage: 'radial-gradient(circle, #c4b5c8 1.5px, transparent 1.5px)',
               backgroundSize: '28px 28px',
+              opacity: 0.45,
             }}
           />
-          {/* Fade edges on dot grid */}
-          <div className="absolute inset-0 bg-linear-to-b from-rose-50/80 via-transparent to-white" />
-          <div className="absolute inset-0 bg-linear-to-r from-white via-transparent to-white" />
+          {/* Color washes on top of the grid */}
+          <div className="absolute inset-0 bg-linear-to-b from-rose-50/50 via-amber-50/20 to-white" />
+          <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-150 h-150 bg-rose-200/25 rounded-full blur-3xl" />
+          <div className="absolute top-60 -right-40 w-96 h-96 bg-amber-200/25 rounded-full blur-3xl" />
+          {/* Side fades */}
+          <div className="absolute inset-0 bg-linear-to-r from-white/50 via-transparent to-white/50" />
         </div>
 
         <div className="container mx-auto px-4 pt-24 pb-0 sm:pt-32 lg:pt-40">
@@ -110,7 +111,8 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 mb-6 rounded-full bg-white/80 backdrop-blur border border-border/50 text-xs font-medium text-foreground/80"
+              className="inline-flex items-center gap-2 px-3 py-1.5 mb-6 rounded-full text-xs font-medium shadow-sm backdrop-blur"
+              style={{ background: '#fffbeb', border: '1px solid #f59e0b', color: '#92400e' }}
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               {t('hero.badge')}
@@ -302,7 +304,7 @@ export default function LandingPage() {
             transition={{ duration: 0.5 }}
             className="text-center max-w-2xl mx-auto mb-12"
           >
-            <span className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium mb-4">
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-medium mb-4 shadow-sm" style={{ background: '#ecfdf5', border: '1px solid #10b981', color: '#065f46' }}>
               Comptabilité intégrée
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
@@ -315,14 +317,14 @@ export default function LandingPage() {
             <p className="mt-4 text-base text-muted-foreground">
               CA brut, charges, provisions URSSAF, net estimé — tout en un coup d&apos;œil. Suivez votre trésorerie mois par mois sans quitter Booklia.
             </p>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
               {[
-                { icon: <TrendingUp className="w-3.5 h-3.5 text-pink-600" />, label: 'CA en temps réel' },
-                { icon: <Landmark className="w-3.5 h-3.5 text-blue-600" />, label: 'Provisions URSSAF' },
-                { icon: <Wallet className="w-3.5 h-3.5 text-emerald-600" />, label: 'Net estimé automatique' },
-                { icon: <BarChart2 className="w-3.5 h-3.5 text-amber-600" />, label: 'Graphiques mensuels' },
+                { icon: <TrendingUp className="w-3.5 h-3.5" />, label: 'CA en temps réel',     s: { background: '#fdf2f8', border: '1px solid #ec4899', color: '#9d174d' } },
+                { icon: <Landmark   className="w-3.5 h-3.5" />, label: 'Provisions URSSAF',    s: { background: '#eff6ff', border: '1px solid #3b82f6', color: '#1e3a8a' } },
+                { icon: <Wallet     className="w-3.5 h-3.5" />, label: 'Net estimé',           s: { background: '#ecfdf5', border: '1px solid #10b981', color: '#065f46' } },
+                { icon: <BarChart2  className="w-3.5 h-3.5" />, label: 'Graphiques mensuels',  s: { background: '#fffbeb', border: '1px solid #f59e0b', color: '#92400e' } },
               ].map((item) => (
-                <span key={item.label} className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground/70 bg-surface border border-border/50 rounded-full px-3 py-1.5">
+                <span key={item.label} className="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 shadow-sm" style={item.s}>
                   {item.icon}
                   {item.label}
                 </span>
@@ -426,43 +428,110 @@ export default function LandingPage() {
       {/* ======================================================
           HOW IT WORKS — closed-beta onboarding
           ====================================================== */}
-      <section id="how" className="py-20 sm:py-28 bg-linear-to-b from-rose-50/40 to-transparent border-y border-border/50">
+      <section id="how" className="py-20 sm:py-28 border-y border-border/50 overflow-hidden">
         <div className="container mx-auto px-4">
-          <SectionHeader title={t('how.title')} subtitle={t('how.subtitle')} />
 
-          <div className="grid md:grid-cols-3 gap-6 mt-12 max-w-5xl mx-auto">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.4 }}
+            className="text-center max-w-2xl mx-auto mb-16"
+          >
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 mb-5 rounded-full text-xs font-medium shadow-sm" style={{ background: '#fff1f2', border: '1px solid #f43f5e', color: '#9f1239' }}>
+              <Sparkles className="w-3.5 h-3.5 text-rose-500" />
+              Accès sur invitation
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{t('how.title')}</h2>
+            <p className="mt-3 text-base sm:text-lg text-muted-foreground">{t('how.subtitle')}</p>
+          </motion.div>
+
+          {/* Steps */}
+          <div className="max-w-3xl mx-auto space-y-3">
             {(
               [
-                { step: 1, icon: MessageCircle, color: 'text-rose-600', bg: 'bg-rose-100' },
-                { step: 2, icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-100' },
-                { step: 3, icon: Zap, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+                {
+                  step: 1, icon: MessageCircle,
+                  accent: { text: 'text-rose-700', bg: 'bg-rose-50/90', border: 'border-rose-300', color: '#f43f5e', bgLight: '#fff1f2' },
+                },
+                {
+                  step: 2, icon: Sparkles,
+                  accent: { text: 'text-amber-700', bg: 'bg-amber-50/90', border: 'border-amber-300', color: '#f59e0b', bgLight: '#fffbeb' },
+                },
+                {
+                  step: 3, icon: Zap,
+                  accent: { text: 'text-emerald-700', bg: 'bg-emerald-50/90', border: 'border-emerald-300', color: '#10b981', bgLight: '#ecfdf5' },
+                },
               ] as const
             ).map((s, i) => (
-              <motion.div
-                key={s.step}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.4 }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-                className="relative bg-surface border border-border rounded-2xl p-6"
-              >
-                <div className="absolute -top-4 left-6 w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold">
-                  {s.step}
+              <div key={s.step} className="relative flex gap-5 sm:gap-8">
+                {/* Left column: number + connector */}
+                <div className="flex flex-col items-center shrink-0">
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    whileInView={{ scale: 1, opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.35, delay: i * 0.15, type: 'spring', stiffness: 200 }}
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm shrink-0 z-10"
+                    style={{ background: s.accent.bgLight, border: `1px solid ${s.accent.color}`, color: s.accent.color }}
+                  >
+                    {s.step}
+                  </motion.div>
+                  {i < 2 && (
+                    <motion.div
+                      initial={{ scaleY: 0 }}
+                      whileInView={{ scaleY: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: i * 0.15 + 0.3, ease: 'easeOut' }}
+                      className="w-px flex-1 origin-top"
+                      style={{ background: 'repeating-linear-gradient(to bottom, #d1d5db 0px, #d1d5db 4px, transparent 4px, transparent 9px)' }}
+                    />
+                  )}
                 </div>
-                <div
-                  className={`w-12 h-12 rounded-xl ${s.bg} flex items-center justify-center mb-4 mt-2`}
+
+                {/* Right column: card */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  transition={{ duration: 0.4, delay: i * 0.15 + 0.1 }}
+                  className={`flex-1 bg-white border ${s.accent.border} rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow`}
                 >
-                  <s.icon className={`w-5 h-5 ${s.color}`} />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">
-                  {t(`how.step${s.step}.title` as 'how.step1.title')}
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {t(`how.step${s.step}.desc` as 'how.step1.desc')}
-                </p>
-              </motion.div>
+                  <div className="flex items-start gap-4">
+                    <div className={`w-11 h-11 rounded-xl ${s.accent.bg} border ${s.accent.border} flex items-center justify-center shrink-0`}>
+                      <s.icon className={`w-5 h-5 ${s.accent.text}`} />
+                    </div>
+                    <div className="flex-1 min-w-0 pt-0.5">
+                      <h3 className="text-base font-semibold text-foreground mb-1">
+                        {t(`how.step${s.step}.title` as 'how.step1.title')}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {t(`how.step${s.step}.desc` as 'how.step1.desc')}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
             ))}
           </div>
+
+          {/* CTA */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.4, delay: 0.5 }}
+            className="flex items-center justify-center mt-12"
+          >
+            <Link href="/auth/request-invite">
+              <Button size="lg" className="rounded-full px-7 h-12 text-base group">
+                Demander une démo
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-transform" />
+              </Button>
+            </Link>
+          </motion.div>
+
         </div>
       </section>
 
@@ -494,7 +563,7 @@ export default function LandingPage() {
                 viewport={{ once: true, amount: 0.4 }}
                 transition={{ duration: 0.4 }}
               >
-                <span className="inline-block px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-medium mb-4">
+                <span className="inline-block px-3 py-1 rounded-full text-xs font-medium mb-4 shadow-sm" style={{ background: '#fff1f2', border: '1px solid #f43f5e', color: '#9f1239' }}>
                   {t('why.badge')}
                 </span>
                 <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
@@ -598,7 +667,7 @@ export default function LandingPage() {
             <Link href="/auth/request-invite">
               <Button
                 size="lg"
-                className="rounded-full px-8 h-12 text-base bg-background text-foreground hover:bg-background/90"
+                className="rounded-full px-8 h-12 text-base bg-background text-foreground border border-background hover:bg-transparent hover:text-background hover:border-background transition-colors duration-200"
               >
                 {t('finalCta.cta')}
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -785,25 +854,25 @@ type AccentColor = 'rose' | 'emerald' | 'indigo' | 'amber';
 
 const ACCENT_STYLES: Record<
   AccentColor,
-  { eyebrow: string; check: string; glow: string }
+  { eyebrowStyle: React.CSSProperties; check: string; glow: string }
 > = {
   rose: {
-    eyebrow: 'bg-rose-100 text-rose-700',
+    eyebrowStyle: { background: '#fff1f2', border: '1px solid #f43f5e', color: '#9f1239' },
     check: 'text-rose-500',
     glow: 'bg-rose-200/50',
   },
   emerald: {
-    eyebrow: 'bg-emerald-100 text-emerald-700',
+    eyebrowStyle: { background: '#ecfdf5', border: '1px solid #10b981', color: '#065f46' },
     check: 'text-emerald-500',
     glow: 'bg-emerald-200/50',
   },
   indigo: {
-    eyebrow: 'bg-indigo-100 text-indigo-700',
+    eyebrowStyle: { background: '#eef2ff', border: '1px solid #6366f1', color: '#3730a3' },
     check: 'text-indigo-500',
     glow: 'bg-indigo-200/50',
   },
   amber: {
-    eyebrow: 'bg-amber-100 text-amber-700',
+    eyebrowStyle: { background: '#fffbeb', border: '1px solid #f59e0b', color: '#92400e' },
     check: 'text-amber-500',
     glow: 'bg-amber-200/50',
   },
@@ -853,7 +922,8 @@ function ShowcaseSection({
             transition={{ duration: 0.5 }}
           >
             <span
-              className={`inline-block px-3 py-1 rounded-full ${styles.eyebrow} text-xs font-medium mb-4`}
+              className="inline-block px-3 py-1 rounded-full text-xs font-medium mb-4 shadow-sm"
+              style={styles.eyebrowStyle}
             >
               {eyebrow}
             </span>
@@ -914,7 +984,7 @@ function Booking247Mockup() {
           </div>
           <div className="flex-1 ml-3 flex items-center gap-2 px-3 py-1 rounded-md bg-white border border-border/40 text-xs text-muted-foreground">
             <Globe className="w-3 h-3" />
-            <span className="truncate">booklia.fr/em-institut</span>
+            <span className="truncate">booklia.fr/lumi-studio</span>
           </div>
         </div>
 
@@ -923,7 +993,7 @@ function Booking247Mockup() {
           <div className="flex items-center gap-3 mb-5">
             <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-rose-200 to-amber-200" />
             <div>
-              <p className="font-semibold">EM Institut</p>
+              <p className="font-semibold">Lumi Studio</p>
               <p className="text-xs text-muted-foreground">
                 Esthétique · Paris 9
               </p>
@@ -1163,10 +1233,10 @@ function RemindersMockup() {
         <div className="p-5">
           <div className="flex items-start gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-linear-to-br from-rose-200 to-amber-200 flex items-center justify-center text-sm font-bold shrink-0">
-              EM
+              LS
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm">EM Institut</p>
+              <p className="font-semibold text-sm">Lumi Studio</p>
               <p className="text-xs text-muted-foreground">
                 Rappel : votre rendez-vous est demain
               </p>
@@ -1287,7 +1357,7 @@ function WhyBookliaVisual() {
         whileInView={{ opacity: 1, y: 0, rotate: 4 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5, delay: 0.5 }}
-        className="absolute -bottom-4 -right-2 sm:-right-4 bg-white rounded-2xl shadow-xl border border-border/40 px-4 py-2 flex items-center gap-2 hidden sm:flex"
+        className="absolute -bottom-4 -right-2 sm:-right-4 bg-white rounded-2xl shadow-xl border border-border/40 px-4 py-2 items-center gap-2 hidden sm:flex"
       >
         <Shield className="w-4 h-4 text-emerald-600" />
         <span className="text-xs font-semibold">0% commission</span>

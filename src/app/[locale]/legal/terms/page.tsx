@@ -38,7 +38,7 @@ export default function TermsPage() {
             <p>
               <strong>Éditeur :</strong> David Planchon, micro-entrepreneur
               <br />
-              <strong>SIRET :</strong> [À COMPLÉTER]
+              <strong>SIRET :</strong> 85404902000027
               <br />
               <strong>Siège social :</strong> Bartenheim, Alsace, France
               <br />
