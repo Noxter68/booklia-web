@@ -16,8 +16,65 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "Booklia - Services entre particuliers",
-  description: "Offrez ou demandez des services en toute confiance avec Booklia",
+  title: {
+    default: "Booklia — L'app tout-en-un pour les indépendants",
+    template: "%s | Booklia",
+  },
+  description:
+    "Réservations, fiches clients, factures, comptabilité — Booklia centralise tout ce dont les indépendants et petites équipes ont besoin pour gérer leur activité au quotidien.",
+  keywords: [
+    "logiciel réservation",
+    "agenda en ligne",
+    "prise de rendez-vous",
+    "gestion de rendez-vous",
+    "logiciel esthétique",
+    "logiciel coiffure",
+    "comptabilité auto-entrepreneur",
+    "booking software",
+    "SaaS réservation",
+    "Booklia",
+  ],
+  authors: [{ name: "Booklia" }],
+  creator: "Booklia",
+  metadataBase: new URL("https://booklia.org"),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    url: "https://booklia.org",
+    siteName: "Booklia",
+    title: "Booklia — L'app tout-en-un pour les indépendants",
+    description:
+      "Réservations, fiches clients, factures, comptabilité — tout centralisé pour gérer ton activité au quotidien.",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Booklia — L'app tout-en-un pour les indépendants",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Booklia — L'app tout-en-un pour les indépendants",
+    description:
+      "Réservations, fiches clients, factures, comptabilité — tout centralisé pour gérer ton activité au quotidien.",
+    images: ["/opengraph-image"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export default async function LocaleLayout({
