@@ -24,6 +24,8 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   'Only the requester can delete this booking': 'Seul le demandeur peut supprimer cette réservation',
   'Only canceled bookings can be deleted': 'Seules les réservations annulées peuvent être supprimées',
   'You cannot book your own service': 'Vous ne pouvez pas réserver votre propre service',
+  'Ce créneau vient d\'être réservé. Merci d\'en choisir un autre.': 'Ce créneau vient d\'être réservé. Merci d\'en choisir un autre.',
+  'Conflit horaire pour cet employé': 'Conflit horaire — un autre rendez-vous existe déjà sur ce créneau',
 
   // Service errors
   'Service not found': 'Service introuvable',
