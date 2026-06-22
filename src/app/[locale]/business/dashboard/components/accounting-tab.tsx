@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   BarChart,
   Bar,
@@ -39,16 +39,19 @@ import { MaskedAmount, useAmountsVisibility } from '@/contexts/amounts-visibilit
 import type { ExpenseCategory, ExpenseItem, AccountingSummary } from '@/types';
 import { BillingSettingsTab } from './billing-settings-tab';
 
-const categoryLabels: Record<ExpenseCategory, string> = {
-  URSSAF: 'URSSAF',
-  RENT: 'Loyer salon',
-  MATERIAL: 'Matériel',
-  SUPPLIER_ORDER: 'Commande fournisseur',
-  INSURANCE: 'Assurance',
-  SOFTWARE: 'Logiciel',
-  MARKETING: 'Marketing',
-  OTHER: 'Autre',
-};
+function useCategoryLabels(): Record<ExpenseCategory, string> {
+  const t = useTranslations('accounting');
+  return {
+    URSSAF: t('categoryUrssaf'),
+    RENT: t('categoryRent'),
+    MATERIAL: t('categoryMaterial'),
+    SUPPLIER_ORDER: t('categorySupplierOrder'),
+    INSURANCE: t('categoryInsurance'),
+    SOFTWARE: t('categorySoftware'),
+    MARKETING: t('categoryMarketing'),
+    OTHER: t('categoryOther'),
+  };
+}
 
 const categoryColors: Record<ExpenseCategory, string> = {
   URSSAF: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/40',
@@ -63,6 +66,7 @@ const categoryColors: Record<ExpenseCategory, string> = {
 
 /** Small rounded chip — sized to its content, with a subtle colored border. */
 function CategoryChip({ category }: { category: ExpenseCategory }) {
+  const categoryLabels = useCategoryLabels();
   return (
     <span
       className={`inline-flex items-center w-fit rounded-md border px-2 py-0.5 text-xs font-medium ${categoryColors[category]}`}
@@ -153,6 +157,7 @@ function clearPersistedPeriod() {
 type AccountingView = 'overview' | 'settings';
 
 export function AccountingTab() {
+  const t = useTranslations('accounting');
   const locale = useLocale();
   const monthNames = useMemo(() => getMonthNames(locale), [locale]);
 
@@ -211,7 +216,7 @@ export function AccountingTab() {
             onClick={() => setView('overview')}
             className="rounded-full"
           >
-            ← Retour à la comptabilité
+            {t('backToAccounting')}
           </Button>
         </div>
         <BillingSettingsTab />
@@ -241,7 +246,7 @@ export function AccountingTab() {
       <div className="mb-6 space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-xl font-bold">Comptabilité</h2>
+            <h2 className="text-xl font-bold">{t('title')}</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
               {data ? formatPeriodLabel(period, value, monthNames) : '...'}
             </p>
@@ -253,14 +258,14 @@ export function AccountingTab() {
               className="rounded-full whitespace-nowrap w-full sm:w-auto"
             >
               <Settings className="w-4 h-4 mr-2" />
-              Paramètres
+              {t('settings')}
             </Button>
             <Button
               onClick={() => setShowAddExpense(true)}
               className="rounded-full whitespace-nowrap w-full sm:w-auto"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Ajouter une charge
+              {t('addExpense')}
             </Button>
           </div>
         </div>
@@ -287,7 +292,7 @@ export function AccountingTab() {
 
           {data.settings?.legalForm?.startsWith('AUTOENTREPRENEUR') && (
             <p className="text-xs text-muted-foreground mt-4 text-center">
-              Charges affichées pour ton suivi de trésorerie — non déductibles fiscalement en régime micro.
+              {t('microNote')}
             </p>
           )}
         </>
@@ -330,6 +335,7 @@ function PeriodSelector({
   onYearChange: (v: string) => void;
   onReset: () => void;
 }) {
+  const t = useTranslations('accounting');
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 6 }, (_, i) => String(currentYear - i));
   const [selectedYear, selectedMonth] = monthValue.split('-');
@@ -348,7 +354,7 @@ function PeriodSelector({
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {p === 'month' ? 'Mois' : 'Année'}
+            {p === 'month' ? t('periodMonth') : t('periodYear')}
           </button>
         ))}
       </div>
@@ -388,10 +394,10 @@ function PeriodSelector({
         <button
           onClick={onReset}
           className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer w-full sm:w-auto"
-          title="Revenir au mois courant"
+          title={t('todayTitle')}
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          Aujourd&apos;hui
+          {t('today')}
         </button>
       )}
     </div>
@@ -402,6 +408,7 @@ function PeriodSelector({
 // KPI Cards
 // ============================================
 function KpiCards({ data }: { data: AccountingSummary }) {
+  const t = useTranslations('accounting');
   const bookingCount = data.revenue.bookingCount;
   const invoicedCents = data.revenue.invoicedCents;
   const grossCents = data.revenue.grossCents;
@@ -420,9 +427,11 @@ function KpiCards({ data }: { data: AccountingSummary }) {
     iconColor: string;
   }> = [
     {
-      label: 'CA brut',
+      label: t('kpiGross'),
       value: grossCents,
-      sub: `${bookingCount} prestation${bookingCount > 1 ? 's' : ''} terminée${bookingCount > 1 ? 's' : ''}`,
+      sub: bookingCount > 1
+        ? t('completedBookingsPlural', { count: bookingCount })
+        : t('completedBookings', { count: bookingCount }),
       extra: bookingCount > 0 && (
         <p className="text-xs text-pink-700/80 dark:text-pink-400/80 mt-1">
           <MaskedAmount value={formatPrice(invoicedCents)} /> facturés ({invoicedPct}%)
@@ -435,9 +444,11 @@ function KpiCards({ data }: { data: AccountingSummary }) {
       iconColor: 'text-pink-600 dark:text-pink-400',
     },
     {
-      label: 'Charges',
+      label: t('kpiExpenses'),
       value: data.expenses.totalCents,
-      sub: `${data.expenses.count} dépense${data.expenses.count > 1 ? 's' : ''}`,
+      sub: data.expenses.count > 1
+        ? t('expensesPlural', { count: data.expenses.count })
+        : t('expenses', { count: data.expenses.count }),
       icon: TrendingDown,
       bg: 'bg-amber-50 dark:bg-amber-950/30',
       border: 'border-amber-200 dark:border-amber-900/50',
@@ -445,11 +456,11 @@ function KpiCards({ data }: { data: AccountingSummary }) {
       iconColor: 'text-amber-600 dark:text-amber-400',
     },
     {
-      label: 'À provisionner',
+      label: t('kpiProvisions'),
       value: data.provisions.urssafCents + data.provisions.incomeTaxCents,
       sub: data.settings?.urssafRate
         ? `URSSAF ${(data.settings.urssafRate * 100).toFixed(1)}%`
-        : 'Configurer dans les réglages',
+        : t('configureSettings'),
       icon: Landmark,
       bg: 'bg-blue-50 dark:bg-blue-950/30',
       border: 'border-blue-200 dark:border-blue-900/50',
@@ -457,9 +468,9 @@ function KpiCards({ data }: { data: AccountingSummary }) {
       iconColor: 'text-blue-600 dark:text-blue-400',
     },
     {
-      label: 'Net estimé',
+      label: t('kpiNet'),
       value: data.netEstimateCents,
-      sub: 'Après charges & provisions',
+      sub: t('afterExpenses'),
       icon: Wallet,
       bg: 'bg-emerald-50 dark:bg-emerald-950/30',
       border: 'border-emerald-200 dark:border-emerald-900/50',
@@ -510,6 +521,7 @@ function RevenueVsExpensesChart({
   period: PeriodMode;
   monthNames: string[];
 }) {
+  const t = useTranslations('accounting');
   const { visible } = useAmountsVisibility();
 
   const chartData = useMemo(() => {
@@ -539,10 +551,10 @@ function RevenueVsExpensesChart({
 
   return (
     <div className="bg-surface border border-border rounded-2xl p-5">
-      <h3 className="font-semibold mb-4">CA vs Charges</h3>
+      <h3 className="font-semibold mb-4">{t('caVsExpenses')}</h3>
       {isEmpty ? (
         <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">
-          Aucune donnée sur la période
+          {t('noData')}
         </div>
       ) : (
         <div className="h-64">
@@ -564,7 +576,7 @@ function RevenueVsExpensesChart({
                       <p className="font-medium mb-1">{label}</p>
                       {payload.map((p: any) => (
                         <p key={p.dataKey} style={{ color: p.color }} className="font-semibold">
-                          {p.dataKey === 'revenue' ? 'CA' : 'Charges'}: {visible ? `${p.value.toFixed(2)} €` : '•••'}
+                          {p.dataKey === 'revenue' ? t('chartRevenue') : t('chartExpenses')}: {visible ? `${p.value.toFixed(2)} €` : '•••'}
                         </p>
                       ))}
                     </div>
@@ -572,8 +584,8 @@ function RevenueVsExpensesChart({
                 }}
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="revenue" name="CA" fill="#ec4899" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="expenses" name="Charges" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="revenue" name={t('chartRevenue')} fill="#ec4899" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="expenses" name={t('chartExpenses')} fill="#f59e0b" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -586,11 +598,14 @@ function RevenueVsExpensesChart({
 // Expenses by category breakdown
 // ============================================
 function ExpensesByCategoryCard({ data }: { data: AccountingSummary }) {
+  const t = useTranslations('accounting');
+  const categoryLabels = useCategoryLabels();
+
   if (data.expenses.byCategory.length === 0) {
     return (
       <div className="bg-surface border border-border rounded-2xl p-5">
-        <h3 className="font-semibold mb-4">Par catégorie</h3>
-        <p className="text-sm text-muted-foreground">Aucune charge sur la période</p>
+        <h3 className="font-semibold mb-4">{t('byCategory')}</h3>
+        <p className="text-sm text-muted-foreground">{t('noExpensesForPeriod')}</p>
       </div>
     );
   }
@@ -599,7 +614,7 @@ function ExpensesByCategoryCard({ data }: { data: AccountingSummary }) {
 
   return (
     <div className="bg-surface border border-border rounded-2xl p-5">
-      <h3 className="font-semibold mb-4">Par catégorie</h3>
+      <h3 className="font-semibold mb-4">{t('byCategory')}</h3>
       <div className="space-y-3">
         {data.expenses.byCategory.map((c) => {
           const pct = total > 0 ? (c.cents / total) * 100 : 0;
@@ -633,25 +648,24 @@ function ExpensesTable({
   items: ExpenseItem[];
   locale: string;
 }) {
+  const t = useTranslations('accounting');
   const queryClient = useQueryClient();
   const { success, error: showError } = useToast();
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteExpense(id),
     onSuccess: () => {
-      success('Charge supprimée');
+      success(t('expenseDeleted'));
       queryClient.invalidateQueries({ queryKey: ['accounting-summary'] });
     },
-    onError: () => showError('Erreur lors de la suppression'),
+    onError: () => showError(t('expenseDeleteError')),
   });
 
   if (items.length === 0) {
     return (
       <div className="mt-6 bg-surface border border-border rounded-2xl p-8 text-center">
-        <p className="text-muted-foreground">Aucune charge sur cette période</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Clique sur « Ajouter une charge » pour commencer
-        </p>
+        <p className="text-muted-foreground">{t('noExpenses')}</p>
+        <p className="text-sm text-muted-foreground mt-1">{t('noExpensesHint')}</p>
       </div>
     );
   }
@@ -659,16 +673,16 @@ function ExpensesTable({
   return (
     <div className="mt-6 bg-surface border border-border rounded-2xl overflow-hidden">
       <div className="px-5 py-4 border-b border-border">
-        <h3 className="font-semibold">Détail des charges</h3>
+        <h3 className="font-semibold">{t('expensesDetail')}</h3>
       </div>
 
       {/* Desktop header */}
       <div className="hidden md:grid md:grid-cols-[110px_140px_1fr_140px_120px_40px] gap-4 px-5 py-3 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
-        <span>Date</span>
-        <span>Catégorie</span>
-        <span>Description</span>
-        <span>Référence</span>
-        <span className="text-right">Montant</span>
+        <span>{t('colDate')}</span>
+        <span>{t('colCategory')}</span>
+        <span>{t('colDescription')}</span>
+        <span>{t('colReference')}</span>
+        <span className="text-right">{t('colAmount')}</span>
         <span />
       </div>
 
@@ -686,7 +700,7 @@ function ExpensesTable({
                   <span className="text-xs text-muted-foreground">{formatExpenseDate(e.date, locale)}</span>
                 </div>
                 <p className="text-sm truncate">{e.description}</p>
-                {e.reference && <p className="text-xs text-muted-foreground mt-0.5">Réf : {e.reference}</p>}
+                {e.reference && <p className="text-xs text-muted-foreground mt-0.5">{t('refPrefix')} {e.reference}</p>}
               </div>
               <div className="text-right shrink-0">
                 <p className="font-semibold text-sm">
@@ -750,6 +764,8 @@ function AddExpenseForm({
   onClose: () => void;
   locale: string;
 }) {
+  const t = useTranslations('accounting');
+  const categoryLabels = useCategoryLabels();
   const queryClient = useQueryClient();
   const { success, error: showError } = useToast();
   const today = new Date().toISOString().slice(0, 10);
@@ -758,7 +774,7 @@ function AddExpenseForm({
     date: string;
     category: ExpenseCategory;
     description: string;
-    amount: string; // user-typed, e.g. "12.50"
+    amount: string;
     reference: string;
   }>({
     date: today,
@@ -780,11 +796,11 @@ function AddExpenseForm({
       });
     },
     onSuccess: () => {
-      success('Charge ajoutée');
+      success(t('expenseAdded'));
       queryClient.invalidateQueries({ queryKey: ['accounting-summary'] });
       onClose();
     },
-    onError: (err: any) => showError(err.message || 'Erreur lors de l\'ajout'),
+    onError: (err: any) => showError(err.message || t('expenseAddError')),
   });
 
   const amountNumber = parseFloat(form.amount.replace(',', '.'));
@@ -803,7 +819,7 @@ function AddExpenseForm({
             <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
               <TrendingDown className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
-            <h2 className="text-lg font-bold">Nouvelle charge</h2>
+            <h2 className="text-lg font-bold">{t('newExpense')}</h2>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1 cursor-pointer">
             <X className="w-5 h-5" />
@@ -813,7 +829,7 @@ function AddExpenseForm({
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Date <span className="text-red-500">*</span>
+              {t('labelDate')} <span className="text-red-500">*</span>
             </label>
             <DatePickerPopover
               value={form.date}
@@ -826,7 +842,7 @@ function AddExpenseForm({
 
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Catégorie <span className="text-red-500">*</span>
+              {t('labelCategory')} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -844,7 +860,7 @@ function AddExpenseForm({
 
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Description <span className="text-red-500">*</span>
+              {t('labelDescription')} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -852,7 +868,7 @@ function AddExpenseForm({
                 type="text"
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Ex : Shampoing professionnel"
+                placeholder={t('descriptionPlaceholder')}
                 maxLength={255}
                 className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
               />
@@ -861,7 +877,7 @@ function AddExpenseForm({
 
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Montant TTC <span className="text-red-500">*</span>
+              {t('labelAmount')} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
@@ -877,14 +893,14 @@ function AddExpenseForm({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">Référence</label>
+            <label className="block text-sm font-medium mb-1.5">{t('labelReference')}</label>
             <div className="relative">
               <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <input
                 type="text"
                 value={form.reference}
                 onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
-                placeholder="N° de facture fournisseur (optionnel)"
+                placeholder={t('referencePlaceholder')}
                 maxLength={100}
                 className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
               />
@@ -897,7 +913,7 @@ function AddExpenseForm({
             disabled={!canSubmit || mutation.isPending}
             className="w-full rounded-xl"
           >
-            Ajouter la charge
+            {t('addExpenseSubmit')}
           </Button>
         </div>
       </div>

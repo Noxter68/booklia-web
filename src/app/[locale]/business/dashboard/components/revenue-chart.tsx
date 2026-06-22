@@ -5,23 +5,13 @@ import { useQuery } from '@tanstack/react-query';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Euro, Users, ChevronDown, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
 import { MaskedAmount, useAmountsVisibility } from '@/contexts/amounts-visibility-context';
 
 type Period = 'week' | 'month' | '6months';
 type Metric = 'revenue' | 'clients';
-
-const periodLabels: Record<Period, string> = {
-  week: '7 jours',
-  month: '30 jours',
-  '6months': '6 mois',
-};
-
-const metricLabels: Record<Metric, string> = {
-  revenue: 'CA',
-  clients: 'Clients',
-};
 
 function getDateRange(period: Period): { from: Date; to: Date } {
   const to = new Date();
@@ -187,6 +177,16 @@ function ClientsTooltip({ active, payload, label }: any) {
 
 export function RevenueChart() {
   const [period, setPeriod] = useState<Period>('month');
+  const t = useTranslations('dashboard');
+  const periodLabels: Record<Period, string> = {
+    week: t('chartPeriodWeek'),
+    month: t('chartPeriodMonth'),
+    '6months': t('chartPeriod6months'),
+  };
+  const metricLabels: Record<Metric, string> = {
+    revenue: t('chartRevenue'),
+    clients: t('chartClients'),
+  };
   const [metric, setMetric] = useState<Metric>('revenue');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { visible: amountsVisible } = useAmountsVisibility();
@@ -268,20 +268,20 @@ export function RevenueChart() {
             >
               {metric === 'revenue' ? (
                 <>
-                  <h3 className="font-semibold text-sm sm:text-base">Chiffre d&apos;affaires</h3>
+                  <h3 className="font-semibold text-sm sm:text-base">{t('chartTitleRevenue')}</h3>
                   <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
                     <span className="font-semibold text-foreground text-base sm:text-lg">
                       <MaskedAmount value={formatPrice(totalRevenue)} />
                     </span>
-                    <span>{totalBookings} prestation{totalBookings > 1 ? 's' : ''}</span>
+                    <span>{totalBookings > 1 ? t('chartBookingsPlural', { count: totalBookings }) : t('chartBookings', { count: totalBookings })}</span>
                   </div>
                 </>
               ) : (
                 <>
-                  <h3 className="font-semibold text-sm sm:text-base">Évolution clients</h3>
+                  <h3 className="font-semibold text-sm sm:text-base">{t('chartTitleClients')}</h3>
                   <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground text-base sm:text-lg">{currentClients} client{currentClients > 1 ? 's' : ''}</span>
-                    {newClients > 0 && <span className="text-emerald-600 dark:text-emerald-400">+{newClients} nouveau{newClients > 1 ? 'x' : ''}</span>}
+                    <span className="font-semibold text-foreground text-base sm:text-lg">{currentClients}</span>
+                    {newClients > 0 && <span className="text-emerald-600 dark:text-emerald-400">{newClients > 1 ? t('chartNewClientsPlural', { count: newClients }) : t('chartNewClients', { count: newClients })}</span>}
                   </div>
                 </>
               )}
@@ -363,9 +363,7 @@ export function RevenueChart() {
             </div>
           ) : isEmpty ? (
             <div className="flex items-center justify-center h-40 sm:h-48 text-muted-foreground text-sm">
-              {metric === 'revenue'
-                ? 'Aucune prestation terminée sur cette période'
-                : 'Aucun nouveau client sur cette période'}
+              {metric === 'revenue' ? t('chartNoRevenue') : t('chartNoClients')}
             </div>
           ) : (
             <div className="h-40 sm:h-48">

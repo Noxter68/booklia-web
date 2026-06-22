@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Calendar,
 } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,12 +26,6 @@ import { BatchInvoiceModal } from './batch-invoice-modal';
 import { BatchHistory } from './batch-history';
 import { SendInvoiceButton } from './send-invoice-button';
 import { MaskedAmount } from '@/contexts/amounts-visibility-context';
-
-const statusLabels: Record<InvoiceStatus, string> = {
-  DRAFT: 'Brouillon',
-  FINALIZED: 'Finalisée',
-  CANCELLED: 'Annulée',
-};
 
 const statusColors: Record<InvoiceStatus, string> = {
   DRAFT: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
@@ -54,6 +49,8 @@ function useDebounce(value: string, delay: number) {
 type InvoicesSubTab = 'invoices' | 'batches';
 
 export function InvoicesTab({ businessId }: { businessId: string }) {
+  const t = useTranslations('invoices');
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const { success, error: showError } = useToast();
   const [view, setView] = useState<InvoicesView>('list');
@@ -68,6 +65,12 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
   const filterRef = useRef<HTMLDivElement>(null);
   const monthFilterRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const statusLabels: Record<InvoiceStatus, string> = {
+    DRAFT: t('statusDraft'),
+    FINALIZED: t('statusFinalized'),
+    CANCELLED: t('statusCanceled'),
+  };
 
   const debouncedSearch = useDebounce(searchInput, 300);
 
@@ -89,9 +92,9 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
     mutationFn: (invoiceId: string) => api.deleteInvoice(invoiceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      success('Facture supprimée');
+      success(t('invoiceDeleted'));
     },
-    onError: () => showError('Erreur lors de la suppression'),
+    onError: () => showError(t('invoiceDeleteError')),
   });
 
   const { data, isLoading } = useQuery({
@@ -114,12 +117,12 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
       const date = new Date(inv.issueDate || inv.createdAt);
       const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
       if (!months.has(key)) {
-        const label = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+        const label = date.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
         months.set(key, label.charAt(0).toUpperCase() + label.slice(1));
       }
     }
     return Array.from(months.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [allInvoices]);
+  }, [allInvoices, locale]);
 
   // Filter invoices by selected month
   const invoices = useMemo(() => {
@@ -133,12 +136,12 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
 
   const filterLabel =
     statusFilter === ''
-      ? 'Toutes'
+      ? t('filterAll')
       : statusLabels[statusFilter as InvoiceStatus];
 
   const monthLabel = monthFilter
     ? availableMonths.find(([k]) => k === monthFilter)?.[1] || ''
-    : 'Tous les mois';
+    : t('filterAllMonths');
 
   if (view === 'editor') {
     return (
@@ -157,7 +160,7 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
     <div>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <h2 className="text-xl font-bold">Factures</h2>
+        <h2 className="text-xl font-bold">{t('title')}</h2>
         <div className="flex items-center gap-2">
           {subTab === 'batches' && (
             <Button
@@ -166,7 +169,7 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
               className="rounded-full"
             >
               <FileStack className="w-4 h-4 mr-2" />
-              Facturation groupée
+              {t('batchInvoice')}
             </Button>
           )}
           {subTab === 'invoices' && (
@@ -178,7 +181,7 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
               className="rounded-full"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Nouvelle facture
+              {t('newInvoice')}
             </Button>
           )}
         </div>
@@ -195,7 +198,7 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
           }`}
         >
           <FileText className="w-4 h-4 inline mr-2" />
-          Factures
+          {t('tabInvoices')}
           {subTab === 'invoices' && (
             <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
           )}
@@ -209,7 +212,7 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
           }`}
         >
           <FileStack className="w-4 h-4 inline mr-2" />
-          Générations
+          {t('tabGenerations')}
           {subTab === 'batches' && (
             <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
           )}
@@ -268,10 +271,10 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
           {filterOpen && (
             <div className="absolute right-0 mt-1 w-44 bg-surface border border-border rounded-lg shadow-lg z-20 py-1">
               {[
-                { value: '', label: 'Toutes' },
-                { value: 'DRAFT', label: 'Brouillon' },
-                { value: 'FINALIZED', label: 'Finalisée' },
-                { value: 'CANCELLED', label: 'Annulée' },
+                { value: '', label: t('filterAll') },
+                { value: 'DRAFT', label: t('statusDraft') },
+                { value: 'FINALIZED', label: t('statusFinalized') },
+                { value: 'CANCELLED', label: t('statusCanceled') },
               ].map((opt) => (
                 <button
                   key={opt.value}
@@ -320,7 +323,7 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                 }`}
               >
-                Tous les mois
+                {t('filterAllMonths')}
               </button>
               {availableMonths.map(([key, label]) => (
                 <button
@@ -354,10 +357,10 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
           </div>
           <p className="text-muted-foreground">
             {debouncedSearch
-              ? 'Aucune facture trouvée pour cette recherche'
+              ? t('noInvoicesSearch')
               : statusFilter
-                ? 'Aucune facture avec ce statut'
-                : 'Aucune facture pour le moment'}
+                ? t('noInvoicesStatus')
+                : t('noInvoices')}
           </p>
           {!debouncedSearch && !statusFilter && (
             <Button
@@ -368,7 +371,7 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
               className="rounded-full mt-4"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Créer une facture
+              {t('createInvoice')}
             </Button>
           )}
         </div>
@@ -382,7 +385,7 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
             for (const invoice of invoices) {
               const date = new Date(invoice.issueDate || invoice.createdAt);
               const key = `${date.getFullYear()}-${date.getMonth()}`;
-              const label = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+              const label = date.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 
               if (key !== currentKey) {
                 currentKey = key;
@@ -399,11 +402,11 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
                 <div className="bg-surface border border-border rounded-2xl overflow-hidden">
                   {/* Header */}
                   <div className="hidden md:grid md:grid-cols-[1fr_150px_120px_120px_140px] gap-4 px-4 py-3 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    <span>Numéro / Client</span>
-                    <span>Date</span>
-                    <span className="text-right">Total TTC</span>
-                    <span className="text-center">Statut</span>
-                    <span className="text-right">Envoyer au client</span>
+                    <span>{t('colNumberClient')}</span>
+                    <span>{t('colDate')}</span>
+                    <span className="text-right">{t('colTotal')}</span>
+                    <span className="text-center">{t('colStatus')}</span>
+                    <span className="text-right">{t('colSend')}</span>
                   </div>
 
                   {group.invoices.map((invoice: Invoice, idx: number) => (
@@ -421,7 +424,7 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
                       <div className="md:hidden p-4">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-sm">
-                            {invoice.invoiceNumber || 'Brouillon'}
+                            {invoice.invoiceNumber || t('draft')}
                           </span>
                           <div className="flex items-center gap-2">
                             <Badge className={statusColors[invoice.status]}>
@@ -431,7 +434,7 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (confirm('Supprimer ce brouillon ?')) {
+                                  if (confirm(t('deleteDraftConfirm'))) {
                                     deleteMutation.mutate(invoice.id);
                                   }
                                 }}
@@ -450,7 +453,7 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
                           </div>
                         </div>
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{invoice.client?.name || 'Sans client'}</span>
+                          <span>{invoice.client?.name || t('noClient')}</span>
                           <span className="font-semibold text-foreground">
                             <MaskedAmount value={formatPrice(invoice.totalTTCCents)} />
                           </span>
@@ -461,20 +464,20 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
                       <div className="hidden md:grid md:grid-cols-[1fr_150px_120px_120px_140px] gap-4 items-center px-4 py-3">
                         <div>
                           <p className="font-medium text-sm">
-                            {invoice.invoiceNumber || 'Brouillon'}
+                            {invoice.invoiceNumber || t('draft')}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {invoice.client?.name || 'Sans client'}
+                            {invoice.client?.name || t('noClient')}
                           </p>
                         </div>
                         <span className="text-sm text-muted-foreground">
                           {invoice.issueDate
-                            ? new Date(invoice.issueDate).toLocaleDateString('fr-FR', {
+                            ? new Date(invoice.issueDate).toLocaleDateString(locale, {
                                 day: 'numeric',
                                 month: 'short',
                                 year: 'numeric',
                               })
-                            : new Date(invoice.createdAt).toLocaleDateString('fr-FR', {
+                            : new Date(invoice.createdAt).toLocaleDateString(locale, {
                                 day: 'numeric',
                                 month: 'short',
                                 year: 'numeric',
@@ -493,7 +496,7 @@ export function InvoicesTab({ businessId }: { businessId: string }) {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirm('Supprimer ce brouillon ?')) {
+                                if (confirm(t('deleteDraftConfirm'))) {
                                   deleteMutation.mutate(invoice.id);
                                 }
                               }}

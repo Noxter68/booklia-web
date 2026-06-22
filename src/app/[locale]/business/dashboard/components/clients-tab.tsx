@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Search,
   Loader2,
@@ -38,36 +39,38 @@ import { InvoiceEditor } from './invoice-editor';
 import { SendInvoiceButton } from './send-invoice-button';
 import { MaskedAmount } from '@/contexts/amounts-visibility-context';
 
-function getTrustBadge(level: ClientTrustLevel) {
+function getTrustBadge(level: ClientTrustLevel, t: ReturnType<typeof useTranslations>) {
   switch (level) {
     case 'fiable':
       return {
-        label: 'Fiable',
+        label: t('trustReliable'),
         icon: ShieldCheck,
         className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
       };
     case 'peu_fiable':
       return {
-        label: 'Peu fiable',
+        label: t('trustUnreliable'),
         icon: ShieldAlert,
         className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
       };
     case 'attention':
       return {
-        label: 'Attention',
+        label: t('trustWarning'),
         icon: AlertTriangle,
         className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
       };
   }
 }
 
-const statusLabels: Record<string, string> = {
-  PENDING: 'En attente',
-  ACCEPTED: 'Accepté',
-  REJECTED: 'Refusé',
-  COMPLETED: 'Terminé',
-  CANCELED: 'Annulé',
-};
+function getStatusLabels(t: ReturnType<typeof useTranslations>): Record<string, string> {
+  return {
+    PENDING: t('statusPending'),
+    ACCEPTED: t('statusAccepted'),
+    REJECTED: t('statusRejected'),
+    COMPLETED: t('statusCompleted'),
+    CANCELED: t('statusCanceled'),
+  };
+}
 
 const statusColors: Record<string, string> = {
   PENDING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
@@ -82,6 +85,7 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
   onClose: () => void;
   onCreated: (clientId: string) => void;
 }) {
+  const t = useTranslations('clients');
   const [form, setForm] = useState<{
     name: string;
     email: string;
@@ -107,7 +111,7 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
       onCreated(data.id);
     },
     onError: (err: any) => {
-      setError(err.message || 'Erreur lors de la création');
+      setError(err.message || t('clientCreateError'));
     },
   });
 
@@ -133,8 +137,8 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
               <UserPlus className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-bold">Nouveau client</h2>
-              <p className="text-sm text-muted-foreground">Créer une fiche client</p>
+              <h2 className="text-lg font-bold">{t('createClientTitle')}</h2>
+              <p className="text-sm text-muted-foreground">{t('createClientSubtitle')}</p>
             </div>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1 cursor-pointer">
@@ -153,7 +157,7 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
           {/* Name */}
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Nom complet <span className="text-red-500">*</span>
+              {t('labelFullName')} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -161,7 +165,7 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="Prénom Nom"
+                placeholder={t('namePlaceholder')}
                 className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
@@ -170,7 +174,7 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
           {/* Email */}
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Email <span className="text-red-500">*</span>
+              {t('labelEmail')} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -186,14 +190,14 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
 
           {/* Phone */}
           <div>
-            <label className="block text-sm font-medium mb-1.5">Téléphone</label>
+            <label className="block text-sm font-medium mb-1.5">{t('labelPhone')}</label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))}
-                placeholder="06 12 34 56 78"
+                placeholder={t('phonePlaceholder')}
                 className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
@@ -201,14 +205,14 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
 
           {/* Address */}
           <div>
-            <label className="block text-sm font-medium mb-1.5">Adresse</label>
+            <label className="block text-sm font-medium mb-1.5">{t('labelAddress')}</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 value={form.address}
                 onChange={(e) => setForm(f => ({ ...f, address: e.target.value }))}
-                placeholder="Adresse du client"
+                placeholder={t('addressPlaceholder')}
                 className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
@@ -216,7 +220,7 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
 
           {/* Birth date */}
           <div>
-            <label className="block text-sm font-medium mb-1.5">Date d'anniversaire</label>
+            <label className="block text-sm font-medium mb-1.5">{t('labelBirthday')}</label>
             <BirthDateInput
               value={form.birthDate}
               onChange={(iso) => setForm(f => ({ ...f, birthDate: iso }))}
@@ -225,13 +229,13 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium mb-1.5">Notes</label>
+            <label className="block text-sm font-medium mb-1.5">{t('labelNotes')}</label>
             <div className="relative">
               <StickyNote className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
               <textarea
                 value={form.notes}
                 onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
-                placeholder="Notes internes sur le client..."
+                placeholder={t('notesCreatePlaceholder')}
                 rows={3}
                 className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
               />
@@ -244,7 +248,7 @@ function NewClientModal({ isOpen, onClose, onCreated }: {
             disabled={!canSubmit || mutation.isPending}
             className="w-full rounded-xl"
           >
-            Créer le client
+            {t('createSubmit')}
           </Button>
         </div>
       </div>
@@ -256,6 +260,7 @@ export function ClientsTab({ businessId, initialClientId }: {
   businessId: string;
   initialClientId?: string | null;
 }) {
+  const t = useTranslations('clients');
   const queryClient = useQueryClient();
   const { success, error: showError } = useToast();
   const [search, setSearch] = useState('');
@@ -288,14 +293,14 @@ export function ClientsTab({ businessId, initialClientId }: {
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <h2 className="text-xl font-bold">Clients</h2>
+        <h2 className="text-xl font-bold">{t('title')}</h2>
         <div className="flex items-center gap-2">
           <Button
             onClick={() => setShowNewClient(true)}
             className="rounded-full whitespace-nowrap"
           >
             <UserPlus className="w-4 h-4 mr-2" />
-            Nouveau client
+            {t('newClient')}
           </Button>
         </div>
       </div>
@@ -306,7 +311,7 @@ export function ClientsTab({ businessId, initialClientId }: {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <input
             type="text"
-            placeholder="Rechercher un client..."
+            placeholder={t('searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-9 py-2 rounded-lg border border-border bg-surface text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -342,11 +347,11 @@ export function ClientsTab({ businessId, initialClientId }: {
             <UserCheck className="w-8 h-8 text-muted-foreground" />
           </div>
           <p className="text-muted-foreground">
-            {search ? 'Aucun client trouvé' : 'Aucun client pour le moment'}
+            {search ? t('noClientsFound') : t('noClients')}
           </p>
           {!search && (
             <p className="text-sm text-muted-foreground mt-1">
-              Les clients apparaîtront ici après leur première réservation
+              {t('noClientsHint')}
             </p>
           )}
         </div>
@@ -354,17 +359,17 @@ export function ClientsTab({ businessId, initialClientId }: {
         <div className="bg-surface border border-border rounded-2xl overflow-hidden">
           {/* Desktop table header */}
           <div className="hidden md:grid md:grid-cols-[1fr_120px_100px_100px_100px_80px_40px] gap-4 px-4 py-3 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            <span>Client</span>
-            <span>Confiance</span>
-            <span className="text-right">RDV</span>
-            <span className="text-right">CA</span>
-            <span className="text-right">Annulations</span>
-            <span className="text-center">Bloqué</span>
+            <span>{t('colClient')}</span>
+            <span>{t('colTrust')}</span>
+            <span className="text-right">{t('colBookings')}</span>
+            <span className="text-right">{t('colRevenue')}</span>
+            <span className="text-right">{t('colCancellations')}</span>
+            <span className="text-center">{t('colBlocked')}</span>
             <span />
           </div>
 
           {clients.map((client, idx) => {
-            const trust = client.stats ? getTrustBadge(client.stats.trustLevel) : null;
+            const trust = client.stats ? getTrustBadge(client.stats.trustLevel, t) : null;
             const TrustIcon = trust?.icon;
             const isBday = isBirthdayToday(client.user?.birthDate);
 
@@ -385,10 +390,10 @@ export function ClientsTab({ businessId, initialClientId }: {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium">{client.user?.name || 'Sans nom'}</p>
+                          <p className="font-medium">{client.user?.name || t('noName')}</p>
                           {isBday && (
                             <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
-                              <Cake className="w-3 h-3 mr-1" /> Anniv.
+                              <Cake className="w-3 h-3 mr-1" /> {t('birthday')}
                             </Badge>
                           )}
                         </div>
@@ -406,13 +411,13 @@ export function ClientsTab({ businessId, initialClientId }: {
                     )}
                     {client.stats && (
                       <>
-                        <span className="text-muted-foreground">{client.stats.totalBookings} RDV</span>
+                        <span className="text-muted-foreground">{client.stats.totalBookings} {t('colBookings')}</span>
                         <span className="font-medium"><MaskedAmount value={formatPrice(client.stats.totalRevenueCents)} /></span>
                       </>
                     )}
                     {client.isBlocked && (
                       <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                        <Ban className="w-3 h-3 mr-1" /> Bloqué
+                        <Ban className="w-3 h-3 mr-1" /> {t('blocked')}
                       </Badge>
                     )}
                   </div>
@@ -426,10 +431,10 @@ export function ClientsTab({ businessId, initialClientId }: {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium truncate">{client.user?.name || 'Sans nom'}</p>
+                        <p className="font-medium truncate">{client.user?.name || t('noName')}</p>
                         {isBday && (
                           <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 shrink-0">
-                            <Cake className="w-3 h-3 mr-1" /> Anniv.
+                            <Cake className="w-3 h-3 mr-1" /> {t('birthday')}
                           </Badge>
                         )}
                       </div>
@@ -464,6 +469,8 @@ export function ClientsTab({ businessId, initialClientId }: {
 }
 
 function ClientDetail({ clientId, businessId, onBack }: { clientId: string; businessId: string; onBack: () => void }) {
+  const t = useTranslations('clients');
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const { success, error: showError } = useToast();
   const [editingNotes, setEditingNotes] = useState(false);
@@ -473,6 +480,8 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
   const [birthDate, setBirthDate] = useState<string | null>(null);
   const [editingNoteBookingId, setEditingNoteBookingId] = useState<string | null>(null);
   const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null);
+
+  const statusLabels = getStatusLabels(t);
 
   const { data: client, isLoading } = useQuery({
     queryKey: ['business-client', clientId],
@@ -488,23 +497,23 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
     mutationFn: (data: { isBlocked?: boolean; notes?: string; phone?: string; address?: string; birthDate?: string | null }) =>
       api.updateBusinessClient(clientId, data),
     onSuccess: () => {
-      success('Client mis à jour');
+      success(t('clientUpdated'));
       queryClient.invalidateQueries({ queryKey: ['business-client', clientId] });
       queryClient.invalidateQueries({ queryKey: ['business-clients'] });
       setEditingNotes(false);
     },
-    onError: () => showError('Erreur lors de la mise à jour'),
+    onError: () => showError(t('clientUpdateError')),
   });
 
   const createInvoiceMutation = useMutation({
     mutationFn: (data: { bookingId: string; clientId: string; serviceDate?: string }) =>
       api.createInvoice(data),
     onSuccess: (data) => {
-      success('Facture créée avec la prestation');
+      success(t('invoiceCreated'));
       setCreatedInvoiceId(data.id);
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     },
-    onError: (err: Error) => showError(err.message || 'Erreur lors de la création de la facture'),
+    onError: (err: Error) => showError(err.message || t('invoiceCreateError')),
   });
 
   const handleQuickInvoice = (booking: any) => {
@@ -556,15 +565,15 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
   if (!client) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">Client introuvable</p>
+        <p className="text-muted-foreground">{t('notFound')}</p>
         <Button variant="outline" onClick={onBack} className="mt-4 rounded-full">
-          Retour
+          {t('back')}
         </Button>
       </div>
     );
   }
 
-  const trust = client.stats ? getTrustBadge(client.stats.trustLevel) : null;
+  const trust = client.stats ? getTrustBadge(client.stats.trustLevel, t) : null;
   const TrustIcon = trust?.icon;
   const isBday = isBirthdayToday(client.user?.birthDate);
 
@@ -581,10 +590,10 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg sm:text-xl font-bold truncate">{client.user?.name || 'Sans nom'}</h2>
+              <h2 className="text-lg sm:text-xl font-bold truncate">{client.user?.name || t('noName')}</h2>
               {isBday && (
                 <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 shrink-0">
-                  <Cake className="w-3.5 h-3.5 mr-1" /> Anniversaire
+                  <Cake className="w-3.5 h-3.5 mr-1" /> {t('birthdayFull')}
                 </Badge>
               )}
             </div>
@@ -598,7 +607,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
           className={`rounded-full w-full sm:w-auto sm:shrink-0 sm:ml-auto ${client.isBlocked ? 'bg-red-600 hover:bg-red-700' : 'text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20'}`}
         >
           <Ban className="w-4 h-4 mr-2" />
-          {client.isBlocked ? 'Débloquer' : 'Bloquer'}
+          {client.isBlocked ? t('unblock') : t('block')}
         </Button>
       </div>
 
@@ -610,12 +619,12 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
             <div className="bg-surface border border-border rounded-2xl p-5">
               <h3 className="font-semibold mb-4 flex items-center gap-2">
                 <UserCheck className="w-5 h-5" />
-                Statistiques
+                {t('stats')}
               </h3>
               <div className="space-y-3">
                 {trust && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Confiance</span>
+                    <span className="text-sm text-muted-foreground">{t('trust')}</span>
                     <Badge className={trust.className}>
                       {TrustIcon && <TrustIcon className="w-3.5 h-3.5 mr-1" />}
                       {trust.label}
@@ -623,30 +632,30 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Total RDV</span>
+                  <span className="text-sm text-muted-foreground">{t('totalBookings')}</span>
                   <span className="font-semibold">{client.stats.totalBookings}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Terminés</span>
+                  <span className="text-sm text-muted-foreground">{t('completed')}</span>
                   <span className="font-semibold text-emerald-600">{client.stats.completedBookings}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Annulations</span>
+                  <span className="text-sm text-muted-foreground">{t('cancellations')}</span>
                   <span className="font-semibold text-red-600">{client.stats.canceledByClient}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Taux de complétion</span>
+                  <span className="text-sm text-muted-foreground">{t('completionRate')}</span>
                   <span className="font-semibold">{Math.round(client.stats.completionRate)}%</span>
                 </div>
                 <div className="border-t border-border pt-3 flex items-center justify-between gap-2">
-                  <span className="text-sm text-muted-foreground shrink-0">Chiffre d&apos;affaires</span>
+                  <span className="text-sm text-muted-foreground shrink-0">{t('revenue')}</span>
                   <span className="font-bold text-primary text-right truncate"><MaskedAmount value={formatPrice(client.stats.totalRevenueCents)} /></span>
                 </div>
                 {client.stats.lastBookingAt && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Dernière visite</span>
                     <span className="text-sm">
-                      {new Date(client.stats.lastBookingAt).toLocaleDateString('fr-FR', {
+                      {new Date(client.stats.lastBookingAt).toLocaleDateString(locale, {
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric',
@@ -656,7 +665,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                 )}
                 {client.stats.servicesUsed.length > 0 && (
                   <div className="border-t border-border pt-3">
-                    <span className="text-sm text-muted-foreground block mb-2">Prestations utilisées</span>
+                    <span className="text-sm text-muted-foreground block mb-2">{t('servicesUsed')}</span>
                     <div className="flex flex-wrap gap-1.5">
                       {client.stats.servicesUsed.map((service) => (
                         <Badge key={service} variant="secondary" className="text-xs">
@@ -680,11 +689,11 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold flex items-center gap-2">
                 <FileText className="w-5 h-5" />
-                Informations
+                {t('info')}
               </h3>
               {!editingNotes ? (
                 <Button variant="ghost" size="sm" onClick={startEditing} className="rounded-full text-xs">
-                  Modifier
+                  {t('edit')}
                 </Button>
               ) : (
                 <div className="flex gap-1.5">
@@ -695,7 +704,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                     className="rounded-full text-xs"
                   >
                     <Save className="w-3.5 h-3.5 mr-1" />
-                    Enregistrer
+                    {t('save')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -712,41 +721,41 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
             {editingNotes ? (
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Téléphone</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('labelPhone')}</label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="06 12 34 56 78"
+                      placeholder={t('phonePlaceholder')}
                       className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Adresse</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('labelAddress')}</label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Adresse du client"
+                      placeholder={t('addressPlaceholder')}
                       className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Date d&apos;anniversaire</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('labelBirthday')}</label>
                   <BirthDateInput value={birthDate} onChange={setBirthDate} />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Notes</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('labelNotes')}</label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Notes privées sur ce client..."
+                    placeholder={t('notesPlaceholder')}
                     rows={3}
                     className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                   />
@@ -778,7 +787,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                   </div>
                 )}
                 {!client.phone && !client.address && !client.user?.birthDate && !client.notes && (
-                  <p className="text-sm text-muted-foreground">Aucune information enregistrée</p>
+                  <p className="text-sm text-muted-foreground">{t('noInfo')}</p>
                 )}
               </div>
             )}
@@ -790,7 +799,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
           <div className="bg-surface border border-border rounded-2xl p-5">
             <h3 className="font-semibold mb-4 flex items-center gap-2">
               <Calendar className="w-5 h-5" />
-              Historique des réservations
+              {t('bookingHistory')}
             </h3>
 
             {bookingsLoading ? (
@@ -801,7 +810,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
               </div>
             ) : bookings.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">
-                Aucune réservation
+                {t('noBookings')}
               </p>
             ) : (
               <div className="space-y-2">
@@ -811,7 +820,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1 min-w-0 flex-wrap">
                           <span className="font-medium text-sm truncate min-w-0">
-                            {booking.businessService?.name || 'Service'}
+                            {booking.businessService?.name || t('serviceLabel')}
                           </span>
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${statusColors[booking.status]}`}>
                             {statusLabels[booking.status]}
@@ -822,13 +831,13 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                             <span className="flex items-center gap-1 min-w-0">
                               <Calendar className="w-3 h-3 shrink-0" />
                               <span className="truncate">
-                                {new Date(booking.scheduledAt).toLocaleDateString('fr-FR', {
+                                {new Date(booking.scheduledAt).toLocaleDateString(locale, {
                                   day: 'numeric',
                                   month: 'short',
                                   year: 'numeric',
                                 })}
-                                {' à '}
-                                {new Date(booking.scheduledAt).toLocaleTimeString('fr-FR', {
+                                {' '}{t('at')}{' '}
+                                {new Date(booking.scheduledAt).toLocaleTimeString(locale, {
                                   hour: '2-digit',
                                   minute: '2-digit',
                                 })}
@@ -860,7 +869,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                                 className="rounded-full text-xs"
                               >
                                 <Receipt className="w-3.5 h-3.5 mr-1" />
-                                Facturer
+                                {t('invoice')}
                               </Button>
                             ) : null}
                             <Button
@@ -874,7 +883,7 @@ function ClientDetail({ clientId, businessId, onBack }: { clientId: string; busi
                               className="rounded-full text-xs"
                             >
                               <FileText className="w-3.5 h-3.5 mr-1" />
-                              Note
+                              {t('note')}
                             </Button>
                           </>
                         )}

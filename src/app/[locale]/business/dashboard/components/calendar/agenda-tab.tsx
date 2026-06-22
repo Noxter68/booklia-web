@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   ChevronLeft,
   ChevronRight,
@@ -59,6 +60,8 @@ export function AgendaTab({
     navigateDay,
   } = useCalendarState();
 
+  const t = useTranslations('dashboard');
+  const locale = useLocale();
   const { success, error: showError } = useToast();
   const queryClient = useQueryClient();
   const { onBookingStatus, onCalendarUpdate } = useWebSocket();
@@ -137,9 +140,9 @@ export function AgendaTab({
         queryKey: ['calendar-entries'],
       });
       setSelectedEntry(null);
-      success('Statut mis à jour');
+      success(t('agendaStatusUpdated'));
     },
-    onError: () => showError('Erreur lors de la mise à jour'),
+    onError: () => showError(t('agendaStatusError')),
   });
 
   const dragMutation = useMutation({
@@ -154,14 +157,14 @@ export function AgendaTab({
         queryKey: ['calendar-entries'],
       });
       setDragConfirm(null);
-      success('Rendez-vous déplacé');
+      success(t('agendaMoved'));
     },
     onError: (err: Error) => {
       setDragConfirm(null);
       if (err.message?.includes('Conflit')) {
-        showError('Créneau indisponible — conflit horaire');
+        showError(t('agendaSlotUnavailable'));
       } else {
-        showError('Erreur lors du déplacement');
+        showError(t('agendaMoveError'));
       }
     },
   });
@@ -173,9 +176,9 @@ export function AgendaTab({
         queryKey: ['calendar-entries'],
       });
       setSelectedEntry(null);
-      success('Bloc supprimé');
+      success(t('agendaBlockDeleted'));
     },
-    onError: () => showError('Erreur lors de la suppression'),
+    onError: () => showError(t('agendaBlockDeleteError')),
   });
 
   const handleEmptySlotClick = (
@@ -197,19 +200,19 @@ export function AgendaTab({
   const dateLabel = useMemo(() => {
     if (view === 'day') {
       const isToday = isSameDay(selectedDate, new Date());
-      const formatted = selectedDate.toLocaleDateString('fr-FR', {
+      const formatted = selectedDate.toLocaleDateString(locale, {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
         year: 'numeric',
       });
-      return isToday ? `Aujourd'hui — ${formatted}` : formatted;
+      return isToday ? `${t('agendaToday')} — ${formatted}` : formatted;
     }
     const ws = getWeekStart(selectedDate);
     const we = new Date(ws);
     we.setDate(we.getDate() + 6);
-    return `${ws.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} — ${we.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`;
-  }, [view, selectedDate]);
+    return `${ws.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} — ${we.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  }, [view, selectedDate, locale, t]);
 
   return (
     <div className="space-y-4">
@@ -230,7 +233,7 @@ export function AgendaTab({
               onClick={() => navigateDay('today')}
               className="px-3 py-1.5 text-sm font-medium rounded-lg hover:bg-muted transition-colors cursor-pointer"
             >
-              Aujourd&apos;hui
+              {t('agendaToday')}
             </button>
             <button
               onClick={() => navigateDay('next')}
@@ -259,7 +262,7 @@ export function AgendaTab({
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              Jour
+              {t('agendaDay')}
             </button>
             <button
               onClick={() => setView('week')}
@@ -269,7 +272,7 @@ export function AgendaTab({
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              Semaine
+              {t('agendaWeek')}
             </button>
           </div>
 
@@ -278,7 +281,7 @@ export function AgendaTab({
             onChange={(e) => setStaffFilter(e.target.value || null)}
             className="col-span-2 h-10 sm:h-9 rounded-lg border border-border bg-surface px-3 text-sm"
           >
-            <option value="">Tous les employés</option>
+            <option value="">{t('agendaAllEmployees')}</option>
             {employees
               .filter((e) => e.isActive)
               .map((e) => (
@@ -305,7 +308,7 @@ export function AgendaTab({
             }
           >
             <Ban className="w-4 h-4 mr-1.5" />
-            Bloquer
+            {t('agendaBlock')}
           </Button>
           <Button
             variant="outline"
@@ -314,7 +317,7 @@ export function AgendaTab({
             onClick={() => setNextAvailableOpen(true)}
           >
             <Search className="w-4 h-4 mr-1.5" />
-            Trouver un créneau
+            {t('agendaFindSlot')}
           </Button>
           <Button
             size="sm"
@@ -327,7 +330,7 @@ export function AgendaTab({
             }
           >
             <Plus className="w-4 h-4 mr-1.5" />
-            Nouveau RDV
+            {t('agendaNewAppt')}
           </Button>
         </div>
       </div>
